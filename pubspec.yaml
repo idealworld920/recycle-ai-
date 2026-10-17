@@ -44,6 +44,7 @@ dependencies:
   home_widget: ^0.10.0
   workmanager: ^0.10.10
   timezone: ^0.11.2
+  url_launcher: ^6.3.3
 
 
 dev_dependencies:
@@ -71,6 +72,7 @@ flutter:
   assets:
     - assets/fonts/LICENSE.txt
     - assets/data/tips.json
+    - assets/data/bulky_waste_links.json
 
   fonts:
     - family: Pretendard

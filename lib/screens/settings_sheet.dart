@@ -4,6 +4,7 @@ import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
+import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
 import '../features/schedule/schedule_settings_sheet.dart';
@@ -13,12 +14,13 @@ import 'package:material_symbols_icons/symbols.dart';
 /// 설정 바텀시트. AI 연결 상태와 앱 정보.
 Future<void> showSettingsSheet(BuildContext context) {
   final session = AppServices.of(context).firebase;
+  final region = AppServices.of(context).region;
   return showAppSheet(
     context,
     title: '설정',
     initialSize: 0.55,
     builder: (ctx, controller) => ListenableBuilder(
-      listenable: session,
+      listenable: Listenable.merge([session, region]),
       builder: (ctx, _) {
         final c = ctx.colors;
         final t = ctx.text;
@@ -26,6 +28,26 @@ Future<void> showSettingsSheet(BuildContext context) {
           controller: controller,
           padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
           children: [
+            Text('내 지역', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              onTap: () {
+                Navigator.pop(ctx);
+                showRegionPickerSheet(context);
+              },
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Row(
+                children: [
+                  Icon(Symbols.location_on_rounded, color: c.textPrimary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(child: Text(regionLabel(region.selected), style: t.titleSmall)),
+                  Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text('대형폐기물 신고, 수거함 안내에 써요. 위치 권한은 쓰지 않아요.', style: t.bodySmall),
+            const SizedBox(height: AppSpacing.xl),
             Text('수거일', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(

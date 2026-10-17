@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'features/tips/tips_repository.dart';
 import 'core/firebase_session.dart';
 import 'features/history/history_store.dart';
+import 'features/places/region_store.dart';
 import 'features/schedule/schedule_store.dart';
 import 'features/stats/collection_store.dart';
 import 'services/settings_store.dart';
@@ -17,6 +18,7 @@ class AppServices extends InheritedWidget {
     required this.firebase,
     required this.schedule,
     required this.collection,
+    required this.region,
     required super.child,
   });
 
@@ -26,6 +28,7 @@ class AppServices extends InheritedWidget {
   final FirebaseSession firebase;
   final ScheduleStore schedule;
   final CollectionStore collection;
+  final RegionStore region;
 
   static AppServices of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppServices>();
@@ -35,5 +38,5 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection;
+      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection || region != oldWidget.region;
 }

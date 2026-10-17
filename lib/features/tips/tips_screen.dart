@@ -5,6 +5,7 @@ import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_chip.dart';
+import '../places/places_section.dart';
 import 'tip_card.dart';
 import 'tip_model.dart';
 
@@ -44,6 +45,9 @@ class _TipsScreenState extends State<TipsScreen> {
           const SizedBox(height: AppSpacing.sm),
           Text('품목 이름으로 찾아보세요. 환경부 기준으로 정리했어요.', style: t.bodySmall),
           const SizedBox(height: AppSpacing.lg),
+          const PlacesSection(),
+          Text('품목별 팁', style: t.titleMedium),
+          const SizedBox(height: AppSpacing.md),
         ],
         TextField(
           controller: _controller,
