@@ -37,6 +37,29 @@ Firebase 콘솔에서 켜야 하는 것: Vertex AI(Firebase AI Logic), 익명 �
 GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter test` → `flutter build apk`를 돌려요.
 **Actions 탭 → 최근 실행 → Artifacts → recycle-ai-apk**에서 내려받아 안드로이드 폰에 설치하면 돼요.
 
+## 구글 로그인 설정 (SHA 지문 등록)
+
+앱은 익명으로 시작하고, 설정에서 "구글로 연결하기"를 누르면 익명 계정에 구글을 묶어요. Android 에서 구글 로그인이 되려면 Firebase 에 앱의 서명 지문이 등록돼 있어야 해요.
+
+1. Firebase 콘솔 → Authentication → Sign-in method → **Google** 사용 설정 (지원 이메일 선택)
+2. 지문 뽑기
+   - 디버그 키 (개발용, `flutter run`):
+     ```bash
+     cd android && ./gradlew signingReport        # Variant: debug 아래 SHA1 / SHA-256
+     # 또는
+     keytool -list -v -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android
+     ```
+   - 릴리스 키 (스토어 배포용 keystore):
+     ```bash
+     keytool -list -v -alias <alias> -keystore <release.jks>
+     ```
+   - Play 앱 서명을 쓰면 Play Console → 설정 → 앱 무결성 → **앱 서명 키 인증서**의 SHA-1/SHA-256 도 등록
+3. Firebase 콘솔 → 프로젝트 설정 → 내 앱 → Android 앱 → **디지털 지문 추가** 에 위 SHA-1 과 SHA-256 을 디버그·릴리스 **둘 다** 추가
+4. `google-services.json` 을 **다시 다운로드**해서 `android/app/` 에 덮어쓰기 (지문을 추가하면 파일 안에 OAuth 클라이언트가 생겨요). `flutterfire configure` 를 다시 돌려도 돼요
+5. 앱 재설치 후 설정 → 구글로 연결하기
+
+문제가 생기면: `clientConfigurationError` / `DEVELOPER_ERROR` 는 거의 항상 지문 누락이거나 google-services.json 이 옛날 파일인 경우예요.
+
 ## 수거일 알림·위젯 테스트 (에뮬레이터)
 
 **알림**
@@ -79,6 +102,7 @@ lib/
     stats/                    월간 요약·주간 스트릭·도감
     places/                   버리는 곳: 지역 선택, 대형폐기물 신고·수거함 링크
     quiz/                     주 1회 헷갈리는 쓰레기 퀴즈 (토요일 11:00 알림)
+    auth/                     익명 → 구글 연결, 잠금 UI, 로그아웃·계정 삭제
     tips/                     품목별 팁 검색
     history/                  분류 기록 (로컬 저장)
   services/

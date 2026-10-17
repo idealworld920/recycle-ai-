@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
+import '../auth/locked_overlay.dart';
 import 'stats_calculator.dart';
 
 /// "연속 n주 수거일 체크" + 주별 점 12개. 끊겨도 아무 말 안 한다.
 class StreakRow extends StatelessWidget {
-  const StreakRow({super.key, required this.streak});
+  const StreakRow({super.key, required this.streak, this.lockHistory = false, this.onConnect});
 
   final StreakResult streak;
+
+  /// 익명이면 12주 점을 블러로 가린다. 현재 "n주 연속" 은 보여준다.
+  final bool lockHistory;
+  final VoidCallback? onConnect;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,11 @@ class StreakRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
+          LockedOverlay(
+            locked: lockHistory,
+            message: '12주 기록은 연결 후 볼 수 있어요',
+            onConnect: onConnect ?? () {},
+            child: Row(
             children: [
               for (final dot in streak.dots) ...[
                 Expanded(
@@ -44,6 +53,7 @@ class StreakRow extends StatelessWidget {
                 ),
               ],
             ],
+          ),
           ),
         ],
       ),

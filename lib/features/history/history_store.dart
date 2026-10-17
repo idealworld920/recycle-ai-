@@ -153,6 +153,13 @@ class HistoryStore extends ChangeNotifier {
     await _remoteDelete([id]);
   }
 
+  /// 기기 복사본만 비운다 (서버는 그대로). 계정 전환용.
+  Future<void> resetLocal() async {
+    _items = [];
+    await _writeAll();
+    notifyListeners();
+  }
+
   Future<void> clear() async {
     final ids = _items.map((r) => r.id).toList();
     _items = [];

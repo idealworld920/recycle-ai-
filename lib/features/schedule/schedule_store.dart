@@ -77,6 +77,17 @@ class ScheduleStore extends ChangeNotifier {
     }
   }
 
+  /// 계정 전환 시 기기 설정을 비운다. 알림·위젯도 같이 정리.
+  Future<void> resetLocal() async {
+    await _repo.resetLocal();
+    _schedule = null;
+    _checkins = {};
+    _checkinDates = {};
+    notifyListeners();
+    await NotificationService.instance.reschedule(const PickupSchedule());
+    await WidgetService.refreshNow(null);
+  }
+
   /// [버렸어요] 한 탭.
   Future<void> checkIn(WasteType t) async {
     _refreshDay();

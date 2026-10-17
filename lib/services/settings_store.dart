@@ -6,10 +6,21 @@ class SettingsStore {
 
   static const _onboardedPref = 'onboarded_v1';
   static const _quizReminderPref = 'quiz_reminder_v1';
+  static const _installedAtPref = 'installed_at_v1';
 
   final SharedPreferences _prefs;
 
-  static Future<SettingsStore> load() async => SettingsStore(await SharedPreferences.getInstance());
+  static Future<SettingsStore> load() async {
+    final s = SettingsStore(await SharedPreferences.getInstance());
+    if (s._prefs.getString(_installedAtPref) == null) {
+      await s._prefs.setString(_installedAtPref, DateTime.now().toIso8601String());
+    }
+    return s;
+  }
+
+  /// 첫 실행 시각. 30일 배너 기준.
+  DateTime get installedAt => DateTime.tryParse(_prefs.getString(_installedAtPref) ?? '') ?? DateTime.now();
+  int get daysSinceInstall => DateTime.now().difference(installedAt).inDays;
 
   bool get onboarded => _prefs.getBool(_onboardedPref) ?? false;
 

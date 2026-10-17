@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'app_services.dart';
 import 'core/firebase_session.dart';
+import 'features/auth/auth_service.dart';
+import 'features/auth/auth_store.dart';
 import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
 import 'features/places/region.dart';
@@ -31,11 +33,14 @@ Future<void> main() async {
   final collection = await CollectionStore.load(tips);
   final region = await RegionStore.load(await RegionRepository.load());
   final quiz = await QuizStore.load(await QuizRepository.load());
+  final auth = await AuthStore.load(firebase.ready ? FirebaseAuthService() : OfflineAuthService());
   // 퀴즈 알림은 같은 id 로 다시 잡으면 갱신되므로 매 시작마다 설정값대로 맞춘다.
   NotificationService.instance.scheduleQuizReminder(settings.quizReminder);
   // 로그인되면 Firestore 와 맞춘다. 실패해도 앱은 뜬다.
+  String? attachedUid;
   void attachAll() {
-    if (!firebase.ready) return;
+    if (!firebase.ready || firebase.uid == attachedUid) return;
+    attachedUid = firebase.uid;
     schedule.attachUser(firebase.uid);
     history.attachUser(firebase.uid);
     collection.attachUser(firebase.uid);
@@ -47,7 +52,7 @@ Future<void> main() async {
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
   }
-  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection, region: region, quiz: quiz));
+  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection, region: region, quiz: quiz, auth: auth));
 }
 
 class RecycleApp extends StatelessWidget {
@@ -61,6 +66,7 @@ class RecycleApp extends StatelessWidget {
     required this.collection,
     required this.region,
     required this.quiz,
+    required this.auth,
   });
 
   final SettingsStore settings;
@@ -71,6 +77,7 @@ class RecycleApp extends StatelessWidget {
   final CollectionStore collection;
   final RegionStore region;
   final QuizStore quiz;
+  final AuthStore auth;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +90,7 @@ class RecycleApp extends StatelessWidget {
       collection: collection,
       region: region,
       quiz: quiz,
+      auth: auth,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,

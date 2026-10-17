@@ -7,6 +7,8 @@ import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
+import '../features/auth/auth_store.dart';
+import '../features/auth/link_banner.dart';
 import '../features/quiz/quiz_card.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/schedule/pickup_card.dart';
@@ -134,6 +136,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.base),
+                ListenableBuilder(
+                  listenable: AppServices.of(context).history,
+                  builder: (context, _) => AppServices.of(context).history.items.length >= 10
+                      ? const LinkBanner(
+                          promptKey: AuthStore.keyHistory10,
+                          title: '기기 바꿔도 기록 지키기',
+                          body: '기록이 10건 넘게 쌓였어요. 구글로 연결해 두면 기기를 바꿔도 그대로예요.',
+                        )
+                      : const SizedBox.shrink(),
+                ),
                 Text('오늘은 뭘 버릴까요?', style: t.headlineSmall),
                 const SizedBox(height: AppSpacing.lg),
                 const PickupCard(),

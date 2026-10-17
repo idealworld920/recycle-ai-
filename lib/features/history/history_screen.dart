@@ -8,6 +8,10 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../screens/result_screen.dart';
 import '../../widgets/category_badge.dart';
+import '../auth/auth_store.dart';
+import '../auth/link_banner.dart';
+import '../auth/link_flows.dart';
+import '../auth/locked_overlay.dart';
 import '../stats/collection_sheet.dart';
 import '../stats/monthly_summary_card.dart';
 import '../stats/stats_calculator.dart';
@@ -26,19 +30,27 @@ class HistoryScreen extends StatelessWidget {
     final services = AppServices.of(context);
     final history = services.history;
     final schedule = services.schedule;
+    final auth = services.auth;
+    final settings = services.settings;
     final t = context.text;
     final c = context.colors;
 
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([history, schedule]),
+          listenable: Listenable.merge([history, schedule, auth]),
           builder: (context, _) {
             final items = history.items;
             if (items.isEmpty) return _EmptyState(onGoHome: onGoHome);
 
             final now = DateTime.now();
-            final groups = HistoryStore.groupByDay(items);
+            final anonymous = auth.isAnonymous;
+            // 익명이면 최근 30일만 목록에. 나머지는 저장만 되고 잠금 카드로 안내.
+            final cutoff = now.subtract(const Duration(days: 30));
+            final visible = anonymous ? items.where((r) => r.date.isAfter(cutoff)).toList() : items;
+            final hiddenCount = items.length - visible.length;
+            final groups = HistoryStore.groupByDay(visible);
+            void connect() => connectGoogle(context);
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
@@ -55,9 +67,20 @@ class HistoryScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.base),
-                MonthlySummaryCard(summary: StatsCalculator.monthlySummary(items, now), month: now),
+                if (anonymous && settings.daysSinceInstall >= 30)
+                  const LinkBanner(
+                    promptKey: AuthStore.keyHistory30,
+                    title: '설치한 지 30일, 기록이 꽤 쌓였어요',
+                    body: '구글로 연결해 두면 기기를 바꾸거나 앱을 지워도 기록이 그대로예요.',
+                  ),
+                MonthlySummaryCard(
+                  summary: StatsCalculator.monthlySummary(items, now),
+                  month: now,
+                  lockCompare: anonymous,
+                  onConnect: connect,
+                ),
                 const SizedBox(height: AppSpacing.sm),
-                StreakRow(streak: schedule.streak(now)),
+                StreakRow(streak: schedule.streak(now), lockHistory: anonymous, onConnect: connect),
                 const SizedBox(height: AppSpacing.xl),
                 for (final (day, records) in groups) ...[
                   Padding(
@@ -79,6 +102,10 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     if (i != records.length - 1) const Divider(),
                   ],
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                if (hiddenCount > 0) ...[
+                  LockedOverlay(message: '이전 기록 $hiddenCount건이 보관 중이에요 · 구글로 연결하면 열려요', onConnect: connect),
                   const SizedBox(height: AppSpacing.lg),
                 ],
                 const CollectionCard(),

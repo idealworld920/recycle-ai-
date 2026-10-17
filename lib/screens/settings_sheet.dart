@@ -4,6 +4,8 @@ import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
+import '../features/auth/account_section.dart';
+import '../features/auth/link_flows.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
@@ -29,6 +31,31 @@ Future<void> showSettingsSheet(BuildContext context) {
           controller: controller,
           padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
           children: [
+            const AccountSection(),
+            const SizedBox(height: AppSpacing.xl),
+            Text('가족 공유', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              onTap: () async {
+                final auth = AppServices.of(context).auth;
+                if (auth.isAnonymous) {
+                  Navigator.pop(ctx);
+                  await requireLinkForFamily(context);
+                  return;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('가족 공유는 준비 중이에요.')));
+              },
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Row(
+                children: [
+                  Icon(Symbols.family_restroom_rounded, color: c.textPrimary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(child: Text('집 만들기 · 참여하기', style: t.titleSmall)),
+                  Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
             Text('내 지역', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(

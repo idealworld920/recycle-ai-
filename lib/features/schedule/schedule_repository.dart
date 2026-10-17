@@ -75,6 +75,15 @@ class ScheduleRepository {
     }
   }
 
+  /// 기기 복사본 전부 삭제 (설정·체크인). 계정 전환용.
+  Future<void> resetLocal() async {
+    await _prefs.remove(schedulePref);
+    await _prefs.remove(checkinDatesPref);
+    for (final key in _prefs.getKeys().where((k) => k.startsWith(checkinPrefPrefix)).toList()) {
+      await _prefs.remove(key);
+    }
+  }
+
   // ---- 체크인 ----
 
   Set<WasteType> loadCheckinsLocal(String dateKey) {

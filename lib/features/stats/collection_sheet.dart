@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/waste_group.dart';
 import '../../widgets/app_card.dart';
+import '../auth/link_flows.dart';
 import '../tips/tip_model.dart';
 import 'collection_store.dart';
 
@@ -24,12 +25,13 @@ class CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = AppServices.of(context).collection;
+    final auth = AppServices.of(context).auth;
     final t = context.text;
     final c = context.colors;
     return ListenableBuilder(
-      listenable: store,
+      listenable: Listenable.merge([store, auth]),
       builder: (context, _) => AppCard(
-        onTap: () => showCollectionSheet(context),
+        onTap: () => auth.isAnonymous ? showLockedSheet(context, what: '도감 격자') : showCollectionSheet(context),
         child: Row(
           children: [
             Icon(Symbols.grid_view_rounded, size: 24, color: c.textPrimary),
@@ -44,7 +46,7 @@ class CollectionCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+            Icon(auth.isAnonymous ? Symbols.lock_rounded : Symbols.chevron_right_rounded, color: c.textSecondary),
           ],
         ),
       ),

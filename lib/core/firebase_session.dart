@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../firebase_options.dart';
@@ -19,6 +21,7 @@ class FirebaseSession extends ChangeNotifier {
   bool _ready = false;
   String? _error;
   bool _busy = false;
+  StreamSubscription<User?>? _userSub;
 
   bool get ready => _ready;
   String? get error => _error;
@@ -50,6 +53,11 @@ class FirebaseSession extends ChangeNotifier {
       }
       _ready = FirebaseAuth.instance.currentUser != null;
       if (!_ready) _error = '익명 로그인에 실패했어요.';
+      // 구글 연결·로그아웃·삭제로 사용자가 바뀌면 알려서 저장소들이 다시 붙게 한다.
+      _userSub ??= FirebaseAuth.instance.userChanges().listen((u) {
+        _ready = u != null;
+        notifyListeners();
+      });
     } catch (e) {
       _ready = false;
       _error = _friendly(e);

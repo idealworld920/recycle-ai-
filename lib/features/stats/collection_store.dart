@@ -51,6 +51,13 @@ class CollectionStore extends ChangeNotifier {
     }
   }
 
+  /// 기기 복사본만 비운다. 계정 전환용.
+  Future<void> resetLocal() async {
+    _ids = {};
+    await _prefs.setStringList(prefKey, const []);
+    notifyListeners();
+  }
+
   /// 처음 보는 품목이면 추가하고 true. 이미 있으면 false.
   Future<bool> collect(Tip tip, {String? itemName}) async {
     if (_ids.contains(tip.id)) return false;
