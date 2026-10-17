@@ -26,7 +26,7 @@ class _HomeShellState extends State<HomeShell> {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.camera_alt_outlined),
-            selectedIcon: Icon(Icons.camera_alt),
+            selectedIcon: Icon(Icons.camera_alt_rounded),
             label: '판별',
           ),
           NavigationDestination(

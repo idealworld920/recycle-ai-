@@ -46,11 +46,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settings = AppServices.of(context).settings;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
+      appBar: AppBar(title: const Text('설정 ⚙️')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
-          Text('Gemini API 키', style: Theme.of(context).textTheme.titleMedium),
+          Text('Gemini API 키 🔑', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 6),
           Text(
             'AI 판별에 사용돼요. 키는 이 기기에만 저장되고 Google 서버로만 전송돼요.',
@@ -72,16 +72,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _save, child: const Text('저장')),
+          FilledButton(onPressed: _save, child: const Text('저장하기')),
           const SizedBox(height: 24),
-          Card(
-            color: scheme.surfaceContainerHighest,
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('키 만드는 방법', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('키 만드는 방법 🛠️', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   const Text('1. Google AI Studio에 접속해요.\n'
                       '2. "Get API key" → "Create API key"를 눌러요.\n'
@@ -101,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('앱 정보', style: Theme.of(context).textTheme.titleMedium),
+          Text('앱 정보 ℹ️', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 6),
           Text(
             '분리수거 AI v0.1.0\n'

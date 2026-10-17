@@ -21,7 +21,7 @@ void main() {
         child: const MaterialApp(home: GuideScreen()),
       ),
     );
-    expect(find.text('분리배출 가이드'), findsOneWidget);
+    expect(find.text('분리배출 가이드 📚'), findsOneWidget);
     expect(find.text('투명 페트병'), findsOneWidget);
     // 목록은 lazy하게 그려지므로 마지막 항목까지 스크롤한다.
     await tester.scrollUntilVisible(

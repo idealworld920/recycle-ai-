@@ -4,11 +4,18 @@ import 'app_services.dart';
 import 'screens/home_shell.dart';
 import 'services/history_store.dart';
 import 'services/settings_store.dart';
+import 'theme/app_theme.dart';
+
+/// `--dart-define=DEMO=true` 로 빌드하면 스토어 스크린샷용 샘플 기록을 넣는다.
+const bool kDemoMode = bool.fromEnvironment('DEMO');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await SettingsStore.load();
   final history = await HistoryStore.load();
+  if (kDemoMode && history.items.isEmpty) {
+    await history.seedDemo();
+  }
   runApp(RecycleApp(settings: settings, history: history));
 }
 
@@ -20,31 +27,14 @@ class RecycleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seed = const Color(0xFF2E7D32);
     return AppServices(
       settings: settings,
       history: history,
       child: MaterialApp(
         title: '분리수거 AI',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: seed),
-          cardTheme: const CardThemeData(
-            elevation: 0,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-            ),
-          ),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: seed,
-            brightness: Brightness.dark,
-          ),
-        ),
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
         home: const HomeShell(),
       ),
     );
