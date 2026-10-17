@@ -2,14 +2,17 @@ import 'package:firebase_ai/firebase_ai.dart';
 
 /// Gemini 를 어느 경로로 부를지 한 곳에서 정한다.
 ///
-/// - `agentPlatform()` : Vertex AI(Gemini Enterprise) 경로. 콘솔에서 Vertex AI API 를 켜야 하고 Blaze 요금제 필요
+/// - `vertexAI()` : Vertex AI 경로. 콘솔에서 Vertex AI API 를 켜야 하고 Blaze 요금제 필요. 리전은 [location]
 /// - `googleAI()` : Gemini Developer API (무료 Spark 요금제에서도 동작)
 /// 둘 다 API 키는 앱에 들어가지 않고 Firebase App Check 로 보호된다.
 class AiBackend {
   AiBackend._();
 
-  /// Spark(무료) 요금제에서는 false. Blaze 로 올리고 Vertex AI 를 쓰려면 true.
-  static const bool useVertexAI = false;
+  /// Vertex AI 경로 사용. 무료 Spark 요금제로 돌릴 땐 false 로.
+  static const bool useVertexAI = true;
+
+  /// Vertex AI 리전. 서울.
+  static const String location = 'asia-northeast3';
   /// 채팅·사진 분류가 함께 쓰는 모델. 여기 한 곳만 바꾸면 된다.
   static const String modelName = 'gemini-3.8-flash';
 
@@ -23,4 +26,8 @@ class AiBackend {
   }
 }
 
-FirebaseAI aiBackend() => AiBackend.useVertexAI ? FirebaseAI.agentPlatform() : FirebaseAI.googleAI();
+FirebaseAI aiBackend() => AiBackend.useVertexAI
+    // firebase_ai 4.x 에서 vertexAI() 는 agentPlatform() 으로 이름이 바뀌는 중이라 deprecated 표시가 뜨지만 동작은 같다.
+    // ignore: deprecated_member_use
+    ? FirebaseAI.vertexAI(location: AiBackend.location)
+    : FirebaseAI.googleAI();
