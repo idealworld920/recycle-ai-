@@ -156,6 +156,24 @@ class ScheduleStore extends ChangeNotifier {
     }
   }
 
+  /// 스크린샷·데모용: 수거일 설정과 최근 체크인을 넣는다 (알림·위젯은 건드리지 않음).
+  Future<void> seedDemo() async {
+    final s = PickupSchedule(days: {
+      WasteType.recycle: {DateTime.now().weekday, (DateTime.now().weekday % 7) + 1},
+      WasteType.general: {1, 4},
+      WasteType.food: {2, 5},
+    });
+    await _repo.save(s);
+    _schedule = s;
+    final now = DateTime.now();
+    for (var w = 1; w <= 4; w++) {
+      final d = now.subtract(Duration(days: 7 * w));
+      await _repo.checkIn(PickupSchedule.dateKey(d), WasteType.recycle);
+    }
+    _checkinDates = _repo.loadCheckinDatesLocal();
+    notifyListeners();
+  }
+
   /// 홈 카드용 스냅샷.
   ({List<WasteType> today, List<UpcomingPickup> upcoming}) snapshot(DateTime now) {
     _refreshDay();

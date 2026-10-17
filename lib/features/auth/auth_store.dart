@@ -8,7 +8,7 @@ import 'auth_service.dart';
 
 /// 로그인 상태 + "한 번만" 보여주는 유도 배너 기록.
 class AuthStore extends ChangeNotifier {
-  AuthStore(this._service, this._prefs) {
+  AuthStore(this._service, this._prefs, {this.demoLinked = false}) {
     _sub = _service.userChanges.listen((_) {
       _loadPromptState();
       notifyListeners();
@@ -21,6 +21,9 @@ class AuthStore extends ChangeNotifier {
 
   final AuthService _service;
   final SharedPreferences _prefs;
+
+  /// 스크린샷·데모 빌드에서 잠금 UI 없이 보이게.
+  final bool demoLinked;
   StreamSubscription<User?>? _sub;
   Map<String, bool> _dismissed = {};
   bool _busy = false;
@@ -31,12 +34,12 @@ class AuthStore extends ChangeNotifier {
   bool get busy => _busy;
 
   /// 익명이거나 아예 로그인 전이면 true.
-  bool get isAnonymous => user?.isAnonymous ?? true;
+  bool get isAnonymous => demoLinked ? false : (user?.isAnonymous ?? true);
   bool get isLinked => !isAnonymous;
   String? get email => user?.email;
 
-  static Future<AuthStore> load(AuthService service) async {
-    final s = AuthStore(service, await SharedPreferences.getInstance());
+  static Future<AuthStore> load(AuthService service, {bool demoLinked = false}) async {
+    final s = AuthStore(service, await SharedPreferences.getInstance(), demoLinked: demoLinked);
     await s._loadPromptState();
     return s;
   }

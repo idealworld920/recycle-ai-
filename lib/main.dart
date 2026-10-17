@@ -46,7 +46,7 @@ Future<void> main() async {
   await WidgetService.init();
   final collection = await CollectionStore.load(tips);
   final region = await RegionStore.load(await RegionRepository.load());
-  final auth = await AuthStore.load(firebase.ready ? FirebaseAuthService() : OfflineAuthService());
+  final auth = await AuthStore.load(firebase.ready ? FirebaseAuthService() : OfflineAuthService(), demoLinked: kDemoMode);
   final premium = PremiumStore(PurchasesService.instance);
   final household = HouseholdStore(HouseholdRepository());
   final freeLimits = FreeLimits(await SharedPreferences.getInstance());
@@ -67,6 +67,9 @@ Future<void> main() async {
   firebase.addListener(attachAll);
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
+    await schedule.seedDemo();
+    await settings.setOnboarded(true);
+    await region.select(region.repository.byId('서울_마포구'));
   }
   runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection, region: region, auth: auth, premium: premium, household: household, freeLimits: freeLimits));
 }
