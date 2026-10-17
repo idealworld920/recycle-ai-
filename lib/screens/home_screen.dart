@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
@@ -95,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Spacer(),
                     IconButton(
                       onPressed: () => showSettingsSheet(context),
-                      icon: const Icon(Icons.settings_outlined),
+                      icon: const Icon(Symbols.settings_rounded),
                       tooltip: '설정',
                     ),
                   ],
@@ -110,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: _busy ? null : () => _pick(ImageSource.camera),
-                        icon: const Icon(Icons.photo_camera_outlined, size: 24),
+                        icon: const Icon(Symbols.photo_camera_rounded, size: 24),
                         label: const Text('사진 찍기'),
                       ),
                     ),
@@ -120,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _busy ? null : () => _pick(ImageSource.gallery),
                         style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-                        icon: const Icon(Icons.photo_outlined, size: 20),
+                        icon: const Icon(Symbols.photo_library_rounded, size: 20),
                         label: const Text('갤러리'),
                       ),
                     ),

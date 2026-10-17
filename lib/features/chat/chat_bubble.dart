@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -42,7 +43,7 @@ class ChatBubble extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.refresh_rounded, size: 16, color: fg),
+                      Icon(Symbols.refresh_rounded, size: 16, color: fg),
                       const SizedBox(width: AppSpacing.xs),
                       Text('다시 시도', style: t.labelLarge?.copyWith(fontSize: 13, color: fg)),
                     ],

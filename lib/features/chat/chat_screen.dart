@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
 import '../../core/firebase_session.dart';
@@ -204,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         style: IconButton.styleFrom(backgroundColor: c.ink, foregroundColor: c.onInk, disabledBackgroundColor: c.surface),
                         icon: _sending
                             ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: c.textSecondary))
-                            : const Icon(Icons.arrow_upward_rounded),
+                            : const Icon(Symbols.arrow_upward_rounded),
                       ),
                     ),
                   ],
@@ -259,7 +260,7 @@ class _NotReady extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_outlined, size: 40, color: c.textSecondary),
+          Icon(Symbols.cloud_off_rounded, size: 40, color: c.textSecondary),
           const SizedBox(height: AppSpacing.md),
           Text(session.busy ? '연결하는 중이에요' : 'AI 도우미에 연결하지 못했어요', style: text.titleSmall),
           const SizedBox(height: AppSpacing.xs),

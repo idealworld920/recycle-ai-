@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -54,7 +55,7 @@ class TipCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 18, color: c.warningText),
+                  Icon(Symbols.warning_rounded, size: 18, color: c.warningText),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(child: Text(tip.caution, style: t.bodySmall?.copyWith(color: c.warningText))),
                 ],
@@ -66,7 +67,7 @@ class TipCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.place_outlined, size: 16, color: c.textSecondary),
+                Icon(Symbols.location_on_rounded, size: 16, color: c.textSecondary),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(child: Text(tip.localNote, style: t.bodySmall)),
               ],

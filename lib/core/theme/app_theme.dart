@@ -187,9 +187,9 @@ class AppTheme {
         centerTitle: false,
         titleSpacing: 0,
         titleTextStyle: AppTypography.section,
-        iconTheme: IconThemeData(color: c.textPrimary, size: 24),
+        iconTheme: IconThemeData(color: c.textPrimary, size: 24, weight: 300, fill: 0),
       ),
-      iconTheme: IconThemeData(color: c.textPrimary, size: 24),
+      iconTheme: IconThemeData(color: c.textPrimary, size: 24, weight: 300, fill: 0),
       cardTheme: CardThemeData(
         color: c.surface,
         elevation: 0,
@@ -255,7 +255,11 @@ class AppTheme {
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(size: 24, color: states.contains(WidgetState.selected) ? c.textPrimary : c.textSecondary),
+          (states) => IconThemeData(
+            size: 24,
+            weight: 300,
+            color: states.contains(WidgetState.selected) ? c.textPrimary : c.textSecondary,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

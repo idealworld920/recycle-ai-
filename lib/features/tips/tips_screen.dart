@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
@@ -50,10 +51,10 @@ class _TipsScreenState extends State<TipsScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: '예: 페트병, 치킨 뼈, 건전지',
-            prefixIcon: Icon(Icons.search_rounded, color: c.textSecondary),
+            prefixIcon: Icon(Symbols.search_rounded, color: c.textSecondary),
             suffixIcon: _controller.text.isEmpty
                 ? null
-                : IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => setState(_controller.clear)),
+                : IconButton(icon: const Icon(Symbols.close_rounded), onPressed: () => setState(_controller.clear)),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -81,7 +82,7 @@ class _TipsScreenState extends State<TipsScreen> {
             padding: const EdgeInsets.only(top: AppSpacing.xxl * 2),
             child: Column(
               children: [
-                Icon(Icons.search_off_rounded, size: 40, color: c.textSecondary),
+                Icon(Symbols.search_off_rounded, size: 40, color: c.textSecondary),
                 const SizedBox(height: AppSpacing.sm),
                 Text('찾는 품목이 없어요', style: t.titleSmall),
                 const SizedBox(height: AppSpacing.xs),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
@@ -61,7 +62,7 @@ class _GuideRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: context.colors.textSecondary),
+            Icon(Symbols.chevron_right_rounded, color: context.colors.textSecondary),
           ],
         ),
       ),
@@ -102,9 +103,9 @@ Future<void> showGuideDetailSheet(BuildContext context, GuideEntry entry) {
             if (i != entry.howTo.length - 1) const Divider(),
           ],
           const SizedBox(height: AppSpacing.xl),
-          _ListSection(title: '이런 건 돼요', icon: Icons.check_rounded, iconColor: c.primary, items: entry.allowed),
+          _ListSection(title: '이런 건 돼요', icon: Symbols.check_rounded, iconColor: c.primary, items: entry.allowed),
           const SizedBox(height: AppSpacing.xl),
-          _ListSection(title: '이런 건 안 돼요', icon: Icons.close_rounded, iconColor: c.error, items: entry.notAllowed),
+          _ListSection(title: '이런 건 안 돼요', icon: Symbols.close_rounded, iconColor: c.error, items: entry.notAllowed),
         ],
       );
     },

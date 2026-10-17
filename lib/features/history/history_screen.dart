@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
@@ -65,7 +66,7 @@ class HistoryScreen extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: AppSpacing.lg),
                         color: c.errorSoft,
-                        child: Icon(Icons.delete_outline_rounded, color: c.error),
+                        child: Icon(Symbols.delete_rounded, color: c.error),
                       ),
                       onDismissed: (_) => history.remove(records[i].id),
                       child: _RecordRow(record: records[i]),
@@ -218,7 +219,7 @@ class _RecordRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: context.colors.textSecondary),
+            Icon(Symbols.chevron_right_rounded, color: context.colors.textSecondary),
           ],
         ),
       ),
@@ -270,7 +271,7 @@ class _EmptyState extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                Icon(Icons.inbox_outlined, size: 44, color: c.textSecondary),
+                Icon(Symbols.inbox_rounded, size: 44, color: c.textSecondary),
                 const SizedBox(height: AppSpacing.base),
                 Text('아직 기록이 없어요', style: t.titleSmall),
                 const SizedBox(height: AppSpacing.xs),

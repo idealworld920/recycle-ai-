@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -18,7 +19,7 @@ class PickupDayCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(Icons.calendar_today_outlined, size: 24, color: c.textSecondary),
+          Icon(Symbols.calendar_today_rounded, size: 24, color: c.textSecondary),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -30,7 +31,7 @@ class PickupDayCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: c.textDisabled),
+          Icon(Symbols.chevron_right_rounded, color: c.textDisabled),
         ],
       ),
     );

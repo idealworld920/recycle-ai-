@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
 import '../core/theme/app_spacing.dart';
@@ -68,7 +69,7 @@ class ResultScreen extends StatelessWidget {
           Row(
             children: [
               Icon(
-                cat.isRecyclable ? Icons.check_circle_outline_rounded : Icons.remove_circle_outline_rounded,
+                cat.isRecyclable ? Symbols.check_circle_rounded : Symbols.do_not_disturb_on_rounded,
                 size: 18,
                 color: cat.isRecyclable ? c.primary : c.textSecondary,
               ),
@@ -101,7 +102,7 @@ class ResultScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.error_outline_rounded, size: 20, color: c.textPrimary),
+                      Icon(Symbols.error_rounded, size: 20, color: c.textPrimary),
                       const SizedBox(width: AppSpacing.sm),
                       Text('주의할 점', style: t.titleSmall),
                     ],
@@ -118,7 +119,7 @@ class ResultScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
           ],
 
-          if (result.tip.isNotEmpty) InfoBox(icon: Icons.lightbulb_outline_rounded, child: Text(result.tip, style: t.bodyMedium)),
+          if (result.tip.isNotEmpty) InfoBox(icon: Symbols.lightbulb_rounded, child: Text(result.tip, style: t.bodyMedium)),
           const SizedBox(height: AppSpacing.xl),
 
           Text('품목 팁', style: t.titleMedium),
@@ -128,7 +129,7 @@ class ResultScreen extends StatelessWidget {
           else
             OutlinedButton.icon(
               onPressed: () => context.pushPage(TipsScreen(initialQuery: result.itemName, showBackButton: true)),
-              icon: const Icon(Icons.lightbulb_outline_rounded, size: 20),
+              icon: const Icon(Symbols.lightbulb_rounded, size: 20),
               label: const Text('팁 더 보기'),
             ),
           const SizedBox(height: AppSpacing.xl),
@@ -142,7 +143,7 @@ class ResultScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(child: Text('${cat.label} 가이드 전체 보기', style: t.titleSmall)),
-                    Icon(Icons.chevron_right_rounded, color: c.textSecondary),
+                    Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                   ],
                 ),
               ),

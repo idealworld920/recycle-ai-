@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
@@ -29,7 +30,7 @@ Future<void> showSettingsSheet(BuildContext context) {
               child: Row(
                 children: [
                   Icon(
-                    session.ready ? Icons.check_circle_outline_rounded : Icons.cloud_off_outlined,
+                    session.ready ? Symbols.check_circle_rounded : Symbols.cloud_off_rounded,
                     color: session.ready ? c.primary : c.textSecondary,
                   ),
                   const SizedBox(width: AppSpacing.md),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../core/theme/app_theme.dart';
 import '../features/chat/chat_screen.dart';
@@ -35,23 +36,23 @@ class _HomeShellState extends State<HomeShell> {
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: '홈'),
+            NavigationDestination(icon: Icon(Symbols.home_rounded), selectedIcon: Icon(Symbols.home_rounded, fill: 1), label: '홈'),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              selectedIcon: Icon(Icons.chat_bubble_rounded),
+              icon: Icon(Symbols.chat_bubble_rounded),
+              selectedIcon: Icon(Symbols.chat_bubble_rounded, fill: 1),
               label: '물어보기',
             ),
             NavigationDestination(
-              icon: Icon(Icons.lightbulb_outline_rounded),
-              selectedIcon: Icon(Icons.lightbulb_rounded),
+              icon: Icon(Symbols.lightbulb_rounded),
+              selectedIcon: Icon(Symbols.lightbulb_rounded, fill: 1),
               label: '팁',
             ),
             NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book_rounded),
+              icon: Icon(Symbols.menu_book_rounded),
+              selectedIcon: Icon(Symbols.menu_book_rounded, fill: 1),
               label: '가이드',
             ),
-            NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history_rounded), label: '기록'),
+            NavigationDestination(icon: Icon(Symbols.history_rounded), selectedIcon: Icon(Symbols.history_rounded, fill: 1), label: '기록'),
           ],
         ),
       ),

@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'waste_group.dart';
 
 /// 한국 분리배출 기준에 맞춘 배출 분류.
 enum RecycleCategory {
-  pet('pet', '투명 페트병', Icons.water_drop_outlined),
-  plastic('plastic', '플라스틱', Icons.recycling),
-  paper('paper', '종이', Icons.description_outlined),
-  paperPack('paper_pack', '종이팩', Icons.local_drink_outlined),
-  can('can', '캔 · 고철', Icons.hardware_outlined),
-  glass('glass', '유리병', Icons.wine_bar_outlined),
-  vinyl('vinyl', '비닐', Icons.shopping_bag_outlined),
-  styrofoam('styrofoam', '스티로폼', Icons.inventory_2_outlined),
-  food('food', '음식물 쓰레기', Icons.restaurant_outlined),
-  hazardous('hazardous', '유해 폐기물', Icons.warning_amber_outlined),
-  electronics('electronics', '폐가전', Icons.devices_other_outlined),
-  clothing('clothing', '의류', Icons.checkroom_outlined),
-  bulky('bulky', '대형 폐기물', Icons.weekend_outlined),
-  general('general', '일반 쓰레기', Icons.delete_outline),
-  unknown('unknown', '판별 불가', Icons.help_outline);
+  pet('pet', '투명 페트병', Symbols.water_drop_rounded),
+  plastic('plastic', '플라스틱', Symbols.recycling_rounded),
+  paper('paper', '종이', Symbols.description_rounded),
+  paperPack('paper_pack', '종이팩', Symbols.local_drink_rounded),
+  can('can', '캔 · 고철', Symbols.hardware_rounded),
+  glass('glass', '유리병', Symbols.wine_bar_rounded),
+  vinyl('vinyl', '비닐', Symbols.shopping_bag_rounded),
+  styrofoam('styrofoam', '스티로폼', Symbols.inventory_2_rounded),
+  food('food', '음식물 쓰레기', Symbols.restaurant_rounded),
+  hazardous('hazardous', '유해 폐기물', Symbols.warning_rounded),
+  electronics('electronics', '폐가전', Symbols.devices_other_rounded),
+  clothing('clothing', '의류', Symbols.checkroom_rounded),
+  bulky('bulky', '대형 폐기물', Symbols.weekend_rounded),
+  general('general', '일반 쓰레기', Symbols.delete_rounded),
+  unknown('unknown', '판별 불가', Symbols.help_rounded);
 
   const RecycleCategory(this.key, this.label, this.icon);
 
