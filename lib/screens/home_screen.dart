@@ -7,7 +7,8 @@ import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
-import '../features/pickup/pickup_day_card.dart';
+import '../features/schedule/app_actions.dart';
+import '../features/schedule/pickup_card.dart';
 import '../features/tips/tip_card.dart';
 import '../services/gemini_classifier.dart';
 import '../widgets/app_chip.dart';
@@ -30,6 +31,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _picker = ImagePicker();
   bool _busy = false;
+  int _handledSeq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    AppActions.instance.pending.addListener(_onAction);
+    // 알림으로 앱이 켜진 경우: 첫 프레임 뒤에 처리.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onAction());
+  }
+
+  @override
+  void dispose() {
+    AppActions.instance.pending.removeListener(_onAction);
+    super.dispose();
+  }
+
+  void _onAction() {
+    final action = AppActions.instance.pending.value;
+    if (action == null || action.$2 == _handledSeq) return;
+    _handledSeq = action.$2;
+    if (action.$1 == AppActions.openCamera) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      _pick(ImageSource.camera);
+    }
+  }
 
   Future<void> _pick(ImageSource source) async {
     if (_busy) return;
@@ -104,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: AppSpacing.base),
                 Text('오늘은 뭘 버릴까요?', style: t.headlineSmall),
                 const SizedBox(height: AppSpacing.lg),
-                const PickupDayCard(),
+                const PickupCard(),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
                   children: [

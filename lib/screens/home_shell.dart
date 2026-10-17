@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../core/theme/app_theme.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/history/history_screen.dart';
+import '../features/schedule/app_actions.dart';
 import '../features/tips/tips_screen.dart';
 import 'guide_screen.dart';
 import 'home_screen.dart';
@@ -18,6 +19,25 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    AppActions.instance.pending.addListener(_onAction);
+  }
+
+  @override
+  void dispose() {
+    AppActions.instance.pending.removeListener(_onAction);
+    super.dispose();
+  }
+
+  /// 알림을 누르면 홈 탭으로 옮기고, 카메라는 HomeScreen 이 같은 신호를 받아 연다.
+  void _onAction() {
+    final action = AppActions.instance.pending.value;
+    if (action == null) return;
+    if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
+  }
 
   @override
   Widget build(BuildContext context) {

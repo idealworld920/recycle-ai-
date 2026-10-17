@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'features/tips/tips_repository.dart';
 import 'core/firebase_session.dart';
 import 'features/history/history_store.dart';
+import 'features/schedule/schedule_store.dart';
 import 'services/settings_store.dart';
 
 /// 화면 어디서나 저장소에 접근할 수 있게 해 주는 InheritedWidget.
@@ -13,6 +14,7 @@ class AppServices extends InheritedWidget {
     required this.history,
     required this.tips,
     required this.firebase,
+    required this.schedule,
     required super.child,
   });
 
@@ -20,6 +22,7 @@ class AppServices extends InheritedWidget {
   final HistoryStore history;
   final TipsRepository tips;
   final FirebaseSession firebase;
+  final ScheduleStore schedule;
 
   static AppServices of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppServices>();
@@ -29,5 +32,5 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase;
+      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule;
 }

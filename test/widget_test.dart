@@ -6,6 +6,7 @@ import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/tips/tips_repository.dart';
 import 'package:recycle_ai/screens/guide_screen.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
+import 'package:recycle_ai/features/schedule/schedule_store.dart';
 import 'package:recycle_ai/services/settings_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,6 +25,7 @@ void main() {
         history: history,
         tips: tips,
         firebase: FirebaseSession.unavailable(),
+        schedule: await ScheduleStore.load(),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );

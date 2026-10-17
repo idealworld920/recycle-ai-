@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
+import '../features/schedule/notification_service.dart';
+import '../features/schedule/pickup_schedule.dart';
+import '../features/schedule/schedule_settings_sheet.dart';
 import '../widgets/app_card.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 /// 설정 바텀시트. AI 연결 상태와 앱 정보.
 Future<void> showSettingsSheet(BuildContext context) {
@@ -23,6 +26,29 @@ Future<void> showSettingsSheet(BuildContext context) {
           controller: controller,
           padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
           children: [
+            Text('수거일', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              onTap: () {
+                Navigator.pop(ctx);
+                showScheduleSettingsSheet(context);
+              },
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Row(
+                children: [
+                  Icon(Symbols.calendar_today_rounded, color: c.textPrimary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(child: Text('수거일·알림 시각 설정', style: t.titleSmall)),
+                  Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
+              onPressed: () => NotificationService.instance.showTest(WasteType.recycle),
+              child: const Text('테스트 알림 보내기 (5초 뒤)'),
+            ),
+            const SizedBox(height: AppSpacing.xl),
             Text('AI 연결', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(

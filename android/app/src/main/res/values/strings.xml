@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_small_label">ReSAI 수거일 (작게)</string>
+    <string name="widget_medium_label">ReSAI 수거일</string>
+    <string name="widget_description">다음 수거일까지 며칠 남았는지 보여줘요</string>
+</resources>

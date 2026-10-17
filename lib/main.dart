@@ -4,6 +4,9 @@ import 'app_services.dart';
 import 'core/firebase_session.dart';
 import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
+import 'features/schedule/notification_service.dart';
+import 'features/schedule/schedule_store.dart';
+import 'features/schedule/widget_service.dart';
 import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
 import 'services/settings_store.dart';
@@ -17,19 +20,35 @@ Future<void> main() async {
   final history = await HistoryStore.load();
   final tips = await TipsRepository.load();
   final firebase = await FirebaseSession.start();
+  final schedule = await ScheduleStore.load();
+  await NotificationService.instance.init();
+  await WidgetService.init();
+  // 로그인되면 Firestore 설정과 맞춘다. 실패해도 앱은 뜬다.
+  if (firebase.ready) schedule.attachUser(firebase.uid);
+  firebase.addListener(() {
+    if (firebase.ready) schedule.attachUser(firebase.uid);
+  });
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
   }
-  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase));
+  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule));
 }
 
 class RecycleApp extends StatelessWidget {
-  const RecycleApp({super.key, required this.settings, required this.history, required this.tips, required this.firebase});
+  const RecycleApp({
+    super.key,
+    required this.settings,
+    required this.history,
+    required this.tips,
+    required this.firebase,
+    required this.schedule,
+  });
 
   final SettingsStore settings;
   final HistoryStore history;
   final TipsRepository tips;
   final FirebaseSession firebase;
+  final ScheduleStore schedule;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +57,7 @@ class RecycleApp extends StatelessWidget {
       history: history,
       tips: tips,
       firebase: firebase,
+      schedule: schedule,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
