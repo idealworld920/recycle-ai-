@@ -52,3 +52,8 @@ lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
+
+# 릴리스 서명 (절대 커밋 금지)
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
