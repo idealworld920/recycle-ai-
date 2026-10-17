@@ -61,11 +61,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (picked == null) return;
 
     setState(() => _busy = true);
-    final file = File(picked.path);
     final classifier = GeminiClassifier(apiKey: services.settings.apiKey);
     try {
-      final result = await classifier.classify(file);
-      final saved = await services.history.add(result, file);
+      final bytes = await picked.readAsBytes();
+      final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
+      final result = await classifier.classifyBytes(bytes, mimeType: mime);
+      final saved = await services.history.add(result, imageBytes: bytes);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       await Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: saved, isNew: true)));

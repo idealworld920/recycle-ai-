@@ -47,16 +47,19 @@ class HistoryStore extends ChangeNotifier {
     );
   }
 
-  /// 결과를 저장하고, 사진을 앱 폴더로 복사한 뒤 저장된 결과를 돌려준다.
-  Future<RecycleResult> add(RecycleResult result, File? image) async {
+  /// 결과를 저장하고, 사진 바이트를 앱 폴더에 파일로 남긴 뒤 저장된 결과를 돌려준다.
+  /// 웹에서는 파일 시스템이 없으므로 사진은 저장하지 않는다.
+  Future<RecycleResult> add(RecycleResult result, {Uint8List? imageBytes}) async {
     String? savedPath;
-    if (image != null) {
+    if (imageBytes != null && !kIsWeb) {
       try {
         final dir = await getApplicationDocumentsDirectory();
         final folder = Directory('${dir.path}/captures');
         if (!await folder.exists()) await folder.create(recursive: true);
         final name = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        savedPath = (await image.copy('${folder.path}/$name')).path;
+        final file = File('${folder.path}/$name');
+        await file.writeAsBytes(imageBytes, flush: true);
+        savedPath = file.path;
       } catch (_) {
         savedPath = null;
       }
@@ -126,7 +129,7 @@ class HistoryStore extends ChangeNotifier {
   }
 
   void _deleteImage(String? path) {
-    if (path == null) return;
+    if (path == null || kIsWeb) return;
     try {
       final f = File(path);
       if (f.existsSync()) f.deleteSync();

@@ -68,7 +68,7 @@ class GeminiClassifier {
 
   Future<RecycleResult> classify(File image) async {
     final bytes = await image.readAsBytes();
-    return classifyBytes(bytes, mimeType: _mimeTypeFor(image.path));
+    return classifyBytes(bytes, mimeType: mimeTypeFor(image.path));
   }
 
   Future<RecycleResult> classifyBytes(
@@ -158,7 +158,7 @@ class GeminiClassifier {
         .trim();
   }
 
-  static String _mimeTypeFor(String path) {
+  static String mimeTypeFor(String path) {
     final lower = path.toLowerCase();
     if (lower.endsWith('.png')) return 'image/png';
     if (lower.endsWith('.webp')) return 'image/webp';
