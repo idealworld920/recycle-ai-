@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,6 +24,59 @@ class HistoryStore extends ChangeNotifier {
 
   final SharedPreferences _prefs;
   late List<HistoryRecord> _items;
+
+  /// 로그인된 사용자. null 이면 기기에만 저장.
+  String? uid;
+
+  CollectionReference<Map<String, dynamic>>? get _col =>
+      uid == null ? null : FirebaseFirestore.instance.collection('users').doc(uid).collection('history');
+
+  /// 로그인되면 Firestore users/{uid}/history 와 합친다 (id 기준 합집합).
+  Future<void> attachUser(String? uid) async {
+    this.uid = uid;
+    final col = _col;
+    if (col == null) return;
+    try {
+      final snap = await col.orderBy('date', descending: true).limit(maxItems).get();
+      final remote = {for (final d in snap.docs) d.id: HistoryRecord.fromJson(d.data())};
+      final localIds = _items.map((r) => r.id).toSet();
+      for (final r in _items.where((r) => !remote.containsKey(r.id))) {
+        await col.doc(r.id).set(r.toJson());
+      }
+      final merged = [..._items, ...remote.values.where((r) => !localIds.contains(r.id))];
+      merged.sort((a, b) => b.date.compareTo(a.date));
+      _items = merged.length > maxItems ? merged.sublist(0, maxItems) : merged;
+      await _writeAll();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('기록 동기화 실패: $e');
+    }
+  }
+
+  Future<void> _remoteSet(HistoryRecord r) async {
+    try {
+      await _col?.doc(r.id).set(r.toJson());
+    } catch (e) {
+      debugPrint('기록 업로드 실패: $e');
+    }
+  }
+
+  Future<void> _remoteDelete(Iterable<String> ids) async {
+    final col = _col;
+    if (col == null) return;
+    try {
+      final list = ids.toList();
+      for (var i = 0; i < list.length; i += 400) {
+        final batch = FirebaseFirestore.instance.batch();
+        for (final id in list.skip(i).take(400)) {
+          batch.delete(col.doc(id));
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      debugPrint('기록 삭제 동기화 실패: $e');
+    }
+  }
 
   /// 최신순.
   List<HistoryRecord> get items => List.unmodifiable(_items);
@@ -74,6 +128,7 @@ class HistoryStore extends ChangeNotifier {
     }
     await _writeAll();
     notifyListeners();
+    await _remoteSet(record);
     return record;
   }
 
@@ -95,12 +150,15 @@ class HistoryStore extends ChangeNotifier {
     _items.removeWhere((r) => r.id == id);
     await _writeAll();
     notifyListeners();
+    await _remoteDelete([id]);
   }
 
   Future<void> clear() async {
+    final ids = _items.map((r) => r.id).toList();
     _items = [];
     await _writeAll();
     notifyListeners();
+    await _remoteDelete(ids);
   }
 
   // ---- 요약 ----

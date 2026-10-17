@@ -7,6 +7,7 @@ import 'features/history/history_store.dart';
 import 'features/schedule/notification_service.dart';
 import 'features/schedule/schedule_store.dart';
 import 'features/schedule/widget_service.dart';
+import 'features/stats/collection_store.dart';
 import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
 import 'services/settings_store.dart';
@@ -23,15 +24,21 @@ Future<void> main() async {
   final schedule = await ScheduleStore.load();
   await NotificationService.instance.init();
   await WidgetService.init();
-  // 로그인되면 Firestore 설정과 맞춘다. 실패해도 앱은 뜬다.
-  if (firebase.ready) schedule.attachUser(firebase.uid);
-  firebase.addListener(() {
-    if (firebase.ready) schedule.attachUser(firebase.uid);
-  });
+  final collection = await CollectionStore.load(tips);
+  // 로그인되면 Firestore 와 맞춘다. 실패해도 앱은 뜬다.
+  void attachAll() {
+    if (!firebase.ready) return;
+    schedule.attachUser(firebase.uid);
+    history.attachUser(firebase.uid);
+    collection.attachUser(firebase.uid);
+  }
+
+  attachAll();
+  firebase.addListener(attachAll);
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
   }
-  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule));
+  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection));
 }
 
 class RecycleApp extends StatelessWidget {
@@ -42,6 +49,7 @@ class RecycleApp extends StatelessWidget {
     required this.tips,
     required this.firebase,
     required this.schedule,
+    required this.collection,
   });
 
   final SettingsStore settings;
@@ -49,6 +57,7 @@ class RecycleApp extends StatelessWidget {
   final TipsRepository tips;
   final FirebaseSession firebase;
   final ScheduleStore schedule;
+  final CollectionStore collection;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +67,7 @@ class RecycleApp extends StatelessWidget {
       tips: tips,
       firebase: firebase,
       schedule: schedule,
+      collection: collection,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,

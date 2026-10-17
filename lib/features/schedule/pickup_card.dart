@@ -6,6 +6,7 @@ import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
+import '../stats/streak_row.dart';
 import 'pickup_schedule.dart';
 import 'schedule_settings_sheet.dart';
 import 'schedule_store.dart';
@@ -31,6 +32,7 @@ class PickupCard extends StatelessWidget {
               if (snap.upcoming.isNotEmpty) const SizedBox(height: AppSpacing.sm),
             ],
             if (snap.upcoming.isNotEmpty) _UpcomingCard(items: snap.upcoming, compact: snap.today.isNotEmpty),
+            StreakBadge(weeks: store.streak(DateTime.now()).weeks),
           ],
         );
       },

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../stats/stats_calculator.dart';
 import 'notification_service.dart';
 import 'pickup_schedule.dart';
 import 'schedule_repository.dart';
@@ -12,12 +13,14 @@ class ScheduleStore extends ChangeNotifier {
     _schedule = _repo.loadLocal();
     _today = PickupSchedule.dateKey(DateTime.now());
     _checkins = _repo.loadCheckinsLocal(_today);
+    _checkinDates = _repo.loadCheckinDatesLocal();
   }
 
   final ScheduleRepository _repo;
   PickupSchedule? _schedule;
   late String _today;
   Set<WasteType> _checkins = {};
+  Set<String> _checkinDates = {};
   bool _saving = false;
 
   PickupSchedule? get schedule => _schedule;
@@ -27,6 +30,13 @@ class ScheduleStore extends ChangeNotifier {
   /// 오늘 체크한 종류.
   Set<WasteType> get checkins => _checkins;
   bool isChecked(WasteType t) => _checkins.contains(t);
+
+  /// 체크인이 있던 날짜 키들.
+  Set<String> get checkinDates => _checkinDates;
+
+  /// 주간 스트릭 (연속 주 수 + 12주 점).
+  StreakResult streak(DateTime now) =>
+      StatsCalculator.weeklyStreak(checkinDates: _checkinDates, schedule: _schedule, now: now);
 
   static Future<ScheduleStore> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -47,6 +57,7 @@ class ScheduleStore extends ChangeNotifier {
       await _repo.save(_schedule!);
     }
     _checkins = await _repo.loadCheckins(_today);
+    _checkinDates = await _repo.loadCheckinDates();
     notifyListeners();
   }
 
@@ -70,6 +81,7 @@ class ScheduleStore extends ChangeNotifier {
   Future<void> checkIn(WasteType t) async {
     _refreshDay();
     _checkins = {..._checkins, t};
+    _checkinDates = {..._checkinDates, _today};
     notifyListeners();
     await _repo.checkIn(_today, t);
   }

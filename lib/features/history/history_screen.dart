@@ -6,10 +6,12 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
-import '../../models/waste_group.dart';
 import '../../screens/result_screen.dart';
-import '../../widgets/app_card.dart';
 import '../../widgets/category_badge.dart';
+import '../stats/collection_sheet.dart';
+import '../stats/monthly_summary_card.dart';
+import '../stats/stats_calculator.dart';
+import '../stats/streak_row.dart';
 import 'history_record.dart';
 import 'history_store.dart';
 
@@ -21,14 +23,16 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final history = AppServices.of(context).history;
+    final services = AppServices.of(context);
+    final history = services.history;
+    final schedule = services.schedule;
     final t = context.text;
     final c = context.colors;
 
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: history,
+          listenable: Listenable.merge([history, schedule]),
           builder: (context, _) {
             final items = history.items;
             if (items.isEmpty) return _EmptyState(onGoHome: onGoHome);
@@ -51,7 +55,9 @@ class HistoryScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.base),
-                _MonthSummary(month: now, records: history.inMonth(now)),
+                MonthlySummaryCard(summary: StatsCalculator.monthlySummary(items, now), month: now),
+                const SizedBox(height: AppSpacing.sm),
+                StreakRow(streak: schedule.streak(now)),
                 const SizedBox(height: AppSpacing.xl),
                 for (final (day, records) in groups) ...[
                   Padding(
@@ -75,6 +81,7 @@ class HistoryScreen extends StatelessWidget {
                   ],
                   const SizedBox(height: AppSpacing.lg),
                 ],
+                const CollectionCard(),
               ],
             );
           },
@@ -117,72 +124,6 @@ class HistoryScreen extends StatelessWidget {
     final w = _weekdays[day.weekday - 1];
     if (day.year == now.year) return '${day.month}월 ${day.day}일 ($w)';
     return '${day.year}년 ${day.month}월 ${day.day}일 ($w)';
-  }
-}
-
-class _MonthSummary extends StatelessWidget {
-  const _MonthSummary({required this.month, required this.records});
-
-  final DateTime month;
-  final List<HistoryRecord> records;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.text;
-    final c = context.colors;
-    final counts = HistoryStore.countByGroup(records);
-    final total = records.length;
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${month.month}월 분류', style: t.bodySmall),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('$total', style: t.headlineSmall),
-              const SizedBox(width: AppSpacing.xs),
-              Text('건', style: t.titleSmall),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.base),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-            child: SizedBox(
-              height: 8,
-              child: total == 0
-                  ? ColoredBox(color: c.divider)
-                  : Row(
-                      children: [
-                        for (final g in WasteGroup.values)
-                          if (counts[g]! > 0) Expanded(flex: counts[g]!, child: ColoredBox(color: c.groupColor(g))),
-                      ],
-                    ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: AppSpacing.base,
-            runSpacing: AppSpacing.xs,
-            children: [
-              for (final g in WasteGroup.values)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(width: 8, height: 8, decoration: BoxDecoration(color: c.groupColor(g), shape: BoxShape.circle)),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text('${g.label} ${total == 0 ? 0 : (counts[g]! * 100 / total).round()}%',
-                        style: t.bodySmall?.copyWith(color: c.textPrimary)),
-                  ],
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 

@@ -76,6 +76,7 @@ lib/
   features/
     chat/                     물어보기 채팅 (하루 5회 제한)
     schedule/                 수거일 설정·전날 알림·홈 위젯·버렸어요 체크인
+    stats/                    월간 요약·주간 스트릭·도감
     tips/                     품목별 팁 검색
     history/                  분류 기록 (로컬 저장)
   services/

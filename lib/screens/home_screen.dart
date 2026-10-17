@@ -83,9 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
       final result = await classifier.classifyBytes(bytes, mimeType: mime);
       await services.history.addResult(result, imageBytes: bytes);
+      String? toast;
+      final tip = services.tips.findForItem(result.itemName);
+      if (tip != null && await services.collection.collect(tip, itemName: result.itemName)) {
+        toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
+      }
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true));
+      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true, toast: toast));
     } on ClassifyException catch (e) {
       _showError(e.message);
     } catch (e) {

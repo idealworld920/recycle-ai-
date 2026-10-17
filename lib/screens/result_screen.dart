@@ -15,8 +15,8 @@ import '../widgets/app_card.dart';
 import '../widgets/category_badge.dart';
 import 'guide_screen.dart';
 
-class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb});
+class ResultScreen extends StatefulWidget {
+  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast});
 
   final RecycleResult result;
   final bool isNew;
@@ -26,6 +26,30 @@ class ResultScreen extends StatelessWidget {
 
   /// 기록에서 열 때 쓰는 작은 썸네일(base64).
   final String? imageThumb;
+
+  /// 화면이 뜬 직후 보여줄 짧은 안내 (예: 도감 추가).
+  final String? toast;
+
+  @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  RecycleResult get result => widget.result;
+  bool get isNew => widget.isNew;
+  Uint8List? get imageBytes => widget.imageBytes;
+  String? get imageThumb => widget.imageThumb;
+
+  @override
+  void initState() {
+    super.initState();
+    final toast = widget.toast;
+    if (toast != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 2)));
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

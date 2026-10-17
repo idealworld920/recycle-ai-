@@ -15,6 +15,7 @@ class ScheduleRepository {
 
   static const schedulePref = 'pickup_schedule_v1';
   static const checkinPrefPrefix = 'pickup_checkin_';
+  static const checkinDatesPref = 'pickup_checkin_dates_v1';
 
   final SharedPreferences _prefs;
   /// 테스트에서 주입. null 이면 기본 인스턴스.
@@ -94,9 +95,33 @@ class ScheduleRepository {
     }
   }
 
+  /// 체크인이 하나라도 있던 날짜들 (스트릭용). 기기 저장본 + Firestore 최근 [days]일.
+  Set<String> loadCheckinDatesLocal() => (_prefs.getStringList(checkinDatesPref) ?? const []).toSet();
+
+  Future<Set<String>> loadCheckinDates({int days = 90}) async {
+    final local = loadCheckinDatesLocal();
+    final db = _db;
+    if (db == null) return local;
+    try {
+      final cutoff = PickupSchedule.dateKey(DateTime.now().subtract(Duration(days: days)));
+      final snap = await db
+          .collection('users')
+          .doc(uid)
+          .collection('checkins')
+          .where(FieldPath.documentId, isGreaterThanOrEqualTo: cutoff)
+          .get();
+      final merged = {...local, ...snap.docs.map((d) => d.id)};
+      await _prefs.setStringList(checkinDatesPref, merged.toList());
+      return merged;
+    } catch (_) {
+      return local;
+    }
+  }
+
   Future<void> checkIn(String dateKey, WasteType type) async {
     final current = loadCheckinsLocal(dateKey)..add(type);
     await _prefs.setStringList('$checkinPrefPrefix$dateKey', current.map((t) => t.key).toList());
+    await _prefs.setStringList(checkinDatesPref, ({...loadCheckinDatesLocal(), dateKey}).toList());
     final doc = _checkinDoc(dateKey);
     if (doc == null) return;
     try {
@@ -110,12 +135,15 @@ class ScheduleRepository {
     }
   }
 
-  /// 오래된 로컬 체크인 키 정리 (7일 지난 것).
+  /// 오래된 로컬 체크인 정리. 종류별 키는 7일, 날짜 목록은 90일 유지.
   Future<void> pruneCheckins(DateTime now) async {
     final cutoff = now.subtract(const Duration(days: 7));
-    for (final key in _prefs.getKeys().where((k) => k.startsWith(checkinPrefPrefix))) {
+    for (final key in _prefs.getKeys().where((k) => k.startsWith(checkinPrefPrefix) && k != checkinDatesPref)) {
       final date = DateTime.tryParse(key.substring(checkinPrefPrefix.length));
       if (date != null && date.isBefore(cutoff)) await _prefs.remove(key);
     }
+    final longCutoff = PickupSchedule.dateKey(now.subtract(const Duration(days: 90)));
+    final dates = loadCheckinDatesLocal().where((d) => d.compareTo(longCutoff) >= 0).toList();
+    await _prefs.setStringList(checkinDatesPref, dates);
   }
 }
