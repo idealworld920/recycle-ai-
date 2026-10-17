@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 
 import 'app_services.dart';
 import 'core/firebase_session.dart';
@@ -31,6 +34,11 @@ const bool kDemoMode = bool.fromEnvironment('DEMO');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Android 13+ 에서 저장소 권한 없이 시스템 포토 피커를 쓴다.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    final picker = ImagePickerPlatform.instance;
+    if (picker is ImagePickerAndroid) picker.useAndroidPhotoPicker = true;
+  }
   final settings = await SettingsStore.load();
   final history = await HistoryStore.load();
   final tips = await TipsRepository.load();

@@ -37,6 +37,45 @@ Firebase 콘솔에서 켜야 하는 것: Vertex AI(Firebase AI Logic), 익명 �
 GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter test` → `flutter build apk`를 돌려요.
 **Actions 탭 → 최근 실행 → Artifacts → recycle-ai-apk**에서 내려받아 안드로이드 폰에 설치하면 돼요.
 
+## Play Store 배포 (릴리스 빌드)
+
+**앱 식별자**: `com.idealworld.recycle_ai` (Firebase·SHA 지문이 이미 이 값으로 등록돼 있어 유지). 앱 이름 ReSAI, 버전 `1.0.0+1` (pubspec.yaml 의 `version:` 한 곳에서 관리, `+` 뒤가 versionCode).
+
+**1. 업로드 키스토어 만들기** (한 번만, 노트북에서. 잃어버리면 앱 업데이트를 못 하니 백업 필수)
+```powershell
+# Windows PowerShell — android\app 폴더 안에 생성
+cd recycle-ai-\android\app
+keytool -genkey -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+```bash
+# Mac/Linux
+cd recycle-ai-/android/app
+keytool -genkey -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+비밀번호 2개(keystore, key)와 이름/조직 정보를 물어봐요. 비밀번호는 안전한 곳에 적어두세요.
+
+**2. key.properties 만들기**
+`android/key.properties.example` 을 복사해 `android/key.properties` 로 저장하고 비밀번호를 채워요. 두 파일(`key.properties`, `*.jks`)은 .gitignore 라 커밋되지 않아요. `key.properties` 가 있으면 릴리스 빌드가 자동으로 이 키로 서명되고, 없으면(CI) 디버그 키로 서명돼요.
+
+**3. 릴리스 키 SHA 지문을 Firebase 에 추가** (구글 로그인용)
+```bash
+keytool -list -v -alias upload -keystore android/app/upload-keystore.jks
+```
+SHA-1·SHA-256 을 Firebase 콘솔 → 프로젝트 설정 → Android 앱 → 디지털 지문 추가. **Play 앱 서명**을 쓰면 Play Console → 테스트 및 출시 → 설정 → 앱 서명 의 "앱 서명 키 인증서" SHA 도 추가하고 google-services.json 재다운로드.
+
+**4. 앱 번들 빌드**
+```bash
+flutter build appbundle --release --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx
+```
+산출물: `build/app/outputs/bundle/release/app-release.aab` → Play Console 에 업로드.
+APK 로 직접 설치해 보려면 `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`.
+
+**5. 다음 버전 올릴 때**: pubspec.yaml 의 `version: 1.0.1+2` 처럼 둘 다 올리기 (versionCode 는 항상 증가).
+
+**권한 (AndroidManifest)**: INTERNET, POST_NOTIFICATIONS(알림, 사용 시점에 요청), RECEIVE_BOOT_COMPLETED(재부팅 후 알림 복구). 카메라는 시스템 카메라 앱을 호출해서 CAMERA 권한이 없고, 갤러리는 Android 13+ 포토 피커라 저장소 권한이 없어요. `android.hardware.camera` 는 `required=false`. 플러그인이 합치는 권한은 빌드 후 `build/app/intermediates/merged_manifests/release/AndroidManifest.xml` 에서 확인할 수 있어요.
+
+**targetSdk 36 / compileSdk 36 / minSdk 24** (firebase_auth 요구 23 이상).
+
 ## 법적 문서와 Play Console 데이터 안전
 
 - 개인정보처리방침: https://idealworld920.github.io/recycle-ai-/privacy.html (`web/privacy.html`)

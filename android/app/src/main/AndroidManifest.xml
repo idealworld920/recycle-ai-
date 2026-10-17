@@ -2,7 +2,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- 카메라는 시스템 카메라 앱을 호출하므로 CAMERA 권한이 필요 없고, 카메라 없는 기기도 설치되게 선택 기능으로 표시 -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="ReSAI"
         android:name="${applicationName}"
