@@ -11,8 +11,8 @@ class AiBackend {
   /// Vertex AI 경로 사용. 무료 Spark 요금제로 돌릴 땐 false 로.
   static const bool useVertexAI = true;
 
-  /// Vertex AI 리전. 서울.
-  static const String location = 'asia-northeast3';
+  /// Vertex AI 리전. global 은 가장 가까운 리전으로 자동 라우팅.
+  static const String location = 'global';
   /// 채팅·사진 분류가 함께 쓰는 모델. 여기 한 곳만 바꾸면 된다.
   static const String modelName = 'gemini-3.8-flash';
 
