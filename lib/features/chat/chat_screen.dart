@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../app_services.dart';
 import '../../core/firebase_session.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/app_chip.dart';
 import 'chat_bubble.dart';
 import 'chat_message.dart';
 import 'chat_service.dart';
@@ -140,21 +143,21 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final session = AppServices.of(context).firebase;
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final text = context.text;
+    final c = context.colors;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(child: Text('물어보기', style: text.headlineMedium)),
+                  Expanded(child: Text('물어보기', style: text.headlineSmall)),
                   if (_remaining != null)
-                    Text('오늘 남은 질문 $_remaining/${UsageRepository.dailyLimit}', style: text.labelMedium),
+                    Text('오늘 남은 질문 $_remaining/${UsageRepository.dailyLimit}', style: text.bodySmall),
                 ],
               ),
             ),
@@ -165,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ? _Welcome(onPick: _send)
                       : ListView.builder(
                           controller: _scroll,
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
                           itemCount: _messages.length,
                           itemBuilder: (_, i) => ChatBubble(
                             message: _messages[i],
@@ -175,7 +178,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             if (session.ready)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.base, AppSpacing.xs, AppSpacing.base, AppSpacing.md),
                 child: Row(
                   children: [
                     Expanded(
@@ -188,19 +191,19 @@ class _ChatScreenState extends State<ChatScreen> {
                         maxLines: 4,
                         decoration: const InputDecoration(
                           hintText: '이건 어디에 버리나요?',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     SizedBox(
                       width: 48,
                       height: 48,
                       child: IconButton.filled(
                         onPressed: _sending ? null : () => _send(_controller.text),
-                        style: IconButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary),
+                        style: IconButton.styleFrom(backgroundColor: c.ink, foregroundColor: c.onInk, disabledBackgroundColor: c.surface),
                         icon: _sending
-                            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.onPrimary))
+                            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: c.textSecondary))
                             : const Icon(Icons.arrow_upward_rounded),
                       ),
                     ),
@@ -221,35 +224,20 @@ class _Welcome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final text = context.text;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('분리배출, 헷갈리는 거 뭐든 물어보세요.', style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 20),
+          Text('분리배출, 헷갈리는 거 뭐든 물어보세요.', style: text.bodySmall),
+          const SizedBox(height: AppSpacing.lg),
           Text('이런 질문 어때요', style: text.titleSmall),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final s in ChatScreen.suggestions)
-                Material(
-                  color: scheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(999),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: () => onPick(s),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      child: Text(s, style: text.labelLarge?.copyWith(fontSize: 14)),
-                    ),
-                  ),
-                ),
-            ],
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [for (final s in ChatScreen.suggestions) AppChip(label: s, onTap: () => onPick(s))],
           ),
         ],
       ),
@@ -264,25 +252,20 @@ class _NotReady extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final text = context.text;
+    final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_outlined, size: 40, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 12),
-          Text(session.busy ? '연결하는 중이에요' : 'AI 도우미에 연결하지 못했어요', style: text.titleMedium),
-          const SizedBox(height: 6),
+          Icon(Icons.cloud_off_outlined, size: 40, color: c.textSecondary),
+          const SizedBox(height: AppSpacing.md),
+          Text(session.busy ? '연결하는 중이에요' : 'AI 도우미에 연결하지 못했어요', style: text.titleSmall),
+          const SizedBox(height: AppSpacing.xs),
           Text(session.error ?? '', textAlign: TextAlign.center, style: text.bodySmall),
-          const SizedBox(height: 16),
-          if (!session.busy)
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(140, 44)),
-              onPressed: session.init,
-              child: const Text('다시 연결'),
-            ),
+          const SizedBox(height: AppSpacing.base),
+          if (!session.busy) TextButton(onPressed: session.init, child: const Text('다시 연결')),
         ],
       ),
     );

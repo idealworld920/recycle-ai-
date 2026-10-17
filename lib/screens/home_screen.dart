@@ -3,15 +3,24 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../app_services.dart';
-import '../features/history/history_record.dart';
-import '../features/history/history_screen.dart';
+import '../core/theme/app_sheet.dart';
+import '../core/theme/app_spacing.dart';
+import '../core/theme/app_theme.dart';
+import '../features/pickup/pickup_day_card.dart';
+import '../features/tips/tip_card.dart';
 import '../services/gemini_classifier.dart';
+import '../widgets/app_chip.dart';
 import '../widgets/scanning_overlay.dart';
 import 'result_screen.dart';
-import 'settings_screen.dart';
+import 'settings_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  /// "자주 찾는 품목" 칩에 보여줄 tips.json id 목록.
+  static const frequentTipIds = [
+    'pet_bottle', 'cup_noodle', 'delivery_box', 'battery', 'broken_glass', 'ice_pack', 'chicken_bone', 'mask', 'coffee_cup',
+  ];
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -49,10 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await services.history.addResult(result, imageBytes: bytes);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ResultScreen(result: result, imageBytes: bytes, isNew: true)),
-      );
+      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true));
     } on ClassifyException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -69,216 +75,86 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final services = AppServices.of(context);
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final tips = AppServices.of(context).tips;
+    final t = context.text;
+    final frequent = [
+      for (final id in HomeScreen.frequentTipIds)
+        ...tips.all.where((x) => x.id == id),
+    ];
 
     return Scaffold(
       body: Stack(
         children: [
           SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xl),
               children: [
                 Row(
                   children: [
-                    Text('ReSAI', style: text.titleMedium),
+                    Text('ReSAI', style: t.titleSmall),
                     const Spacer(),
                     IconButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                      onPressed: () => showSettingsSheet(context),
                       icon: const Icon(Icons.settings_outlined),
                       tooltip: '설정',
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
-                Text('무엇을 버릴까요?', style: text.displaySmall),
-                const SizedBox(height: 8),
-                Text('사진 한 장이면 분류와 버리는 방법을 알려드려요.', style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-                const SizedBox(height: 28),
-                _ActionTile(
-                  icon: Icons.photo_camera_outlined,
-                  title: '사진 찍기',
-                  subtitle: '카메라로 바로 촬영',
-                  onTap: _busy ? null : () => _pick(ImageSource.camera),
+                const SizedBox(height: AppSpacing.base),
+                Text('오늘은 뭘 버릴까요?', style: t.headlineSmall),
+                const SizedBox(height: AppSpacing.lg),
+                const PickupDayCard(),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _busy ? null : () => _pick(ImageSource.camera),
+                        icon: const Icon(Icons.photo_camera_outlined, size: 24),
+                        label: const Text('사진 찍기'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    SizedBox(
+                      width: 96,
+                      child: OutlinedButton.icon(
+                        onPressed: _busy ? null : () => _pick(ImageSource.gallery),
+                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                        icon: const Icon(Icons.photo_outlined, size: 20),
+                        label: const Text('갤러리'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                _ActionTile(
-                  icon: Icons.photo_outlined,
-                  title: '앨범에서 선택',
-                  subtitle: '찍어둔 사진으로 판별',
-                  onTap: _busy ? null : () => _pick(ImageSource.gallery),
-                ),
-                const SizedBox(height: 36),
-                ListenableBuilder(
-                  listenable: services.history,
-                  builder: (context, _) => _StatsRow(items: services.history.items),
-                ),
-                const SizedBox(height: 36),
-                ListenableBuilder(
-                  listenable: services.history,
-                  builder: (context, _) {
-                    final recent = services.history.items.take(4).toList();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('최근 판별', style: text.titleLarge),
-                        const SizedBox(height: 4),
-                        if (recent.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text('아직 판별한 물건이 없어요.', style: text.bodySmall),
-                          )
-                        else
-                          for (var i = 0; i < recent.length; i++) ...[
-                            _RecentRow(record: recent[i]),
-                            if (i != recent.length - 1) const Divider(),
-                          ],
-                      ],
-                    );
-                  },
+                const SizedBox(height: AppSpacing.xxl),
+                Text('자주 찾는 품목', style: t.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    itemCount: frequent.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                    itemBuilder: (_, i) => AppChip(
+                      label: frequent[i].name,
+                      onTap: () => showAppSheet(
+                        context,
+                        initialSize: 0.5,
+                        builder: (ctx, controller) => ListView(
+                          controller: controller,
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
+                          children: [TipCard(tip: frequent[i])],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           if (_busy) const Positioned.fill(child: ScanningOverlay()),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({required this.icon, required this.title, required this.subtitle, this.onTap});
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final primary = title == '사진 찍기';
-    final bg = primary ? scheme.primary : scheme.surfaceContainer;
-    final fg = primary ? scheme.onPrimary : scheme.onSurface;
-    final sub = primary ? scheme.onPrimary.withValues(alpha: 0.7) : scheme.onSurfaceVariant;
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-          child: Row(
-            children: [
-              Icon(icon, size: 28, color: fg),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: text.titleLarge?.copyWith(color: fg)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: text.bodySmall?.copyWith(color: sub)),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: sub),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.items});
-
-  final List<HistoryRecord> items;
-
-  @override
-  Widget build(BuildContext context) {
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final thisWeek = items.where((r) => r.date.isAfter(weekAgo)).length;
-    final recycled = items.where((r) => r.category.isRecyclable).length;
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(18)),
-      child: Row(
-        children: [
-          Expanded(child: _Stat(value: '${items.length}', label: '전체 판별')),
-          _VDivider(),
-          Expanded(child: _Stat(value: '$thisWeek', label: '이번 주')),
-          _VDivider(),
-          Expanded(child: _Stat(value: '$recycled', label: '재활용')),
-        ],
-      ),
-    );
-  }
-}
-
-class _VDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) =>
-      Container(width: 1, height: 28, color: Theme.of(context).colorScheme.outline);
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Column(
-      children: [
-        Text(value, style: text.headlineSmall),
-        const SizedBox(height: 2),
-        Text(label, style: text.bodySmall),
-      ],
-    );
-  }
-}
-
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({required this.record});
-
-  final HistoryRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ResultScreen(result: record.toResult(), imageThumb: record.imageThumb)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          children: [
-            HistoryThumb(record: record),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(record.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-                  const SizedBox(height: 3),
-                  Text(record.category.label, style: text.bodySmall),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ],
-        ),
       ),
     );
   }

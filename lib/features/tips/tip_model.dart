@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
+import '../../models/waste_group.dart';
 
 /// 팁 분류. tips.json 의 category 문자열과 1:1 대응.
 enum TipCategory {
-  recycle('재활용', Color(0xFF16A34A)),
-  general('일반쓰레기', Color(0xFF6B7280)),
-  food('음식물', Color(0xFFF97316)),
-  special('특수', Color(0xFFE5484D));
+  recycle('재활용', WasteGroup.recycle),
+  general('일반쓰레기', WasteGroup.general),
+  food('음식물', WasteGroup.food),
+  special('특수', WasteGroup.special);
 
-  const TipCategory(this.label, this.color);
+  const TipCategory(this.label, this.group);
 
   final String label;
-  final Color color;
+  final WasteGroup group;
 
   static TipCategory? fromLabel(String? label) {
     for (final c in TipCategory.values) {

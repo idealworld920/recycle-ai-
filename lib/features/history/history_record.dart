@@ -1,23 +1,6 @@
 import '../../models/recycle_category.dart';
+import '../../models/waste_group.dart';
 import '../../models/recycle_result.dart';
-
-/// 요약 바에 쓰는 4분류.
-enum HistoryGroup {
-  recycle('재활용'),
-  general('일반'),
-  food('음식물'),
-  special('특수');
-
-  const HistoryGroup(this.label);
-  final String label;
-
-  static HistoryGroup of(RecycleCategory c) => switch (c) {
-        RecycleCategory.food => HistoryGroup.food,
-        RecycleCategory.hazardous || RecycleCategory.electronics || RecycleCategory.bulky => HistoryGroup.special,
-        RecycleCategory.general || RecycleCategory.unknown => HistoryGroup.general,
-        _ => HistoryGroup.recycle,
-      };
-}
 
 /// 분류 기록 한 건. 기기에만 저장된다.
 class HistoryRecord {
@@ -41,7 +24,7 @@ class HistoryRecord {
   /// 결과 화면을 다시 열기 위한 AI 응답 원문(steps, warnings, tip, confidence).
   final Map<String, dynamic>? detail;
 
-  HistoryGroup get group => HistoryGroup.of(category);
+  WasteGroup get group => category.group;
 
   /// 결과 화면에 넘길 수 있는 형태로 되돌린다.
   RecycleResult toResult() {

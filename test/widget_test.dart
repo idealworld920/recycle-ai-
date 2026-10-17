@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/app_services.dart';
 import 'package:recycle_ai/core/firebase_session.dart';
+import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/tips/tips_repository.dart';
 import 'package:recycle_ai/screens/guide_screen.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
@@ -23,7 +24,7 @@ void main() {
         history: history,
         tips: tips,
         firebase: FirebaseSession.unavailable(),
-        child: const MaterialApp(home: GuideScreen()),
+        child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );
     expect(find.text('분리배출 가이드'), findsOneWidget);

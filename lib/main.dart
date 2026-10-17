@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'app_services.dart';
 import 'core/firebase_session.dart';
+import 'core/theme/app_theme.dart';
+import 'features/history/history_store.dart';
 import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
-import 'features/history/history_store.dart';
 import 'services/settings_store.dart';
-import 'theme/app_theme.dart';
 
 /// `--dart-define=DEMO=true` 로 빌드하면 스토어 스크린샷용 샘플 기록을 넣는다.
 const bool kDemoMode = bool.fromEnvironment('DEMO');
@@ -42,7 +42,6 @@ class RecycleApp extends StatelessWidget {
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
         home: const HomeShell(),
       ),
     );

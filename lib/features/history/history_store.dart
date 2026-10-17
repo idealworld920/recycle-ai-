@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/recycle_category.dart';
 import '../../models/recycle_result.dart';
+import '../../models/waste_group.dart';
 import 'history_record.dart';
 import 'thumbnail.dart';
 
@@ -109,8 +110,8 @@ class HistoryStore extends ChangeNotifier {
       _items.where((r) => r.date.year == month.year && r.date.month == month.month).toList(growable: false);
 
   /// 그룹별 건수. 모든 그룹 키를 포함한다.
-  static Map<HistoryGroup, int> countByGroup(Iterable<HistoryRecord> records) {
-    final counts = {for (final g in HistoryGroup.values) g: 0};
+  static Map<WasteGroup, int> countByGroup(Iterable<HistoryRecord> records) {
+    final counts = {for (final g in WasteGroup.values) g: 0};
     for (final r in records) {
       counts[r.group] = counts[r.group]! + 1;
     }

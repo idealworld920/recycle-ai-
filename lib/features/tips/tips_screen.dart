@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app_services.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/app_chip.dart';
 import 'tip_card.dart';
 import 'tip_model.dart';
 
@@ -8,10 +11,7 @@ import 'tip_model.dart';
 class TipsScreen extends StatefulWidget {
   const TipsScreen({super.key, this.initialQuery = '', this.showBackButton = false});
 
-  /// 결과 화면에서 "팁 더 보기"로 들어올 때 미리 채울 검색어.
   final String initialQuery;
-
-  /// 탭이 아니라 push 로 열렸을 때 앱바를 보여준다.
   final bool showBackButton;
 
   @override
@@ -31,19 +31,18 @@ class _TipsScreenState extends State<TipsScreen> {
   @override
   Widget build(BuildContext context) {
     final repo = AppServices.of(context).tips;
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final t = context.text;
+    final c = context.colors;
     final results = repo.search(_controller.text, category: _category);
 
     final body = ListView(
-      padding: EdgeInsets.fromLTRB(20, widget.showBackButton ? 4 : 20, 20, 24),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, widget.showBackButton ? AppSpacing.xs : AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
       children: [
         if (!widget.showBackButton) ...[
-          Text('분리배출 팁', style: text.displaySmall),
-          const SizedBox(height: 8),
-          Text('품목 이름으로 찾아보세요. 환경부 기준으로 정리했어요.',
-              style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 20),
+          Text('분리배출 팁', style: t.headlineSmall),
+          const SizedBox(height: AppSpacing.sm),
+          Text('품목 이름으로 찾아보세요. 환경부 기준으로 정리했어요.', style: t.bodySmall),
+          const SizedBox(height: AppSpacing.lg),
         ],
         TextField(
           controller: _controller,
@@ -51,53 +50,51 @@ class _TipsScreenState extends State<TipsScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: '예: 페트병, 치킨 뼈, 건전지',
-            prefixIcon: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
+            prefixIcon: Icon(Icons.search_rounded, color: c.textSecondary),
             suffixIcon: _controller.text.isEmpty
                 ? null
-                : IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => setState(_controller.clear),
-                  ),
+                : IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => setState(_controller.clear)),
           ),
         ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
             children: [
-              _FilterChip(label: '전체', selected: _category == null, onTap: () => setState(() => _category = null)),
-              for (final c in TipCategory.values) ...[
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: c.label,
-                  dot: c.color,
-                  selected: _category == c,
-                  onTap: () => setState(() => _category = _category == c ? null : c),
+              AppChip(label: '전체', selected: _category == null, onTap: () => setState(() => _category = null)),
+              for (final cat in TipCategory.values) ...[
+                const SizedBox(width: AppSpacing.sm),
+                AppChip(
+                  label: cat.label,
+                  selected: _category == cat,
+                  onTap: () => setState(() => _category = _category == cat ? null : cat),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.base),
         if (results.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 60),
+            padding: const EdgeInsets.only(top: AppSpacing.xxl * 2),
             child: Column(
               children: [
-                Icon(Icons.search_off_rounded, size: 40, color: scheme.onSurfaceVariant),
-                const SizedBox(height: 10),
-                Text('찾는 품목이 없어요', style: text.titleMedium),
-                const SizedBox(height: 4),
-                Text('다른 이름으로 검색하거나 사진으로 판별해 보세요.', style: text.bodySmall),
+                Icon(Icons.search_off_rounded, size: 40, color: c.textSecondary),
+                const SizedBox(height: AppSpacing.sm),
+                Text('찾는 품목이 없어요', style: t.titleSmall),
+                const SizedBox(height: AppSpacing.xs),
+                Text('다른 이름으로 검색하거나 사진으로 판별해 보세요.', style: t.bodySmall),
               ],
             ),
           )
         else ...[
-          Text('${results.length}개', style: text.labelMedium),
-          const SizedBox(height: 8),
+          Text('${results.length}개', style: t.bodySmall),
+          const SizedBox(height: AppSpacing.sm),
           for (final tip in results) ...[
             TipCard(tip: tip),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       ],
@@ -107,47 +104,5 @@ class _TipsScreenState extends State<TipsScreen> {
       return Scaffold(appBar: AppBar(title: const Text('분리배출 팁')), body: body);
     }
     return Scaffold(body: SafeArea(child: body));
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.selected, required this.onTap, this.dot});
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color? dot;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: selected ? scheme.primary : scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (dot != null) ...[
-                Container(width: 7, height: 7, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
-                const SizedBox(width: 7),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: selected ? scheme.onPrimary : scheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

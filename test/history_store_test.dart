@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/features/history/history_record.dart';
+import 'package:recycle_ai/models/waste_group.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/models/recycle_category.dart';
 import 'package:recycle_ai/models/recycle_result.dart';
@@ -75,10 +76,10 @@ void main() {
     final month = store.inMonth(now);
     expect(month.length, 4);
     final counts = HistoryStore.countByGroup(month);
-    expect(counts[HistoryGroup.recycle], 1);
-    expect(counts[HistoryGroup.general], 1);
-    expect(counts[HistoryGroup.food], 1);
-    expect(counts[HistoryGroup.special], 1);
+    expect(counts[WasteGroup.recycle], 1);
+    expect(counts[WasteGroup.general], 1);
+    expect(counts[WasteGroup.food], 1);
+    expect(counts[WasteGroup.special], 1);
   });
 
   test('날짜별 그룹은 최신 날짜가 먼저', () async {

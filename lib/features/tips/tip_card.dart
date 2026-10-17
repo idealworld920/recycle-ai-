@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/category_badge.dart';
 import 'tip_model.dart';
 
 /// 품목명 + 분류 뱃지 + 단계 목록 + 주의 박스.
@@ -10,27 +14,23 @@ class TipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(16)),
+    final c = context.colors;
+    final t = context.text;
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(child: Text(tip.name, style: text.titleMedium)),
-              const SizedBox(width: 8),
-              TipCategoryBadge(category: tip.category),
+              Expanded(child: Text(tip.name, style: t.titleSmall)),
+              const SizedBox(width: AppSpacing.sm),
+              CategoryBadge(label: tip.category.label, group: tip.category.group),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           for (var i = 0; i < tip.steps.length; i++)
             Padding(
-              padding: EdgeInsets.only(bottom: i == tip.steps.length - 1 ? 0 : 8),
+              padding: EdgeInsets.only(bottom: i == tip.steps.length - 1 ? 0 : AppSpacing.sm),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -38,76 +38,41 @@ class TipCard extends StatelessWidget {
                     width: 22,
                     height: 22,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
-                    child: Text('${i + 1}', style: TextStyle(color: scheme.onPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                    decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+                    child: Text('${i + 1}', style: t.labelLarge?.copyWith(fontSize: 12, color: c.onInk, height: 1)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(child: Padding(padding: const EdgeInsets.only(top: 1), child: Text(tip.steps[i], style: text.bodyMedium))),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text(tip.steps[i], style: t.bodyMedium)),
                 ],
               ),
             ),
           if (tip.hasCaution) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF3A2F0B) : const Color(0xFFFFF4CC),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+              decoration: BoxDecoration(color: c.warningSoft, borderRadius: BorderRadius.circular(AppSpacing.md)),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 18, color: isDark ? const Color(0xFFFFD666) : const Color(0xFF8A6500)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      tip.caution,
-                      style: text.bodySmall?.copyWith(color: isDark ? const Color(0xFFFFE9A8) : const Color(0xFF5C4300)),
-                    ),
-                  ),
+                  Icon(Icons.warning_amber_rounded, size: 18, color: c.warningText),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text(tip.caution, style: t.bodySmall?.copyWith(color: c.warningText))),
                 ],
               ),
             ),
           ],
           if (tip.hasLocalNote) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.place_outlined, size: 16, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 6),
-                Expanded(child: Text(tip.localNote, style: text.bodySmall)),
+                Icon(Icons.place_outlined, size: 16, color: c.textSecondary),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(child: Text(tip.localNote, style: t.bodySmall)),
               ],
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class TipCategoryBadge extends StatelessWidget {
-  const TipCategoryBadge({super.key, required this.category});
-
-  final TipCategory category;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final c = category.color;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: isDark ? 0.25 : 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        category.label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Color.lerp(c, Colors.white, 0.4) : Color.lerp(c, Colors.black, 0.25),
-        ),
       ),
     );
   }

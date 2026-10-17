@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_spacing.dart';
+import '../core/theme/app_theme.dart';
+
 /// AI가 사진을 보는 동안 띄우는 풀스크린 오버레이. 차분하게 문구만 바뀐다.
 class ScanningOverlay extends StatefulWidget {
   const ScanningOverlay({super.key});
@@ -37,29 +40,21 @@ class _ScanningOverlayState extends State<ScanningOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = context.colors;
     return ColoredBox(
-      color: scheme.surface.withValues(alpha: 0.96),
+      color: c.background.withValues(alpha: 0.96),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 36,
-              height: 36,
-              child: CircularProgressIndicator(strokeWidth: 3, color: scheme.onSurface),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3)),
+            const SizedBox(height: AppSpacing.xl),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                ScanningOverlay.messages[_index],
-                key: ValueKey(_index),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              duration: const Duration(milliseconds: 200),
+              child: Text(ScanningOverlay.messages[_index], key: ValueKey(_index), style: context.text.titleSmall),
             ),
-            const SizedBox(height: 6),
-            Text('잠시만 기다려 주세요', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text('잠시만 기다려 주세요', style: context.text.bodySmall),
           ],
         ),
       ),

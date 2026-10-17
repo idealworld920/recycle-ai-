@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
 import 'chat_message.dart';
 
-/// 사용자: 오른쪽 검정, AI: 왼쪽 연회색(#F7F7F8).
+/// 사용자: 오른쪽 검정, AI: 왼쪽 surface.
 class ChatBubble extends StatelessWidget {
   const ChatBubble({super.key, required this.message, this.onRetry});
 
@@ -11,64 +13,52 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    final c = context.colors;
+    final t = context.text;
     final isUser = message.role == ChatRole.user;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bg = isUser
-        ? scheme.primary
-        : message.isError
-            ? scheme.errorContainer
-            : (isDark ? scheme.surfaceContainer : const Color(0xFFF7F7F8));
-    final fg = isUser
-        ? scheme.onPrimary
-        : message.isError
-            ? scheme.onErrorContainer
-            : scheme.onSurface;
+    final bg = isUser ? c.ink : (message.isError ? c.errorSoft : c.surface);
+    final fg = isUser ? c.onInk : (message.isError ? c.error : c.textPrimary);
 
     final radius = BorderRadius.only(
-      topLeft: const Radius.circular(18),
-      topRight: const Radius.circular(18),
-      bottomLeft: Radius.circular(isUser ? 18 : 4),
-      bottomRight: Radius.circular(isUser ? 4 : 18),
+      topLeft: const Radius.circular(AppSpacing.base),
+      topRight: const Radius.circular(AppSpacing.base),
+      bottomLeft: Radius.circular(isUser ? AppSpacing.base : AppSpacing.xs),
+      bottomRight: Radius.circular(isUser ? AppSpacing.xs : AppSpacing.base),
     );
 
-    Widget body;
-    if (message.pending) {
-      body = const _TypingDots();
-    } else {
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(message.text, style: text.bodyMedium?.copyWith(color: fg)),
-          if (message.isError && onRetry != null) ...[
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: onRetry,
-              borderRadius: BorderRadius.circular(8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.refresh_rounded, size: 16, color: fg),
-                  const SizedBox(width: 4),
-                  Text('다시 시도', style: text.labelLarge?.copyWith(color: fg, fontSize: 13)),
-                ],
-              ),
-            ),
-          ],
-        ],
-      );
-    }
+    final Widget body = message.pending
+        ? const _TypingDots()
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message.text, style: t.bodyMedium?.copyWith(color: fg)),
+              if (message.isError && onRetry != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                InkWell(
+                  onTap: onRetry,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 16, color: fg),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text('다시 시도', style: t.labelLarge?.copyWith(fontSize: 13, color: fg)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          );
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
           decoration: BoxDecoration(color: bg, borderRadius: radius),
           child: body,
         ),
@@ -95,7 +85,7 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    final color = context.colors.textSecondary;
     return AnimatedBuilder(
       animation: _c,
       builder: (_, _) => Row(
@@ -103,7 +93,7 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
         children: [
           for (var i = 0; i < 3; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2.5),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
               child: Opacity(
                 opacity: ((_c.value * 3 - i) % 3).abs() < 1 ? 1.0 : 0.35,
                 child: Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
