@@ -9,6 +9,8 @@ import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/schedule/schedule_store.dart';
 import 'package:recycle_ai/features/places/region.dart';
 import 'package:recycle_ai/features/places/region_store.dart';
+import 'package:recycle_ai/features/quiz/quiz_model.dart';
+import 'package:recycle_ai/features/quiz/quiz_store.dart';
 import 'package:recycle_ai/features/stats/collection_store.dart';
 import 'package:recycle_ai/services/settings_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,6 +33,7 @@ void main() {
         schedule: await ScheduleStore.load(),
         collection: await CollectionStore.load(tips),
         region: await RegionStore.load(RegionRepository.fromJsonString('{"items":[]}')),
+        quiz: await QuizStore.load(QuizRepository.fromJsonString('{"items":[]}')),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );

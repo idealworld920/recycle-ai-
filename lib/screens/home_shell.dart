@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../core/theme/app_theme.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/history/history_screen.dart';
+import '../features/quiz/quiz_screen.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/tips/tips_screen.dart';
 import 'guide_screen.dart';
@@ -19,6 +20,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  int _handledSeq = 0;
 
   @override
   void initState() {
@@ -37,6 +39,12 @@ class _HomeShellState extends State<HomeShell> {
     final action = AppActions.instance.pending.value;
     if (action == null) return;
     if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
+    if (action.$1 == AppActions.openQuiz && action.$2 != _handledSeq) {
+      _handledSeq = action.$2;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pushPage(const QuizScreen());
+      });
+    }
   }
 
   @override

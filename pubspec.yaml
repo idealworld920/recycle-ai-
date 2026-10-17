@@ -73,6 +73,7 @@ flutter:
     - assets/fonts/LICENSE.txt
     - assets/data/tips.json
     - assets/data/bulky_waste_links.json
+    - assets/data/quiz.json
 
   fonts:
     - family: Pretendard

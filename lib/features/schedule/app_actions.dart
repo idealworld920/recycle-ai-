@@ -7,6 +7,7 @@ class AppActions {
   static final AppActions instance = AppActions._();
 
   static const openCamera = 'camera';
+  static const openQuiz = 'quiz';
 
   /// 값이 바뀔 때마다 한 번 처리한다. (같은 액션이 연속으로 와도 카운터가 바뀐다)
   final ValueNotifier<(String, int)?> pending = ValueNotifier(null);

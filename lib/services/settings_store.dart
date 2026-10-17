@@ -5,6 +5,7 @@ class SettingsStore {
   SettingsStore(this._prefs);
 
   static const _onboardedPref = 'onboarded_v1';
+  static const _quizReminderPref = 'quiz_reminder_v1';
 
   final SharedPreferences _prefs;
 
@@ -13,4 +14,9 @@ class SettingsStore {
   bool get onboarded => _prefs.getBool(_onboardedPref) ?? false;
 
   Future<void> setOnboarded(bool value) => _prefs.setBool(_onboardedPref, value);
+
+  /// 토요일 11:00 퀴즈 알림. 기본 켜짐.
+  bool get quizReminder => _prefs.getBool(_quizReminderPref) ?? true;
+
+  Future<void> setQuizReminder(bool value) => _prefs.setBool(_quizReminderPref, value);
 }

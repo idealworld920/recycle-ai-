@@ -6,6 +6,8 @@ import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
 import 'features/places/region.dart';
 import 'features/places/region_store.dart';
+import 'features/quiz/quiz_model.dart';
+import 'features/quiz/quiz_store.dart';
 import 'features/schedule/notification_service.dart';
 import 'features/schedule/schedule_store.dart';
 import 'features/schedule/widget_service.dart';
@@ -28,12 +30,16 @@ Future<void> main() async {
   await WidgetService.init();
   final collection = await CollectionStore.load(tips);
   final region = await RegionStore.load(await RegionRepository.load());
+  final quiz = await QuizStore.load(await QuizRepository.load());
+  // 퀴즈 알림은 같은 id 로 다시 잡으면 갱신되므로 매 시작마다 설정값대로 맞춘다.
+  NotificationService.instance.scheduleQuizReminder(settings.quizReminder);
   // 로그인되면 Firestore 와 맞춘다. 실패해도 앱은 뜬다.
   void attachAll() {
     if (!firebase.ready) return;
     schedule.attachUser(firebase.uid);
     history.attachUser(firebase.uid);
     collection.attachUser(firebase.uid);
+    quiz.uid = firebase.uid;
   }
 
   attachAll();
@@ -41,7 +47,7 @@ Future<void> main() async {
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
   }
-  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection, region: region));
+  runApp(RecycleApp(settings: settings, history: history, tips: tips, firebase: firebase, schedule: schedule, collection: collection, region: region, quiz: quiz));
 }
 
 class RecycleApp extends StatelessWidget {
@@ -54,6 +60,7 @@ class RecycleApp extends StatelessWidget {
     required this.schedule,
     required this.collection,
     required this.region,
+    required this.quiz,
   });
 
   final SettingsStore settings;
@@ -63,6 +70,7 @@ class RecycleApp extends StatelessWidget {
   final ScheduleStore schedule;
   final CollectionStore collection;
   final RegionStore region;
+  final QuizStore quiz;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +82,7 @@ class RecycleApp extends StatelessWidget {
       schedule: schedule,
       collection: collection,
       region: region,
+      quiz: quiz,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,

@@ -15,6 +15,7 @@ import 'package:material_symbols_icons/symbols.dart';
 Future<void> showSettingsSheet(BuildContext context) {
   final session = AppServices.of(context).firebase;
   final region = AppServices.of(context).region;
+  final settings = AppServices.of(context).settings;
   return showAppSheet(
     context,
     title: '설정',
@@ -69,6 +70,39 @@ Future<void> showSettingsSheet(BuildContext context) {
             TextButton(
               onPressed: () => NotificationService.instance.showTest(WasteType.recycle),
               child: const Text('테스트 알림 보내기 (5초 뒤)'),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Text('퀴즈', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            StatefulBuilder(
+              builder: (ctx, setState) => AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Icon(Symbols.quiz_rounded, color: c.textPrimary),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('퀴즈 알림', style: t.titleSmall),
+                          Text('매주 토요일 11:00', style: t.bodySmall),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: settings.quizReminder,
+                      activeTrackColor: c.primary,
+                      onChanged: (v) async {
+                        await settings.setQuizReminder(v);
+                        if (v) await NotificationService.instance.requestPermission();
+                        await NotificationService.instance.scheduleQuizReminder(v);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
             Text('AI 연결', style: t.titleSmall),
