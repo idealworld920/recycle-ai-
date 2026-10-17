@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/app_services.dart';
+import 'package:recycle_ai/features/tips/tips_repository.dart';
 import 'package:recycle_ai/screens/guide_screen.dart';
 import 'package:recycle_ai/services/history_store.dart';
 import 'package:recycle_ai/services/settings_store.dart';
@@ -14,10 +15,12 @@ void main() {
   testWidgets('가이드 화면에 모든 분류가 표시된다', (tester) async {
     final settings = await SettingsStore.load();
     final history = await HistoryStore.load();
+    final tips = TipsRepository.fromJsonString('{"items":[]}');
     await tester.pumpWidget(
       AppServices(
         settings: settings,
         history: history,
+        tips: tips,
         child: const MaterialApp(home: GuideScreen()),
       ),
     );

@@ -62,6 +62,7 @@ flutter:
 
   assets:
     - assets/fonts/LICENSE.txt
+    - assets/data/tips.json
 
   fonts:
     - family: Pretendard

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/tips/tips_screen.dart';
 import 'guide_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
@@ -17,7 +18,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = const [HomeScreen(), GuideScreen(), HistoryScreen()];
+    final pages = const [HomeScreen(), TipsScreen(), GuideScreen(), HistoryScreen()];
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
@@ -28,6 +29,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: '홈',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.tips_and_updates_outlined),
+            selectedIcon: Icon(Icons.tips_and_updates_rounded),
+            label: '팁',
           ),
           NavigationDestination(
             icon: Icon(Icons.list_alt_outlined),

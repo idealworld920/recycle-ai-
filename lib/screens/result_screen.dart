@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../app_services.dart';
 import '../data/recycling_guide.dart';
+import '../features/tips/tip_card.dart';
+import '../features/tips/tips_screen.dart';
 import '../models/recycle_result.dart';
 import '../widgets/category_badge.dart';
 import 'guide_screen.dart';
@@ -21,6 +24,7 @@ class ResultScreen extends StatelessWidget {
     final path = result.imagePath;
     final hasImage = path != null && File(path).existsSync();
     final guide = guideFor(cat);
+    final tip = AppServices.of(context).tips.findForItem(result.itemName);
 
     return Scaffold(
       appBar: AppBar(title: const Text('판별 결과')),
@@ -135,6 +139,21 @@ class ResultScreen extends StatelessWidget {
                   Expanded(child: Text(result.tip, style: text.bodyMedium)),
                 ],
               ),
+            ),
+          const SizedBox(height: 24),
+
+          Text('품목 팁', style: text.titleLarge),
+          const SizedBox(height: 10),
+          if (tip != null)
+            TipCard(tip: tip)
+          else
+            OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TipsScreen(initialQuery: result.itemName, showBackButton: true)),
+              ),
+              icon: const Icon(Icons.tips_and_updates_outlined, size: 20),
+              label: const Text('팁 더 보기'),
             ),
           const SizedBox(height: 24),
 
