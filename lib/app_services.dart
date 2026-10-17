@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'features/tips/tips_repository.dart';
-import 'services/history_store.dart';
+import 'features/history/history_store.dart';
 import 'services/settings_store.dart';
 
 /// 화면 어디서나 저장소에 접근할 수 있게 해 주는 InheritedWidget.

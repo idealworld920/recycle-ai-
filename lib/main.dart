@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_services.dart';
 import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
-import 'services/history_store.dart';
+import 'features/history/history_store.dart';
 import 'services/settings_store.dart';
 import 'theme/app_theme.dart';
 

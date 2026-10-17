@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -11,18 +12,22 @@ import '../widgets/category_badge.dart';
 import 'guide_screen.dart';
 
 class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key, required this.result, this.isNew = false});
+  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb});
 
   final RecycleResult result;
   final bool isNew;
+
+  /// 방금 찍은 원본 사진.
+  final Uint8List? imageBytes;
+
+  /// 기록에서 열 때 쓰는 작은 썸네일(base64).
+  final String? imageThumb;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final cat = result.category;
-    final path = result.imagePath;
-    final hasImage = path != null && File(path).existsSync();
     final guide = guideFor(cat);
     final tip = AppServices.of(context).tips.findForItem(result.itemName);
 
@@ -31,10 +36,19 @@ class ResultScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
         children: [
-          if (hasImage)
+          if (imageBytes != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
-              child: AspectRatio(aspectRatio: 4 / 3, child: Image.file(File(path), fit: BoxFit.cover)),
+              child: AspectRatio(aspectRatio: 4 / 3, child: Image.memory(imageBytes!, fit: BoxFit.cover)),
+            )
+          else if (imageThumb != null && imageThumb!.isNotEmpty)
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Image.memory(base64Decode(imageThumb!), width: 96, height: 96, fit: BoxFit.cover),
+                ),
+              ],
             )
           else
             Container(

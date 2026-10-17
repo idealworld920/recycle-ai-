@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../features/tips/tips_screen.dart';
+import '../features/history/history_screen.dart';
 import 'guide_screen.dart';
-import 'history_screen.dart';
 import 'home_screen.dart';
 
 /// 하단 탭: 판별 / 가이드 / 기록
@@ -18,7 +18,12 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = const [HomeScreen(), TipsScreen(), GuideScreen(), HistoryScreen()];
+    final pages = [
+      const HomeScreen(),
+      const TipsScreen(),
+      const GuideScreen(),
+      HistoryScreen(onGoHome: () => setState(() => _index = 0)),
+    ];
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(

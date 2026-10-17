@@ -1,13 +1,11 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../app_services.dart';
-import '../models/recycle_result.dart';
+import '../features/history/history_record.dart';
+import '../features/history/history_screen.dart';
 import '../services/gemini_classifier.dart';
-import '../widgets/category_badge.dart';
 import '../widgets/scanning_overlay.dart';
 import 'result_screen.dart';
 import 'settings_screen.dart';
@@ -61,10 +59,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final bytes = await picked.readAsBytes();
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
       final result = await classifier.classifyBytes(bytes, mimeType: mime);
-      final saved = await services.history.add(result, imageBytes: bytes);
+      await services.history.addResult(result, imageBytes: bytes);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: saved, isNew: true)));
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ResultScreen(result: result, imageBytes: bytes, isNew: true)),
+      );
     } on ClassifyException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -144,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           )
                         else
                           for (var i = 0; i < recent.length; i++) ...[
-                            _RecentRow(result: recent[i]),
+                            _RecentRow(record: recent[i]),
                             if (i != recent.length - 1) const Divider(),
                           ],
                       ],
@@ -211,12 +212,12 @@ class _ActionTile extends StatelessWidget {
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.items});
 
-  final List<RecycleResult> items;
+  final List<HistoryRecord> items;
 
   @override
   Widget build(BuildContext context) {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final thisWeek = items.where((r) => r.createdAt.isAfter(weekAgo)).length;
+    final thisWeek = items.where((r) => r.date.isAfter(weekAgo)).length;
     final recycled = items.where((r) => r.category.isRecyclable).length;
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -261,35 +262,31 @@ class _Stat extends StatelessWidget {
 }
 
 class _RecentRow extends StatelessWidget {
-  const _RecentRow({required this.result});
+  const _RecentRow({required this.record});
 
-  final RecycleResult result;
+  final HistoryRecord record;
 
   @override
   Widget build(BuildContext context) {
-    final path = result.imagePath;
-    final hasImage = path != null && File(path).existsSync();
     final text = Theme.of(context).textTheme;
     return InkWell(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ResultScreen(result: record.toResult(), imageThumb: record.imageThumb)),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            hasImage
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: SizedBox(width: 48, height: 48, child: Image.file(File(path), fit: BoxFit.cover)),
-                  )
-                : CategoryIcon(category: result.category),
+            HistoryThumb(record: record),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(result.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+                  Text(record.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
                   const SizedBox(height: 3),
-                  Text(result.category.label, style: text.bodySmall),
+                  Text(record.category.label, style: text.bodySmall),
                 ],
               ),
             ),
