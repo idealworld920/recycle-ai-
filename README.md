@@ -42,7 +42,7 @@ GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter t
 - 개인정보처리방침: https://idealworld920.github.io/recycle-ai-/privacy.html (`web/privacy.html`)
 - 이용약관: https://idealworld920.github.io/recycle-ai-/terms.html (`web/terms.html`)
 - 앱 내: 최초 실행 온보딩 마지막 동의 화면(필수 2 + 선택 1, 동의 시각은 `users/{uid}.consent`), 설정 → 약관/개인정보 링크, 설정 → 내 데이터 삭제
-- 문서의 `[사업자/개인 명칭]`, `[이름]`, `[privacy@example.com]` 은 채워야 해요. 문서를 고치면 `LegalLinks.version` 을 올려 재동의를 받아요.
+- 운영자 표기: 라라스튜디오(이유정), idealworld13@gmail.com. 문서를 고치면 `LegalLinks.version` 을 올려 재동의를 받아요.
 
 **Play Console → 앱 콘텐츠 → 데이터 보안** 에 아래 기준으로 답하면 돼요 (현재 코드 기준).
 
