@@ -5,7 +5,8 @@ import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/account_section.dart';
-import '../features/auth/link_flows.dart';
+import '../features/household/household_sheet.dart';
+import '../features/premium/paywall_screen.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
@@ -33,17 +34,44 @@ Future<void> showSettingsSheet(BuildContext context) {
           children: [
             const AccountSection(),
             const SizedBox(height: AppSpacing.xl),
+            Text('프리미엄', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            ListenableBuilder(
+              listenable: AppServices.of(context).premium,
+              builder: (ctx2, _) {
+                final p = AppServices.of(context).premium;
+                return AppCard(
+                  onTap: p.isPremium ? null : () {
+                    Navigator.pop(ctx);
+                    context.pushPage(const PaywallScreen());
+                  },
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  child: Row(
+                    children: [
+                      Icon(Symbols.workspace_premium_rounded, color: p.isPremium ? c.primary : c.textPrimary, fill: p.isPremium ? 1 : 0),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.isPremium ? '프리미엄 사용 중' : 'ReSAI 프리미엄', style: t.titleSmall),
+                            Text(p.isPremium ? '분류·질문 무제한, 가족 공유' : '7일 무료 체험 · 월 2,900원', style: t.bodySmall),
+                          ],
+                        ),
+                      ),
+                      if (!p.isPremium) Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.xl),
             Text('가족 공유', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(
-              onTap: () async {
-                final auth = AppServices.of(context).auth;
-                if (auth.isAnonymous) {
-                  Navigator.pop(ctx);
-                  await requireLinkForFamily(context);
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('가족 공유는 준비 중이에요.')));
+              onTap: () {
+                Navigator.pop(ctx);
+                showHouseholdSheet(context);
               },
               padding: const EdgeInsets.all(AppSpacing.base),
               child: Row(

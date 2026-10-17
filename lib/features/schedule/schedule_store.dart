@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../household/household_model.dart';
+import '../household/household_store.dart';
 import '../stats/stats_calculator.dart';
 import 'notification_service.dart';
 import 'pickup_schedule.dart';
@@ -17,6 +19,8 @@ class ScheduleStore extends ChangeNotifier {
   }
 
   final ScheduleRepository _repo;
+  HouseholdStore? _household;
+  String? _appliedHouseholdScheduleJson;
   PickupSchedule? _schedule;
   late String _today;
   Set<WasteType> _checkins = {};
@@ -29,7 +33,7 @@ class ScheduleStore extends ChangeNotifier {
 
   /// 오늘 체크한 종류.
   Set<WasteType> get checkins => _checkins;
-  bool isChecked(WasteType t) => _checkins.contains(t);
+  bool isChecked(WasteType t) => _checkins.contains(t) || memberCheckins.containsKey(t);
 
   /// 체크인이 있던 날짜 키들.
   Set<String> get checkinDates => _checkinDates;
@@ -41,6 +45,46 @@ class ScheduleStore extends ChangeNotifier {
   static Future<ScheduleStore> load() async {
     final prefs = await SharedPreferences.getInstance();
     return ScheduleStore(ScheduleRepository(prefs));
+  }
+
+  /// 집에 속해 있으면 집 수거일·체크인을 따른다.
+  void attachHousehold(HouseholdStore household) {
+    _household = household;
+    household.addListener(_onHouseholdChanged);
+  }
+
+  bool get inHousehold => _household?.active ?? false;
+
+  /// 집 멤버가 오늘 체크한 기록 (닉네임·시각). 집이 없으면 비어 있다.
+  Map<WasteType, MemberCheckin> get memberCheckins => _household?.todayCheckins ?? const {};
+
+  /// 집 수거일이 바뀌면 기기에도 반영하고 알림·위젯을 다시 잡는다.
+  Future<void> _onHouseholdChanged() async {
+    final h = _household;
+    final remote = h?.household?.schedule;
+    if (h == null || !h.active) {
+      _appliedHouseholdScheduleJson = null;
+      notifyListeners();
+      return;
+    }
+    if (remote == null) {
+      // 집에 수거일이 아직 없으면 내 설정을 올려서 기준으로 삼는다.
+      if (_schedule != null && _appliedHouseholdScheduleJson == null) {
+        _appliedHouseholdScheduleJson = _schedule!.toJson().toString();
+        await h.setSchedule(_schedule!);
+      }
+      notifyListeners();
+      return;
+    }
+    final json = remote.toJson().toString();
+    if (json != _appliedHouseholdScheduleJson) {
+      _appliedHouseholdScheduleJson = json;
+      _schedule = remote;
+      await _repo.save(remote);
+      await NotificationService.instance.reschedule(remote);
+      await WidgetService.refreshNow(remote);
+    }
+    notifyListeners();
   }
 
   /// 로그인되면 Firestore 와 맞춘다. 원격이 있으면 원격을 우선한다.
@@ -71,6 +115,10 @@ class ScheduleStore extends ChangeNotifier {
       _schedule = s;
       await NotificationService.instance.reschedule(s);
       await WidgetService.refreshNow(s);
+      if (inHousehold) {
+        _appliedHouseholdScheduleJson = s.toJson().toString();
+        await _household!.setSchedule(s);
+      }
     } finally {
       _saving = false;
       notifyListeners();
@@ -95,6 +143,7 @@ class ScheduleStore extends ChangeNotifier {
     _checkinDates = {..._checkinDates, _today};
     notifyListeners();
     await _repo.checkIn(_today, t);
+    if (inHousehold) await _household!.checkIn(t);
   }
 
   /// 날짜가 바뀌었으면 체크인 상태를 다시 읽는다. 홈 카드가 그릴 때 부른다.

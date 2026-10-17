@@ -3,12 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
-    // 본인 문서만.
+    // 본인 문서만. premium 은 RevenueCat 웹훅(Cloud Function)만 쓴다.
     match /users/{uid} {
-      allow read, write: if isOwner(uid);
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && !request.resource.data.keys().hasAny(['premium']);
+      allow update: if isOwner(uid) && !changedKeys().hasAny(['premium']);
+      allow delete: if isOwner(uid);
 
-      // 하루 사용량. count 는 1부터 시작해 1씩만 늘릴 수 있고, 5를 넘길 수 없어요.
+      // 하루 질문 사용량. count 는 1부터 시작해 1씩만 늘릴 수 있다. (무료 한도는 앱에서, 프리미엄은 무제한)
       match /usage/{day} {
         allow read: if isOwner(uid);
         allow create: if isOwner(uid)
@@ -16,13 +20,59 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['count', 'updatedAt']);
         allow update: if isOwner(uid)
           && request.resource.data.count == resource.data.count + 1
-          && request.resource.data.count <= 5
           && request.resource.data.keys().hasOnly(['count', 'updatedAt']);
         allow delete: if false;
       }
 
       match /{document=**} {
         allow read, write: if isOwner(uid);
+      }
+    }
+
+    // 초대 코드 → 집 id. 로그인한 사람이면 코드로 조회할 수 있다.
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.householdId is string;
+      allow update, delete: if signedIn()
+        && get(/databases/$(database)/documents/households/$(resource.data.householdId)).data.ownerUid == request.auth.uid;
+    }
+
+    // 가족 공유 집. 멤버만 읽고 쓴다.
+    match /households/{hid} {
+      function isMember() { return signedIn() && request.auth.uid in resource.data.memberUids; }
+      function joiningSelfOnly() {
+        return changedKeys().hasOnly(['memberUids'])
+          && request.resource.data.memberUids.hasAll(resource.data.memberUids)
+          && request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet()) == [request.auth.uid].toSet()
+          && exists(/databases/$(database)/documents/invites/$(resource.data.code))
+          && get(/databases/$(database)/documents/invites/$(resource.data.code)).data.householdId == hid;
+      }
+      function leavingSelfOnly() {
+        return changedKeys().hasOnly(['memberUids'])
+          && resource.data.memberUids.hasAll(request.resource.data.memberUids)
+          && resource.data.memberUids.toSet().difference(request.resource.data.memberUids.toSet()) == [request.auth.uid].toSet();
+      }
+
+      allow read: if isMember();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+      allow update: if isMember() && !changedKeys().hasAny(['ownerUid', 'code'])
+        || (signedIn() && joiningSelfOnly())
+        || (signedIn() && leavingSelfOnly());
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([request.auth.uid]);
+        allow create, update: if isOwner(uid)
+          && get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([uid]);
+        allow delete: if isOwner(uid);
+      }
+
+      match /checkins/{day} {
+        allow read, write: if signedIn()
+          && get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([request.auth.uid]);
       }
     }
 

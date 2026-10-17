@@ -6,6 +6,8 @@ import '../../core/firebase_session.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_chip.dart';
+import '../premium/free_limits.dart';
+import '../premium/premium_gate.dart';
 import 'chat_bubble.dart';
 import 'chat_message.dart';
 import 'chat_service.dart';
@@ -56,7 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final usage = _usage;
     if (usage == null) return;
     try {
-      final r = await usage.remaining();
+      final r = (FreeLimits.chatPerDay - await usage.todayCount()).clamp(0, FreeLimits.chatPerDay);
       if (mounted) setState(() => _remaining = r);
     } catch (_) {
       // 오프라인 등. 표시만 못 할 뿐 질문은 시도할 수 있다.
@@ -88,16 +90,21 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToEnd();
 
     try {
+      final premium = AppServices.of(context).premium.isPremium;
       final count = await usage.todayCount();
-      if (count >= UsageRepository.dailyLimit) {
-        _replacePending(const ChatMessage(role: ChatRole.ai, text: '오늘 질문 5회를 다 썼어요. 내일 다시 물어봐 주세요'));
+      if (!premium && count >= FreeLimits.chatPerDay) {
+        _replacePending(const ChatMessage(role: ChatRole.ai, text: '오늘 무료 질문 3회를 다 썼어요. 프리미엄은 무제한이에요.'));
         setState(() => _remaining = 0);
+        if (mounted) {
+          final ok = await ensurePremium(context, reason: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요.');
+          if (ok && mounted) _send(text);
+        }
         return;
       }
       final answer = await service.send(text);
       await usage.increment();
       _replacePending(ChatMessage(role: ChatRole.ai, text: answer));
-      setState(() => _remaining = (UsageRepository.dailyLimit - count - 1).clamp(0, UsageRepository.dailyLimit));
+      setState(() => _remaining = premium ? null : (FreeLimits.chatPerDay - count - 1).clamp(0, FreeLimits.chatPerDay));
     } on ChatException catch (e) {
       _lastFailedText = text;
       _replacePending(ChatMessage(role: ChatRole.ai, text: e.message, isError: true));
@@ -157,8 +164,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(child: Text('물어보기', style: text.headlineSmall)),
-                  if (_remaining != null)
-                    Text('오늘 남은 질문 $_remaining/${UsageRepository.dailyLimit}', style: text.bodySmall),
+                  if (AppServices.of(context).premium.isPremium)
+                    Text('프리미엄 · 무제한', style: text.bodySmall)
+                  else if (_remaining != null)
+                    Text('오늘 남은 질문 $_remaining/${FreeLimits.chatPerDay}', style: text.bodySmall),
                 ],
               ),
             ),

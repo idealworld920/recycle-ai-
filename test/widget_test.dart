@@ -8,6 +8,11 @@ import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/tips/tips_repository.dart';
 import 'package:recycle_ai/screens/guide_screen.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
+import 'package:recycle_ai/features/household/household_repository.dart';
+import 'package:recycle_ai/features/household/household_store.dart';
+import 'package:recycle_ai/features/premium/free_limits.dart';
+import 'package:recycle_ai/features/premium/premium_store.dart';
+import 'package:recycle_ai/features/premium/purchases_service.dart';
 import 'package:recycle_ai/features/schedule/schedule_store.dart';
 import 'package:recycle_ai/features/places/region.dart';
 import 'package:recycle_ai/features/places/region_store.dart';
@@ -37,6 +42,9 @@ void main() {
         region: await RegionStore.load(RegionRepository.fromJsonString('{"items":[]}')),
         quiz: await QuizStore.load(QuizRepository.fromJsonString('{"items":[]}')),
         auth: await AuthStore.load(OfflineAuthService()),
+        premium: PremiumStore(PurchasesService.instance),
+        household: HouseholdStore(HouseholdRepository()),
+        freeLimits: FreeLimits(await SharedPreferences.getInstance()),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );

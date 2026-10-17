@@ -9,6 +9,8 @@ import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/auth_store.dart';
 import '../features/auth/link_banner.dart';
+import '../features/premium/free_limits.dart';
+import '../features/premium/premium_gate.dart';
 import '../features/quiz/quiz_card.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/schedule/pickup_card.dart';
@@ -69,6 +71,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _showError(services.firebase.error ?? 'AI 서버에 연결하지 못했어요. 설정에서 다시 연결해 주세요.');
       return;
     }
+    if (!services.premium.isPremium && services.freeLimits.classifyExhausted) {
+      final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.');
+      if (!ok) return;
+    }
+    if (!mounted) return;
 
     XFile? picked;
     try {
@@ -86,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
       final result = await classifier.classifyBytes(bytes, mimeType: mime);
       await services.history.addResult(result, imageBytes: bytes);
+      if (!services.premium.isPremium) await services.freeLimits.incrementClassify();
       String? toast;
       final tip = services.tips.findForItem(result.itemName);
       if (tip != null && await services.collection.collect(tip, itemName: result.itemName)) {

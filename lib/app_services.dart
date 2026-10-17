@@ -3,6 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'features/tips/tips_repository.dart';
 import 'core/firebase_session.dart';
 import 'features/auth/auth_store.dart';
+import 'features/household/household_store.dart';
+import 'features/premium/free_limits.dart';
+import 'features/premium/premium_store.dart';
 import 'features/history/history_store.dart';
 import 'features/places/region_store.dart';
 import 'features/quiz/quiz_store.dart';
@@ -23,6 +26,9 @@ class AppServices extends InheritedWidget {
     required this.region,
     required this.quiz,
     required this.auth,
+    required this.premium,
+    required this.household,
+    required this.freeLimits,
     required super.child,
   });
 
@@ -35,6 +41,9 @@ class AppServices extends InheritedWidget {
   final RegionStore region;
   final QuizStore quiz;
   final AuthStore auth;
+  final PremiumStore premium;
+  final HouseholdStore household;
+  final FreeLimits freeLimits;
 
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {
@@ -51,5 +60,5 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection || region != oldWidget.region || quiz != oldWidget.quiz || auth != oldWidget.auth;
+      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection || region != oldWidget.region || quiz != oldWidget.quiz || auth != oldWidget.auth || premium != oldWidget.premium || household != oldWidget.household;
 }

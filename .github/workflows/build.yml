@@ -35,7 +35,7 @@ jobs:
       - run: flutter test
 
       # 디버그 서명으로 빌드한 APK. Actions 탭 → 해당 실행 → Artifacts 에서 받아 폰에 바로 설치할 수 있어요.
-      - run: flutter build apk --release
+      - run: flutter build apk --release --dart-define=REVENUECAT_ANDROID_KEY=${{ secrets.REVENUECAT_ANDROID_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: recycle-ai-apk

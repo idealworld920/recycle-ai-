@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../stats/streak_row.dart';
+import '../household/household_model.dart';
 import 'pickup_schedule.dart';
 import 'schedule_settings_sheet.dart';
 import 'schedule_store.dart';
@@ -103,7 +104,7 @@ class _TodayCard extends StatelessWidget {
           Text(allDone ? '잘하셨어요. 내일도 알려드릴게요.' : '모아둔 거 한 번에 내놓고, 버렸으면 눌러주세요.', style: t.bodySmall),
           const SizedBox(height: AppSpacing.base),
           for (var i = 0; i < types.length; i++) ...[
-            _CheckRow(type: types[i], checked: store.isChecked(types[i]), onCheck: () {
+            _CheckRow(type: types[i], checked: store.isChecked(types[i]), member: store.memberCheckins[types[i]], onCheck: () {
               HapticFeedback.mediumImpact();
               store.checkIn(types[i]);
             }),
@@ -116,10 +117,13 @@ class _TodayCard extends StatelessWidget {
 }
 
 class _CheckRow extends StatelessWidget {
-  const _CheckRow({required this.type, required this.checked, required this.onCheck});
+  const _CheckRow({required this.type, required this.checked, required this.onCheck, this.member});
 
   final WasteType type;
   final bool checked;
+
+  /// 집 멤버가 체크했으면 누가·언제.
+  final MemberCheckin? member;
   final VoidCallback onCheck;
 
   @override
@@ -131,7 +135,14 @@ class _CheckRow extends StatelessWidget {
         children: [
           Icon(Symbols.check_circle_rounded, size: 20, color: c.primary, fill: 1),
           const SizedBox(width: AppSpacing.sm),
-          Text('${type.label} 버렸어요', style: t.titleSmall?.copyWith(color: c.primary)),
+          Expanded(
+            child: Text(
+              member != null && member!.nickname.isNotEmpty
+                  ? '${member!.nickname}가 오늘 ${type.label} 버렸어요 · ${member!.timeLabel}'
+                  : '${type.label} 버렸어요',
+              style: t.titleSmall?.copyWith(color: c.primary),
+            ),
+          ),
         ],
       );
     }

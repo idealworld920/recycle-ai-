@@ -60,6 +60,35 @@ GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter t
 
 문제가 생기면: `clientConfigurationError` / `DEVELOPER_ERROR` 는 거의 항상 지문 누락이거나 google-services.json 이 옛날 파일인 경우예요.
 
+## 구독 (RevenueCat) 설정
+
+앱은 `purchases_flutter`(RevenueCat)로 결제·영수증 검증·복원을 처리해요. 구독 상태의 진실은 RevenueCat SDK 이고,
+Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅만 갱신해요 (클라이언트는 규칙상 못 씀).
+
+1. **Play Console 상품 등록**: 수익 창출 → 구독 → 구독 만들기
+   - `resai_premium_monthly` : 기본 요금제 월 2,900원, 무료 체험 7일 오퍼 추가
+   - `resai_premium_yearly` : 기본 요금제 연 19,900원, 무료 체험 7일 오퍼 추가
+   - 두 상품 모두 "활성화". 앱은 내부 테스트 트랙에 한 번 올라가 있어야 상품이 보여요
+2. **라이선스 테스터**: Play Console → 설정 → 라이선스 테스트 → 테스트할 Google 계정 추가 (결제 없이 테스트, 체험·갱신이 분 단위로 빨라져요)
+3. **RevenueCat 프로젝트**: app.revenuecat.com → 프로젝트 만들기 → Android 앱 추가 (패키지 `com.idealworld.recycle_ai`)
+   - Play 서비스 계정 JSON 업로드 (RevenueCat 안내대로 Google Cloud 에서 서비스 계정 만들고 Play Console 에 초대)
+   - Products 에 위 두 상품 import → Entitlement **`premium`** 하나 만들고 두 상품 연결
+   - Offering `default` 에 패키지 `$rc_monthly` = monthly, `$rc_annual` = yearly
+4. **API 키**: RevenueCat → API keys → Google Play 공개 키(`goog_…`) 복사. 빌드할 때 넣어요:
+   ```bash
+   flutter run --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx
+   ```
+   CI 는 GitHub Secrets `REVENUECAT_ANDROID_KEY` 를 같은 이름으로 넘겨요. 키가 없으면 페이월은 미리보기만 떠요.
+   결제 없이 프리미엄 화면을 확인하려면 `--dart-define=PREMIUM_DEBUG=true`
+5. **웹훅 (Cloud Function)**:
+   ```bash
+   cd functions && npm install && cd ..
+   firebase functions:secrets:set REVENUECAT_WEBHOOK_SECRET   # 아무 긴 문자열
+   firebase deploy --only functions,firestore:rules
+   ```
+   RevenueCat → Integrations → Webhooks 에 함수 URL 과 `Authorization: Bearer <그 문자열>` 등록
+6. 앱에서 설정 → 프리미엄 → 7일 무료로 시작 → 라이선스 테스터 계정으로 결제 → 홈 카드에 반영되면 끝
+
 ## 수거일 알림·위젯 테스트 (에뮬레이터)
 
 **알림**
@@ -103,6 +132,8 @@ lib/
     places/                   버리는 곳: 지역 선택, 대형폐기물 신고·수거함 링크
     quiz/                     주 1회 헷갈리는 쓰레기 퀴즈 (토요일 11:00 알림)
     auth/                     익명 → 구글 연결, 잠금 UI, 로그아웃·계정 삭제
+    premium/                  RevenueCat 구독, 페이월, 무료 한도
+    household/                가족 공유 집: 초대 코드, 공유 수거일, 멤버 체크인
     tips/                     품목별 팁 검색
     history/                  분류 기록 (로컬 저장)
   services/
