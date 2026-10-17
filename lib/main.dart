@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
 import 'features/household/household_repository.dart';
 import 'features/household/household_store.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/premium/free_limits.dart';
 import 'features/premium/premium_store.dart';
 import 'features/premium/purchases_service.dart';
@@ -117,7 +118,12 @@ class RecycleApp extends StatelessWidget {
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        home: const HomeShell(),
+        home: ListenableBuilder(
+          listenable: settings,
+          builder: (context, _) => settings.onboarded
+              ? const HomeShell()
+              : OnboardingScreen(onDone: () => settings.setOnboarded(true)),
+        ),
       ),
     );
   }

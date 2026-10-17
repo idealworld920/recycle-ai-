@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_chip.dart';
+import '../legal/permission_primer.dart';
 import 'pickup_schedule.dart';
 
 /// 수거일 설정 바텀시트. 종류별 요일 토글 + 알림 시각.
@@ -52,6 +53,8 @@ class _ScheduleFormState extends State<_ScheduleForm> {
 
   Future<void> _save() async {
     final store = AppServices.of(context).schedule;
+    if (!_draft.isEmpty && !await PermissionPrimer.show(context, PermissionPrimer.notification)) return;
+    if (!mounted) return;
     await store.save(_draft);
     if (!mounted) return;
     Navigator.pop(context);

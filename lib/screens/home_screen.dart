@@ -9,6 +9,7 @@ import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/auth_store.dart';
 import '../features/auth/link_banner.dart';
+import '../features/legal/permission_primer.dart';
 import '../features/premium/free_limits.dart';
 import '../features/premium/premium_gate.dart';
 import '../features/quiz/quiz_card.dart';
@@ -75,6 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.');
       if (!ok) return;
     }
+    if (!mounted) return;
+    if (source == ImageSource.camera && !await PermissionPrimer.show(context, PermissionPrimer.camera)) return;
     if (!mounted) return;
 
     XFile? picked;

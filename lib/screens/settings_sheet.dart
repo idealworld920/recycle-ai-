@@ -6,6 +6,10 @@ import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/account_section.dart';
 import '../features/household/household_sheet.dart';
+import '../features/legal/data_deletion.dart';
+import '../features/legal/permission_primer.dart';
+import '../features/legal/legal_links.dart';
+import '../features/legal/legal_webview_screen.dart';
 import '../features/premium/paywall_screen.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
@@ -149,6 +153,7 @@ Future<void> showSettingsSheet(BuildContext context) {
                       value: settings.quizReminder,
                       activeTrackColor: c.primary,
                       onChanged: (v) async {
+                        if (v && !await PermissionPrimer.show(context, PermissionPrimer.notification)) return;
                         await settings.setQuizReminder(v);
                         if (v) await NotificationService.instance.requestPermission();
                         await NotificationService.instance.scheduleQuizReminder(v);
@@ -190,6 +195,37 @@ Future<void> showSettingsSheet(BuildContext context) {
             const SizedBox(height: AppSpacing.sm),
             Text('API 키는 앱에 저장되지 않아요. Firebase 가 대신 AI 를 호출해요.', style: t.bodySmall),
             const SizedBox(height: AppSpacing.xxl),
+            Text('약관 및 개인정보', style: t.titleSmall),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.xs),
+              child: Column(
+                children: [
+                  _LinkRow(
+                    icon: Symbols.description_rounded,
+                    label: '이용약관',
+                    onTap: () => LegalWebViewScreen.open(context, title: '이용약관', url: LegalLinks.terms),
+                  ),
+                  const Divider(),
+                  _LinkRow(
+                    icon: Symbols.privacy_tip_rounded,
+                    label: '개인정보처리방침',
+                    onTap: () => LegalWebViewScreen.open(context, title: '개인정보처리방침', url: LegalLinks.privacy),
+                  ),
+                  const Divider(),
+                  _LinkRow(
+                    icon: Symbols.delete_forever_rounded,
+                    label: '내 데이터 삭제',
+                    color: c.error,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      showDeleteDataSheet(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
             Text('앱 정보', style: t.titleSmall),
             const SizedBox(height: AppSpacing.sm),
             Text(
@@ -203,4 +239,33 @@ Future<void> showSettingsSheet(BuildContext context) {
       },
     ),
   );
+}
+
+class _LinkRow extends StatelessWidget {
+  const _LinkRow({required this.icon, required this.label, required this.onTap, this.color});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = context.text;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: color ?? c.textPrimary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: Text(label, style: t.bodyMedium?.copyWith(color: color ?? c.textPrimary))),
+            Icon(Symbols.chevron_right_rounded, size: 20, color: c.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
 }
