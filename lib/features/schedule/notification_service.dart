@@ -30,8 +30,7 @@ class NotificationService {
     await _plugin.initialize(
       settings: const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (response) {
-        final p = response.payload;
-        if (p == AppActions.openCamera || p == AppActions.openQuiz) AppActions.instance.fire(p!);
+        if (response.payload == AppActions.openCamera) AppActions.instance.fire(AppActions.openCamera);
       },
     );
     _initialized = true;
@@ -39,9 +38,8 @@ class NotificationService {
     // 알림을 눌러서 앱이 켜진 경우.
     try {
       final launch = await _plugin.getNotificationAppLaunchDetails();
-      final p = launch?.notificationResponse?.payload;
-      if (launch?.didNotificationLaunchApp == true && (p == AppActions.openCamera || p == AppActions.openQuiz)) {
-        AppActions.instance.fire(p!);
+      if (launch?.didNotificationLaunchApp == true && launch?.notificationResponse?.payload == AppActions.openCamera) {
+        AppActions.instance.fire(AppActions.openCamera);
       }
     } catch (_) {}
   }
@@ -109,30 +107,6 @@ class NotificationService {
       t = t.add(const Duration(days: 1));
     }
     return t;
-  }
-
-  static const quizNotificationId = 200;
-
-  /// 매주 토요일 11:00 퀴즈 알림. [enabled] 가 false 면 취소.
-  Future<void> scheduleQuizReminder(bool enabled) async {
-    if (kIsWeb) return;
-    await init();
-    await _plugin.cancel(id: quizNotificationId);
-    if (!enabled) return;
-    final now = tz.TZDateTime.now(tz.local);
-    await _plugin.zonedSchedule(
-      id: quizNotificationId,
-      title: '헷갈리는 쓰레기 퀴즈',
-      body: '이번 주 분리수거 퀴즈 풀어볼래요?',
-      scheduledDate: _nextInstance(now, DateTime.saturday, 11, 0),
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(channelId, channelName, channelDescription: channelDescription, importance: Importance.defaultImportance, priority: Priority.defaultPriority),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: AppActions.openQuiz,
-    );
   }
 
   /// 에뮬레이터 확인용: 5초 뒤 한 번 울리는 테스트 알림.

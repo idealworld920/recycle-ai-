@@ -37,7 +37,6 @@ class _ConsentScreenState extends State<ConsentScreen> {
     final services = AppServices.of(context);
     setState(() => _saving = true);
     await services.settings.saveConsent(terms: true, privacy: true, notifications: _notify, version: LegalLinks.version);
-    await services.settings.setQuizReminder(_notify);
     await services.settings.setOnboarded(true);
     final now = DateTime.now().toIso8601String();
     await services.auth.service.mergeUserDoc({
@@ -93,7 +92,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                           onView: () => LegalWebViewScreen.open(context, title: '개인정보처리방침', url: LegalLinks.privacy),
                         ),
                         _Row(
-                          label: '[선택] 퀴즈·안내 알림 받기',
+                          label: '[선택] 안내 알림 받기',
                           value: _notify,
                           onChanged: (v) => setState(() => _notify = v),
                         ),

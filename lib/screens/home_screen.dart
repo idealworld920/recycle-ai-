@@ -12,7 +12,6 @@ import '../features/auth/link_banner.dart';
 import '../features/legal/permission_primer.dart';
 import '../features/premium/free_limits.dart';
 import '../features/premium/premium_gate.dart';
-import '../features/quiz/quiz_card.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/schedule/pickup_card.dart';
 import '../features/tips/tip_card.dart';
@@ -206,8 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                const QuizCard(),
               ],
             ),
           ),

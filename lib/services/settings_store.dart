@@ -6,7 +6,6 @@ class SettingsStore extends ChangeNotifier {
   SettingsStore(this._prefs);
 
   static const _onboardedPref = 'onboarded_v1';
-  static const _quizReminderPref = 'quiz_reminder_v1';
   static const _installedAtPref = 'installed_at_v1';
   static const _consentPrefix = 'consent_';
   static const _primerPrefix = 'primer_shown_';
@@ -43,15 +42,6 @@ class SettingsStore extends ChangeNotifier {
       (_prefs.getString('${_consentPrefix}terms') ?? '').isNotEmpty && (_prefs.getString('${_consentPrefix}privacy') ?? '').isNotEmpty;
   String? get consentVersion => _prefs.getString('${_consentPrefix}version');
   bool get consentedNotifications => _prefs.getBool('${_consentPrefix}notifications') ?? false;
-
-  // ---- 알림 ----
-  /// 토요일 11:00 퀴즈 알림. 기본 켜짐.
-  bool get quizReminder => _prefs.getBool(_quizReminderPref) ?? true;
-
-  Future<void> setQuizReminder(bool value) async {
-    await _prefs.setBool(_quizReminderPref, value);
-    notifyListeners();
-  }
 
   // ---- 권한 사전 안내 ----
   bool primerShown(String kind) => _prefs.getBool('$_primerPrefix$kind') ?? false;

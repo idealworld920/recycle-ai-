@@ -26,7 +26,7 @@ Future<void> showDeleteDataSheet(BuildContext context) {
           const SizedBox(height: AppSpacing.sm),
           Text('서버와 이 기기에서 다음이 즉시, 영구히 삭제돼요.', style: t.bodyMedium),
           const SizedBox(height: AppSpacing.sm),
-          for (final line in const ['분류 기록과 썸네일', '수거일 설정과 체크 기록', '도감, 퀴즈 결과, 질문 사용량', '계정(구글 연결 포함)과 동의 기록'])
+          for (final line in const ['분류 기록과 썸네일', '수거일 설정과 체크 기록', '도감, 질문 사용량', '계정(구글 연결 포함)과 동의 기록'])
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Text('•  $line', style: t.bodySmall),

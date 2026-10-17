@@ -17,7 +17,7 @@ class PermissionPrimer {
     if (settings.primerShown(kind)) return true;
     final (icon, title, body) = switch (kind) {
       camera => (Symbols.photo_camera_rounded, '카메라를 사용할게요', '사진은 분리배출 판별에만 쓰고 서버에 저장하지 않아요.'),
-      _ => (Symbols.notifications_rounded, '알림을 보낼게요', '수거일 전날과 퀴즈가 있을 때만 알려드려요. 설정에서 언제든 끌 수 있어요.'),
+      _ => (Symbols.notifications_rounded, '알림을 보낼게요', '수거일 전날에만 알려드려요. 설정에서 언제든 끌 수 있어요.'),
     };
     final ok = await showDialog<bool>(
       context: context,

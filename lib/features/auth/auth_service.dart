@@ -155,7 +155,7 @@ class FirebaseAuthService implements AuthService {
     await _auth.signInAnonymously();
   }
 
-  static const _subcollections = ['history', 'checkins', 'collection', 'quiz', 'settings', 'usage'];
+  static const _subcollections = ['history', 'checkins', 'collection', 'settings', 'usage'];
 
   /// users/{uid} 아래 데이터 전부 삭제. 400개씩 배치.
   Future<void> _deleteUserData(String uid) async {
