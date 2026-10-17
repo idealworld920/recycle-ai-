@@ -31,7 +31,7 @@ class RecycleApp extends StatelessWidget {
       settings: settings,
       history: history,
       child: MaterialApp(
-        title: '분리수거 AI',
+        title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),

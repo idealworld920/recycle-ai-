@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text('분리수거 AI', style: text.titleMedium),
+                    Text('ReSAI', style: text.titleMedium),
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),

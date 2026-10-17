@@ -1,11 +1,11 @@
 {
-    "name": "recycle_ai",
-    "short_name": "recycle_ai",
+    "name": "ReSAI",
+    "short_name": "ReSAI",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#111111",
+    "description": "쓰레기 사진 한 장이면 AI가 분리배출 방법을 알려드려요. 품목별 팁, 수거일 알림, 기록까지.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
@@ -31,5 +31,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "lang": "ko"
 }

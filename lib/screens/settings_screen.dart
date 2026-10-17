@@ -95,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
           Text('앱 정보', style: text.titleLarge),
           const SizedBox(height: 8),
-          Text('분리수거 AI 0.1.0\n'
+          Text('ReSAI(리사이) 0.1.0\n'
               '사진 한 장으로 올바른 분리배출 방법을 알려주는 앱이에요.\n'
               '판별 결과는 참고용이며, 최종 기준은 거주 지역 지자체 안내를 따라 주세요.',
               style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
