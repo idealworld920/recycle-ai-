@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/tips/tips_screen.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/history/history_screen.dart';
 import 'guide_screen.dart';
 import 'home_screen.dart';
@@ -20,6 +21,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       const HomeScreen(),
+      const ChatScreen(),
       const TipsScreen(),
       const GuideScreen(),
       HistoryScreen(onGoHome: () => setState(() => _index = 0)),
@@ -34,6 +36,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: '홈',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            label: '물어보기',
           ),
           NavigationDestination(
             icon: Icon(Icons.tips_and_updates_outlined),

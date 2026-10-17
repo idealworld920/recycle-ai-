@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/models/recycle_category.dart';
 import 'package:recycle_ai/models/recycle_result.dart';
-import 'package:recycle_ai/services/gemini_classifier.dart';
 
 void main() {
   group('RecycleCategory.fromKey', () {
@@ -69,20 +68,6 @@ void main() {
       expect(restored.category, original.category);
       expect(restored.imagePath, '/tmp/a.jpg');
       expect(restored.createdAt, original.createdAt);
-    });
-  });
-
-  group('GeminiClassifier.extractText', () {
-    test('첫 후보의 텍스트를 꺼낸다', () {
-      const body = '{"candidates":[{"content":{"parts":[{"text":"{\\"a\\":1}"}]}}]}';
-      expect(GeminiClassifier.extractText(body), '{"a":1}');
-    });
-
-    test('후보가 없으면 ClassifyException', () {
-      expect(
-        () => GeminiClassifier.extractText('{"candidates":[],"promptFeedback":{"blockReason":"SAFETY"}}'),
-        throwsA(isA<ClassifyException>()),
-      );
     });
   });
 }

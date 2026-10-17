@@ -26,21 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
     HapticFeedback.lightImpact();
     final services = AppServices.of(context);
 
-    if (!services.settings.hasApiKey) {
-      final go = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('API 키가 필요해요'),
-          content: const Text('AI 판별에는 Google Gemini API 키가 필요해요.\nGoogle AI Studio에서 무료로 만들 수 있어요.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('나중에')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('설정으로 가기')),
-          ],
-        ),
-      );
-      if (go == true && mounted) {
-        await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-      }
+    if (!services.firebase.ready) {
+      _showError(services.firebase.error ?? 'AI 서버에 연결하지 못했어요. 설정에서 다시 연결해 주세요.');
       return;
     }
 
@@ -54,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (picked == null) return;
 
     setState(() => _busy = true);
-    final classifier = GeminiClassifier(apiKey: services.settings.apiKey);
+    final classifier = GeminiClassifier();
     try {
       final bytes = await picked.readAsBytes();
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
@@ -71,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       _showError('알 수 없는 오류가 났어요: $e');
     } finally {
-      classifier.dispose();
       if (mounted) setState(() => _busy = false);
     }
   }

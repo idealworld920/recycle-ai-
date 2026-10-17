@@ -26,6 +26,11 @@ jobs:
           cache: true
 
       - run: flutter pub get
+      - name: Firebase 설정 파일 준비
+        run: bash tool/firebase_placeholders.sh
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       - run: flutter analyze
       - run: flutter test
 
@@ -50,6 +55,11 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Firebase 설정 파일 준비
+        run: bash tool/firebase_placeholders.sh
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       - run: flutter build web --release --base-href /recycle-ai-/
       - run: touch build/web/.nojekyll
       - uses: peaceiris/actions-gh-pages@v4

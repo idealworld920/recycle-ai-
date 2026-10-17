@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // 본인 문서만.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // 하루 사용량. count 는 1부터 시작해 1씩만 늘릴 수 있고, 5를 넘길 수 없어요.
+      match /usage/{day} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.count == 1
+          && request.resource.data.keys().hasOnly(['count', 'updatedAt']);
+        allow update: if isOwner(uid)
+          && request.resource.data.count == resource.data.count + 1
+          && request.resource.data.count <= 5
+          && request.resource.data.keys().hasOnly(['count', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

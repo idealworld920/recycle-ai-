@@ -9,7 +9,8 @@ Gemini 멀티모달 모델이 사진 속 물건을 보고 **한국 분리배출 
 - **AI 판별** – 카메라로 찍거나 갤러리에서 고르면 분류(투명 페트병 / 플라스틱 / 종이 / 종이팩 / 캔·고철 / 유리병 / 비닐 / 스티로폼 / 음식물 / 유해 폐기물 / 폐가전 / 의류 / 대형 폐기물 / 일반 쓰레기)와 단계별 배출 방법을 보여줘요.
 - **분리배출 가이드** – 분류별 "버리는 방법 / 되는 것 / 안 되는 것"을 오프라인으로 볼 수 있어요.
 - **판별 기록** – 최근 50건을 사진과 함께 기기에 저장해요. 스와이프로 삭제.
-- **설정** – Gemini API 키 입력 (기기에만 저장).
+- **물어보기** – 분리배출 질문 채팅. 하루 5회, Firestore 에 사용량 기록.
+- **팁** – 55개 품목 검색과 분류별 배출 방법.
 
 ## 시작하기
 
@@ -18,15 +19,18 @@ flutter pub get
 flutter run
 ```
 
-AI 판별에는 Google Gemini API 키가 필요해요. 두 가지 방법 중 하나를 쓰면 돼요.
+AI 호출은 **Firebase AI Logic(firebase_ai)** 을 통해 이뤄져서 앱 안에 API 키가 없어요.
+처음 한 번 Firebase 프로젝트를 연결해야 해요.
 
-1. 앱 실행 후 **설정 → Gemini API 키**에 입력 (추천, 빌드 없이 바로 사용)
-2. 빌드할 때 내장: `flutter run --dart-define=GEMINI_API_KEY=AIza...`
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure --platforms=android
+```
 
-키는 [Google AI Studio](https://aistudio.google.com/apikey)에서 무료로 만들 수 있어요.
+이 명령이 만드는 `lib/firebase_options.dart` 와 `android/app/google-services.json` 은 커밋하지 않아요(.gitignore).
+Firebase 없이 빌드만 하려면 `bash tool/firebase_placeholders.sh` 로 자리표시자를 만들 수 있어요.
 
-> 주의: 2번 방식으로 내장한 키는 APK에서 추출될 수 있어요. 공개 배포 시에는
-> Firebase AI Logic(`firebase_ai`) 같은 서버 경유 방식으로 바꾸는 걸 권장해요.
+Firebase 콘솔에서 켜야 하는 것: Vertex AI(Firebase AI Logic), 익명 로그인, App Check, Firestore(+ `firestore.rules` 배포).
 
 ## APK 받기
 
@@ -43,10 +47,15 @@ lib/
     recycle_category.dart     분류 enum (키, 라벨, 아이콘, 색)
     recycle_result.dart       AI 판별 결과 모델 + JSON 파싱
   data/recycling_guide.dart   분류별 분리배출 안내 데이터
+  core/
+    firebase_session.dart     Firebase 초기화, App Check, 익명 로그인
+    ai_backend.dart           firebase_ai 백엔드 선택(Vertex / Google AI)
+  features/
+    chat/                     물어보기 채팅 (하루 5회 제한)
+    tips/                     품목별 팁 검색
+    history/                  분류 기록 (로컬 저장)
   services/
-    gemini_classifier.dart    Gemini generateContent 호출 (JSON 스키마 응답)
-    history_store.dart        판별 기록 로컬 저장
-    settings_store.dart       API 키 저장
+    gemini_classifier.dart    firebase_ai 로 사진 판별 (JSON 스키마 응답)
   screens/                    판별 / 결과 / 가이드 / 기록 / 설정 화면
   widgets/category_badge.dart
 test/                         모델·가이드·화면 테스트
@@ -63,5 +72,4 @@ flutter test
 
 - [ ] 결과 공유하기 (share_plus)
 - [ ] 지역(지자체)별 배출 요일·기준 안내
-- [ ] Firebase AI Logic으로 전환해 API 키를 앱에서 제거
 - [ ] 분류 피드백("틀렸어요") 수집으로 프롬프트 개선

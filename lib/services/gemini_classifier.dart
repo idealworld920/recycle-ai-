@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
+import 'package:firebase_ai/firebase_ai.dart';
 
+import '../core/ai_backend.dart';
 import '../models/recycle_category.dart';
 import '../models/recycle_result.dart';
 
@@ -15,19 +15,12 @@ class ClassifyException implements Exception {
   String toString() => message;
 }
 
-/// Gemini 멀티모달 API로 사진 속 물건의 분리배출 방법을 판별한다.
+/// Firebase AI Logic(firebase_ai) 로 사진 속 물건의 분리배출 방법을 판별한다.
+/// API 키는 앱에 없고, App Check 토큰으로 Firebase 가 대신 호출한다.
 class GeminiClassifier {
-  GeminiClassifier({
-    required this.apiKey,
-    this.model = 'gemini-2.5-flash',
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  GeminiClassifier({GenerativeModel? model}) : _model = model ?? _defaultModel();
 
-  final String apiKey;
-  final String model;
-  final http.Client _client;
-
-  static const _endpoint = 'https://generativelanguage.googleapis.com/v1beta/models';
+  final GenerativeModel _model;
 
   static const prompt = '''
 너는 한국의 분리배출 전문가야. 사진 속 가장 눈에 띄는 쓰레기/물건 하나를 보고
@@ -47,115 +40,52 @@ class GeminiClassifier {
 - 모든 문장은 한국어 존댓말로, 간결하게.
 ''';
 
-  Map<String, dynamic> get _responseSchema => {
-        'type': 'OBJECT',
-        'properties': {
-          'itemName': {'type': 'STRING', 'description': '사진 속 물건 이름 (한국어)'},
-          'category': {'type': 'STRING', 'enum': RecycleCategory.allKeys},
-          'confidence': {'type': 'NUMBER', 'description': '0.0~1.0 사이의 확신도'},
-          'steps': {
-            'type': 'ARRAY',
-            'items': {'type': 'STRING'},
-          },
-          'warnings': {
-            'type': 'ARRAY',
-            'items': {'type': 'STRING'},
-          },
-          'tip': {'type': 'STRING'},
+  static Schema responseSchema() => Schema.object(
+        properties: {
+          'itemName': Schema.string(description: '사진 속 물건 이름 (한국어)'),
+          'category': Schema.enumString(enumValues: RecycleCategory.allKeys),
+          'confidence': Schema.number(description: '0.0~1.0 사이의 확신도'),
+          'steps': Schema.array(items: Schema.string()),
+          'warnings': Schema.array(items: Schema.string()),
+          'tip': Schema.string(),
         },
-        'required': ['itemName', 'category', 'confidence', 'steps', 'warnings', 'tip'],
-      };
+      );
 
-  Future<RecycleResult> classify(File image) async {
-    final bytes = await image.readAsBytes();
-    return classifyBytes(bytes, mimeType: mimeTypeFor(image.path));
-  }
+  static GenerativeModel _defaultModel() => aiBackend().generativeModel(
+        model: AiBackend.modelName,
+        systemInstruction: Content.system(prompt),
+        generationConfig: GenerationConfig(
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+          responseSchema: responseSchema(),
+        ),
+      );
 
-  Future<RecycleResult> classifyBytes(
-    List<int> bytes, {
-    String mimeType = 'image/jpeg',
-  }) async {
-    if (apiKey.isEmpty) {
-      throw const ClassifyException('Gemini API 키가 없어요. 설정에서 키를 입력해 주세요.');
-    }
-
-    final body = {
-      'contents': [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': prompt},
-            {
-              'inline_data': {
-                'mime_type': mimeType,
-                'data': base64Encode(bytes),
-              },
-            },
-          ],
-        },
-      ],
-      'generationConfig': {
-        'temperature': 0.2,
-        'response_mime_type': 'application/json',
-        'response_schema': _responseSchema,
-      },
-    };
-
-    http.Response response;
+  Future<RecycleResult> classifyBytes(Uint8List bytes, {String mimeType = 'image/jpeg'}) async {
+    GenerateContentResponse response;
     try {
-      response = await _client
-          .post(
-            Uri.parse('$_endpoint/$model:generateContent'),
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey,
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 45));
-    } on SocketException {
-      throw const ClassifyException('인터넷 연결을 확인해 주세요.');
+      response = await _model.generateContent([
+        Content.multi([
+          TextPart('이 사진 속 물건의 분리배출 방법을 알려줘.'),
+          InlineDataPart(mimeType, bytes),
+        ]),
+      ]).timeout(const Duration(seconds: 45));
+    } on FirebaseAIException catch (e) {
+      throw ClassifyException(AiBackend.friendlyError(e));
     } catch (e) {
       throw ClassifyException('요청 중 문제가 생겼어요: $e');
     }
 
-    if (response.statusCode == 400 || response.statusCode == 403) {
-      throw const ClassifyException('API 키가 올바르지 않아요. 설정에서 다시 확인해 주세요.');
+    final text = response.text?.trim() ?? '';
+    if (text.isEmpty) {
+      final reason = response.promptFeedback?.blockReason;
+      throw ClassifyException(reason != null ? '사진을 분석할 수 없어요 ($reason).' : 'AI가 답을 주지 않았어요.');
     }
-    if (response.statusCode == 429) {
-      throw const ClassifyException('요청이 너무 많아요. 잠시 후 다시 시도해 주세요.');
-    }
-    if (response.statusCode != 200) {
-      throw ClassifyException('서버 오류 (${response.statusCode})가 났어요. 다시 시도해 주세요.');
-    }
-
-    final text = extractText(response.body);
     try {
       return RecycleResult.fromAiJson(text);
     } on FormatException {
       throw const ClassifyException('AI 응답을 읽지 못했어요. 다시 찍어 주세요.');
     }
-  }
-
-  /// generateContent 응답에서 첫 후보의 텍스트만 꺼낸다.
-  static String extractText(String responseBody) {
-    final json = jsonDecode(responseBody) as Map<String, dynamic>;
-    final candidates = json['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) {
-      final blockReason = (json['promptFeedback'] as Map?)?['blockReason'];
-      throw ClassifyException(
-        blockReason != null ? '사진을 분석할 수 없어요 ($blockReason).' : 'AI가 답을 주지 않았어요.',
-      );
-    }
-    final content = (candidates.first as Map)['content'] as Map?;
-    final parts = content?['parts'] as List?;
-    if (parts == null || parts.isEmpty) {
-      throw const ClassifyException('AI 응답이 비어 있어요.');
-    }
-    return parts
-        .map((p) => (p as Map)['text']?.toString() ?? '')
-        .join()
-        .trim();
   }
 
   static String mimeTypeFor(String path) {
@@ -165,6 +95,4 @@ class GeminiClassifier {
     if (lower.endsWith('.heic')) return 'image/heic';
     return 'image/jpeg';
   }
-
-  void dispose() => _client.close();
 }

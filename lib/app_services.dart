@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'features/tips/tips_repository.dart';
+import 'core/firebase_session.dart';
 import 'features/history/history_store.dart';
 import 'services/settings_store.dart';
 
@@ -11,12 +12,14 @@ class AppServices extends InheritedWidget {
     required this.settings,
     required this.history,
     required this.tips,
+    required this.firebase,
     required super.child,
   });
 
   final SettingsStore settings;
   final HistoryStore history;
   final TipsRepository tips;
+  final FirebaseSession firebase;
 
   static AppServices of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppServices>();
@@ -26,5 +29,5 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips;
+      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase;
 }
