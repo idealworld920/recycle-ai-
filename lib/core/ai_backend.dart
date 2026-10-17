@@ -11,7 +11,7 @@ class AiBackend {
   /// Spark(무료) 요금제에서는 false. Blaze 로 올리고 Vertex AI 를 쓰려면 true.
   static const bool useVertexAI = false;
   /// 채팅·사진 분류가 함께 쓰는 모델. 여기 한 곳만 바꾸면 된다.
-  static const String modelName = 'gemini-2.5-flash';
+  static const String modelName = 'gemini-3.8-flash';
 
   static String friendlyError(FirebaseAIException e) {
     final m = e.message;
