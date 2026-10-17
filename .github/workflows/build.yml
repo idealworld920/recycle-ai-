@@ -7,9 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
   check-and-build:
@@ -39,14 +37,12 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
-  # 웹 버전을 GitHub Pages에 올려요. 설치 없이 브라우저에서 바로 써볼 수 있어요.
+  # 웹 버전을 gh-pages 브랜치에 올려요. 저장소 Settings → Pages 에서 소스를 gh-pages 로 두면
+  # https://idealworld920.github.io/recycle-ai-/ 에서 설치 없이 바로 써볼 수 있어요.
   deploy-web:
     if: github.event_name != 'pull_request'
     needs: check-and-build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -55,11 +51,10 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build web --release --base-href /recycle-ai-/
-      - uses: actions/configure-pages@v5
+      - run: touch build/web/.nojekyll
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          force_orphan: true
