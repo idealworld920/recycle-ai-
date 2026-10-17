@@ -14,6 +14,7 @@ class HistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final history = AppServices.of(context).history;
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
@@ -21,75 +22,68 @@ class HistoryScreen extends StatelessWidget {
           builder: (context, _) {
             final items = history.items;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('내 판별 기록 🗂️', style: text.headlineMedium),
-                          const SizedBox(height: 4),
-                          Text(items.isEmpty ? '아직 비어 있어요.' : '지금까지 ${items.length}개 판별했어요.', style: text.bodySmall),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: Text('판별 기록', style: text.displaySmall)),
                     if (items.isNotEmpty)
-                      IconButton.filledTonal(
-                        tooltip: '전체 삭제',
-                        icon: const Icon(Icons.delete_sweep_outlined),
+                      TextButton(
                         onPressed: () async {
                           final ok = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
                               title: const Text('기록을 모두 지울까요?'),
-                              content: const Text('지구 점수도 같이 사라져요 😢'),
+                              content: const Text('지운 기록은 되돌릴 수 없어요.'),
                               actions: [
                                 TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-                                FilledButton(
-                                  style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                                TextButton(
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('삭제'),
+                                  child: Text('모두 삭제', style: TextStyle(color: scheme.error)),
                                 ),
                               ],
                             ),
                           );
                           if (ok == true) await history.clear();
                         },
+                        child: Text('모두 삭제', style: TextStyle(color: scheme.onSurfaceVariant)),
                       ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
+                Text(
+                  items.isEmpty ? '판별한 물건이 여기에 쌓여요.' : '지금까지 ${items.length}개를 판별했어요.',
+                  style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
                 if (items.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 80),
+                    padding: const EdgeInsets.only(top: 100),
                     child: Column(
                       children: [
-                        const Text('📭', style: TextStyle(fontSize: 56)),
+                        Icon(Icons.inbox_outlined, size: 44, color: scheme.onSurfaceVariant),
                         const SizedBox(height: 12),
-                        Text('첫 판별을 해볼까요?', style: text.titleMedium),
+                        Text('아직 기록이 없어요', style: text.titleMedium),
                       ],
                     ),
                   )
                 else
-                  for (var i = 0; i < items.length; i++)
+                  for (var i = 0; i < items.length; i++) ...[
                     Dismissible(
                       key: ValueKey('${items[i].createdAt.toIso8601String()}-$i'),
                       direction: DismissDirection.endToStart,
                       background: Container(
                         alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 22),
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer),
+                        padding: const EdgeInsets.only(right: 20),
+                        color: scheme.errorContainer,
+                        child: Icon(Icons.delete_outline_rounded, color: scheme.onErrorContainer),
                       ),
                       onDismissed: (_) => history.remove(items[i]),
-                      child: _HistoryTile(result: items[i]),
+                      child: _HistoryRow(result: items[i]),
                     ),
+                    if (i != items.length - 1) const Divider(),
+                  ],
               ],
             );
           },
@@ -99,8 +93,8 @@ class HistoryScreen extends StatelessWidget {
   }
 }
 
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.result});
+class _HistoryRow extends StatelessWidget {
+  const _HistoryRow({required this.result});
 
   final RecycleResult result;
 
@@ -109,42 +103,31 @@ class _HistoryTile extends StatelessWidget {
     final path = result.imagePath;
     final hasImage = path != null && File(path).existsSync();
     final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result))),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                hasImage
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: SizedBox(width: 56, height: 56, child: Image.file(File(path), fit: BoxFit.cover)),
-                      )
-                    : EmojiTile(category: result.category, size: 56),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(result.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          CategoryBadge(category: result.category),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(_relative(result.createdAt), style: text.bodySmall, overflow: TextOverflow.ellipsis)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result))),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            hasImage
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(width: 52, height: 52, child: Image.file(File(path), fit: BoxFit.cover)),
+                  )
+                : CategoryIcon(category: result.category, size: 52),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(result.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+                  const SizedBox(height: 3),
+                  Text('${result.category.label}  ·  ${_relative(result.createdAt)}', style: text.bodySmall),
+                ],
+              ),
             ),
-          ),
+            Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ],
         ),
       ),
     );
@@ -156,6 +139,6 @@ class _HistoryTile extends StatelessWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
     if (diff.inHours < 24) return '${diff.inHours}시간 전';
     if (diff.inDays < 7) return '${diff.inDays}일 전';
-    return '${d.month}/${d.day}';
+    return '${d.month}월 ${d.day}일';
   }
 }

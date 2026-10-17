@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import '../app_services.dart';
 import '../models/recycle_result.dart';
 import '../services/gemini_classifier.dart';
-import '../theme/app_theme.dart';
 import '../widgets/category_badge.dart';
 import '../widgets/scanning_overlay.dart';
 import 'result_screen.dart';
@@ -33,15 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final go = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('API 키가 필요해요 🔑'),
+          title: const Text('API 키가 필요해요'),
           content: const Text('AI 판별에는 Google Gemini API 키가 필요해요.\nGoogle AI Studio에서 무료로 만들 수 있어요.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('나중에')),
-            FilledButton(
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('설정으로'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('설정으로 가기')),
           ],
         ),
       );
@@ -55,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       picked = await _picker.pickImage(source: source, maxWidth: 1280, maxHeight: 1280, imageQuality: 82);
     } catch (_) {
-      _showError('사진을 가져오지 못했어요. 카메라/사진 권한을 확인해 주세요.');
+      _showError('사진을 가져오지 못했어요. 카메라와 사진 권한을 확인해 주세요.');
       return;
     }
     if (picked == null) return;
@@ -89,53 +84,69 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final services = AppServices.of(context);
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Stack(
         children: [
           SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('안녕 👋', style: text.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                          const SizedBox(height: 2),
-                          Text('오늘은 뭐 버려?', style: text.headlineMedium),
-                        ],
-                      ),
-                    ),
-                    IconButton.filledTonal(
+                    Text('분리수거 AI', style: text.titleMedium),
+                    const Spacer(),
+                    IconButton(
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                      icon: const Icon(Icons.tune_rounded),
+                      icon: const Icon(Icons.settings_outlined),
                       tooltip: '설정',
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _HeroCard(onCamera: () => _pick(ImageSource.camera), onGallery: () => _pick(ImageSource.gallery), busy: _busy),
-                const SizedBox(height: 14),
+                const SizedBox(height: 28),
+                Text('무엇을 버릴까요?', style: text.displaySmall),
+                const SizedBox(height: 8),
+                Text('사진 한 장이면 분류와 버리는 방법을 알려드려요.', style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                const SizedBox(height: 28),
+                _ActionTile(
+                  icon: Icons.photo_camera_outlined,
+                  title: '사진 찍기',
+                  subtitle: '카메라로 바로 촬영',
+                  onTap: _busy ? null : () => _pick(ImageSource.camera),
+                ),
+                const SizedBox(height: 10),
+                _ActionTile(
+                  icon: Icons.photo_outlined,
+                  title: '앨범에서 선택',
+                  subtitle: '찍어둔 사진으로 판별',
+                  onTap: _busy ? null : () => _pick(ImageSource.gallery),
+                ),
+                const SizedBox(height: 36),
                 ListenableBuilder(
                   listenable: services.history,
                   builder: (context, _) => _StatsRow(items: services.history.items),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 36),
                 ListenableBuilder(
                   listenable: services.history,
                   builder: (context, _) {
                     final recent = services.history.items.take(4).toList();
-                    if (recent.isEmpty) return const _EmptyRecent();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('최근 판별 🕘', style: text.titleLarge),
-                        const SizedBox(height: 12),
-                        ...recent.map((r) => _RecentTile(result: r)),
+                        Text('최근 판별', style: text.titleLarge),
+                        const SizedBox(height: 4),
+                        if (recent.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Text('아직 판별한 물건이 없어요.', style: text.bodySmall),
+                          )
+                        else
+                          for (var i = 0; i < recent.length; i++) ...[
+                            _RecentRow(result: recent[i]),
+                            if (i != recent.length - 1) const Divider(),
+                          ],
                       ],
                     );
                   },
@@ -150,62 +161,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.onCamera, required this.onGallery, required this.busy});
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({required this.icon, required this.title, required this.subtitle, this.onTap});
 
-  final VoidCallback onCamera;
-  final VoidCallback onGallery;
-  final bool busy;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-      decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(AppShape.card + 4),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final primary = title == '사진 찍기';
+    final bg = primary ? scheme.primary : scheme.surfaceContainer;
+    final fg = primary ? scheme.onPrimary : scheme.onSurface;
+    final sub = primary ? scheme.onPrimary.withValues(alpha: 0.7) : scheme.onSurfaceVariant;
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.lime.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
+              Icon(icon, size: 28, color: fg),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: text.titleLarge?.copyWith(color: fg)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: text.bodySmall?.copyWith(color: sub)),
+                  ],
                 ),
-                child: const Text('AI 판별', style: TextStyle(color: AppColors.lime, fontWeight: FontWeight.w700, fontSize: 12)),
               ),
-              const Spacer(),
-              const Text('♻️', style: TextStyle(fontSize: 26)),
+              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: sub),
             ],
           ),
-          const SizedBox(height: 14),
-          const Text(
-            '찰칵 한 번이면\n분리배출 끝 ✨',
-            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w700, height: 1.25, letterSpacing: -0.6),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '어디에 버릴지, 뭘 떼야 하는지까지 알려줘요.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14.5),
-          ),
-          const SizedBox(height: 22),
-          FilledButton.icon(
-            onPressed: busy ? null : onCamera,
-            icon: const Text('📸', style: TextStyle(fontSize: 20)),
-            label: const Text('사진 찍기'),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: busy ? null : onGallery,
-            style: TextButton.styleFrom(foregroundColor: Colors.white, minimumSize: const Size.fromHeight(44)),
-            icon: const Icon(Icons.photo_library_outlined, size: 20),
-            label: const Text('갤러리에서 고르기'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -221,72 +218,50 @@ class _StatsRow extends StatelessWidget {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
     final thisWeek = items.where((r) => r.createdAt.isAfter(weekAgo)).length;
     final recycled = items.where((r) => r.category.isRecyclable).length;
-    return Row(
-      children: [
-        Expanded(child: _StatCard(emoji: '🌍', value: '${recycled * 10}', label: '지구 점수')),
-        const SizedBox(width: 10),
-        Expanded(child: _StatCard(emoji: '🔥', value: '$thisWeek', label: '이번 주 판별')),
-        const SizedBox(width: 10),
-        Expanded(child: _StatCard(emoji: '♻️', value: '$recycled', label: '재활용 성공')),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.emoji, required this.value, required this.label});
-
-  final String emoji;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text(value, style: text.titleLarge?.copyWith(fontSize: 22)),
-            Text(label, style: text.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyRecent extends StatelessWidget {
-  const _EmptyRecent();
-
-  @override
-  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.card),
-      ),
-      child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(18)),
+      child: Row(
         children: [
-          const Text('🗑️', style: TextStyle(fontSize: 40)),
-          const SizedBox(height: 10),
-          Text('아직 판별한 게 없어요', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text('첫 사진 찍고 지구 점수 받아가요 🌍', style: Theme.of(context).textTheme.bodySmall),
+          Expanded(child: _Stat(value: '${items.length}', label: '전체 판별')),
+          _VDivider(),
+          Expanded(child: _Stat(value: '$thisWeek', label: '이번 주')),
+          _VDivider(),
+          Expanded(child: _Stat(value: '$recycled', label: '재활용')),
         ],
       ),
     );
   }
 }
 
-class _RecentTile extends StatelessWidget {
-  const _RecentTile({required this.result});
+class _VDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 28, color: Theme.of(context).colorScheme.outline);
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      children: [
+        Text(value, style: text.headlineSmall),
+        const SizedBox(height: 2),
+        Text(label, style: text.bodySmall),
+      ],
+    );
+  }
+}
+
+class _RecentRow extends StatelessWidget {
+  const _RecentRow({required this.result});
 
   final RecycleResult result;
 
@@ -294,37 +269,32 @@ class _RecentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final path = result.imagePath;
     final hasImage = path != null && File(path).existsSync();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result))),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                hasImage
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: SizedBox(width: 52, height: 52, child: Image.file(File(path), fit: BoxFit.cover)),
-                      )
-                    : EmojiTile(category: result.category),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(result.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(height: 6),
-                      CategoryBadge(category: result.category),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ],
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result))),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            hasImage
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(width: 48, height: 48, child: Image.file(File(path), fit: BoxFit.cover)),
+                  )
+                : CategoryIcon(category: result.category),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(result.itemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+                  const SizedBox(height: 3),
+                  Text(result.category.label, style: text.bodySmall),
+                ],
+              ),
             ),
-          ),
+            Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ],
         ),
       ),
     );
