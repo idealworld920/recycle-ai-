@@ -8,7 +8,8 @@ import 'package:firebase_ai/firebase_ai.dart';
 class AiBackend {
   AiBackend._();
 
-  static const bool useVertexAI = true;
+  /// Spark(무료) 요금제에서는 false. Blaze 로 올리고 Vertex AI 를 쓰려면 true.
+  static const bool useVertexAI = false;
   static const String modelName = 'gemini-2.0-flash';
 
   static String friendlyError(FirebaseAIException e) {
