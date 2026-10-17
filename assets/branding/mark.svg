@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- ReSAI 마크: 쓰레기통 안의 R (흰 마크, 투명 배경). 파랑 배경 위에 올려 쓴다 -->
+  <rect x="200" y="46" width="112" height="36" rx="20" fill="#fff"/>
+  <rect x="66" y="77" width="380" height="56" rx="20" fill="#fff"/>
+  <path d="M97 154 H415 L389 461 H123 Z" fill="#fff"/>
+  <rect x="123" y="420" width="266" height="41" rx="26" fill="#fff"/>
+  <text x="256" y="378" fill="#2563EB" font-family="Pretendard, 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="205" text-anchor="middle">R</text>
+</svg>

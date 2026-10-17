@@ -5,5 +5,5 @@
     <color name="widget_text_secondary">#FF6B6B6B</color>
     <color name="widget_today">#FF2563EB</color>
     <color name="widget_divider">#FFEDEDED</color>
-    <color name="ic_launcher_background">#16A34A</color>
+    <color name="ic_launcher_background">#2563EB</color>
 </resources>

@@ -24,3 +24,9 @@
 3. `python3 tool/make_screenshots.py <캡처 폴더>` → `assets/store/screenshots/` 에 프레임이 합성된다.
 
 문구는 `tool/make_screenshots.py` 의 `FRAMES` 에서 바꾼다.
+
+## 브랜드 색 · SVG 원본
+
+- 브랜드 색: 파랑 `#2563EB` (앱 primary 와 동일). `tool/make_icons.py` 의 `BRAND` 한 곳에서 바꾼다.
+- `assets/branding/logo.svg`: 파랑 둥근 타일 + 흰 쓰레기통 + R (web/icons/icon.svg 와 동일)
+- `assets/branding/mark.svg`: 투명 배경 마크만 (파랑 위에 올려 쓰는 용도)

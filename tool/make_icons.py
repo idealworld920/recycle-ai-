@@ -5,9 +5,11 @@ python3 tool/make_icons.py
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GREEN = (22, 163, 74)
+BRAND = (37, 99, 235)  # #2563EB (primary)
+BRAND_HEX = '#2563EB'
 WHITE = (255, 255, 255)
 INK = (17, 17, 17)
 MUTED = (107, 107, 107)
@@ -17,7 +19,7 @@ REG = os.path.join(ROOT, 'assets/fonts/Pretendard-Regular.otf')
 SS = 4  # 슈퍼샘플링 배율
 
 
-def bin_mark(size, fg=WHITE, bg=GREEN, scale=1.0):
+def bin_mark(size, fg=WHITE, bg=BRAND, scale=1.0):
     """투명 배경 위에 쓰레기통 + 안쪽에 R(배경색으로 뚫림). [scale] 로 마크 크기 조절."""
     S = size * SS
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
@@ -53,14 +55,14 @@ def bin_mark(size, fg=WHITE, bg=GREEN, scale=1.0):
 
 
 def tile(size, radius_ratio, mark_scale=0.78):
-    """초록 타일 + 마크."""
+    """브랜드 색 타일 + 마크."""
     S = size * SS
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     if radius_ratio > 0:
-        d.rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * radius_ratio), fill=GREEN)
+        d.rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * radius_ratio), fill=BRAND)
     else:
-        d.rectangle([0, 0, S, S], fill=GREEN)
+        d.rectangle([0, 0, S, S], fill=BRAND)
     img = img.resize((size, size), Image.LANCZOS)
     m = bin_mark(size, scale=mark_scale)
     img.alpha_composite(m)
@@ -88,7 +90,7 @@ def main():
     d.text((x, 318), '사진 한 장이면 어디에 버릴지, 뭘 떼야 하는지 바로.', font=ImageFont.truetype(REG, 26), fill=MUTED)
     fchip = ImageFont.truetype(SEMI, 22)
     cx, cy = x, 380
-    for c in ['사진 분류', '수거일 알림', '가족 공유']:
+    for c in ['사진 분류', '수거일 알림', '분리배출 팁']:
         b = d.textbbox((0, 0), c, font=fchip, anchor='lt')
         w = b[2] - b[0]
         d.rounded_rectangle([cx, cy, cx + w + 36, cy + 44], radius=22, fill=(247, 247, 248))
@@ -124,9 +126,12 @@ def main():
 ''')
     colors = os.path.join(ROOT, 'android/app/src/main/res/values/colors.xml')
     s = open(colors).read()
-    if 'ic_launcher_background' not in s:
-        s = s.replace('</resources>', '    <color name="ic_launcher_background">#16A34A</color>\n</resources>')
-        open(colors, 'w').write(s)
+    if 'ic_launcher_background' in s:
+        s = re.sub(r'<color name="ic_launcher_background">#[0-9A-Fa-f]{6}</color>',
+                   f'<color name="ic_launcher_background">{BRAND_HEX}</color>', s)
+    else:
+        s = s.replace('</resources>', f'    <color name="ic_launcher_background">{BRAND_HEX}</color>\n</resources>')
+    open(colors, 'w').write(s)
     print('ok')
 
 
