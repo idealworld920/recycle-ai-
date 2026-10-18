@@ -65,8 +65,9 @@ SHA-1·SHA-256 을 Firebase 콘솔 → 프로젝트 설정 → Android 앱 → �
 
 **4. 앱 번들 빌드**
 ```bash
-flutter build appbundle --release --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx
+flutter build appbundle --release --dart-define-from-file=dart_defines.json
 ```
+(`dart_defines.json` 은 "구독 설정" 절 참고. 구독 없이 빌드하려면 옵션을 빼면 돼요.)
 산출물: `build/app/outputs/bundle/release/app-release.aab` → Play Console 에 업로드.
 APK 로 직접 설치해 보려면 `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`.
 
@@ -181,11 +182,13 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
    - Play 서비스 계정 JSON 업로드 (RevenueCat 안내대로 Google Cloud 에서 서비스 계정 만들고 Play Console 에 초대)
    - Products 에 위 두 상품 import → Entitlement **`premium`** 하나 만들고 두 상품 연결
    - Offering `default` 에 패키지 `$rc_monthly` = monthly, `$rc_annual` = yearly
-4. **API 키**: RevenueCat → API keys → Google Play 공개 키(`goog_…`) 복사. 빌드할 때 넣어요:
+4. **API 키**: RevenueCat → API keys → Google Play 공개 키(`goog_…`) 복사. `dart_defines.example.json` 을
+   `dart_defines.json` 으로 복사해 키를 넣고(커밋되지 않음) 빌드할 때 파일로 넘겨요:
    ```bash
-   flutter run --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx
+   flutter build appbundle --release --dart-define-from-file=dart_defines.json
+   flutter run --release --dart-define-from-file=dart_defines.json
    ```
-   CI 는 GitHub Secrets `REVENUECAT_ANDROID_KEY` 를 같은 이름으로 넘겨요. 키가 없으면 페이월은 미리보기만 떠요.
+   CI 는 GitHub Secrets `REVENUECAT_ANDROID_KEY` 를 같은 이름으로 넘겨요. 키가 없으면 결제 화면 대신 "곧 출시" 안내만 떠요.
    결제 없이 프리미엄 화면을 확인하려면 `--dart-define=PREMIUM_DEBUG=true`
 5. **웹훅 (Cloud Function)**:
    ```bash

@@ -53,7 +53,10 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
 
-# 릴리스 서명 (절대 커밋 금지)
+# 릴리스 서명 (절대 커밋 금지) — 어느 폴더에 있든
 android/key.properties
-android/app/*.jks
-android/app/*.keystore
+*.jks
+*.keystore
+
+# 빌드 시 넣는 비밀 값 (RevenueCat 키 등). 템플릿은 dart_defines.example.json
+dart_defines.json

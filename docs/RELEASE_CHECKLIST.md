@@ -2,17 +2,43 @@
 
 내부 테스트까지 통과한 상태에서 **프로덕션**까지 가는 순서. 위에서부터 차례로.
 
-## 0. 출시 범위 결정 (먼저)
+## 0. 구독 (1.0 에 포함)
 
-- [ ] **1.0 은 구독 없이 무료로 출시** (권장). 앱은 RevenueCat 키가 없으면 결제 화면 대신 "곧 출시" 안내를 띄우고,
-      무료 한도(분류 5회·질문 3회/일)는 그대로 지켜서 AI 비용을 막아요. 구독은 1.1 에서 (README "구독 설정" 절).
-      구독을 1.0 에 넣으려면 Play 구독 상품 + RevenueCat + Cloud Function 배포 + **통신판매업 신고**(약관에 번호 기재)가 모두 필요해요.
+앱 코드는 준비돼 있어요. 아래는 전부 콘솔 작업이고, **순서대로** 해야 해요 (뒤 단계가 앞 단계를 참조).
+
+- [ ] **판매자 계정**: Play Console → 수익 창출 설정 → "결제 프로필 만들기" → 사업자(라라스튜디오) 정보·사업자등록번호·정산 계좌. 승인까지 며칠 걸릴 수 있어요. 이게 없으면 구독 상품 메뉴가 안 열려요.
+- [ ] **통신판매업 신고**: 정부24 → "통신판매업 신고" (수원시 팔달구, 소상공인은 면제·감면 있음). 신고번호가 나오면 `web/terms.html` 의 "신고 후 기재 예정" 자리에 적고 푸시 (gh-pages 자동 배포). 유료 구독을 파는 앱은 약관·스토어에 사업자 정보가 있어야 해요.
+- [ ] **구독 상품 2개**: Play Console → 수익 창출 → 상품 → 구독 → 만들기
+      - 상품 ID `resai_premium_monthly` · 이름 "ReSAI 프리미엄 월간" · 기본 요금제 `monthly` 월 2,900원 · 오퍼 "7일 무료 체험" (신규 구독자, 무료 체험 7일)
+      - 상품 ID `resai_premium_yearly` · 이름 "ReSAI 프리미엄 연간" · 기본 요금제 `yearly` 연 19,900원 · 오퍼 "7일 무료 체험"
+      - 둘 다 **활성화**. 혜택 설명: "사진 분류·AI 질문 무제한, 가족 공유". (앱에 적힌 가격과 같아야 해요. 바꾸면 `paywall_screen.dart` 의 기본 표시 가격도 같이.)
+- [ ] **라이선스 테스터**: Play Console 홈(앱 선택 전) → 설정 → 라이선스 테스트 → 본인 Gmail 추가 → "라이선스 응답: RESPOND_NORMALLY". 이 계정은 결제가 실제로 청구되지 않고, 구독 갱신이 5분 단위로 빨라져요.
+- [ ] **RevenueCat**: app.revenuecat.com 가입 → 프로젝트 "ReSAI" → Platforms → Google Play 앱 추가 (패키지 `com.idealworld.recycle_ai`)
+      - **서비스 계정 JSON**: RevenueCat 화면의 안내대로 Google Cloud 콘솔(`recycle-ai-de1e1`) → IAM → 서비스 계정 만들기 → 키(JSON) 다운로드 → Play Console → 사용자 및 권한 → 그 서비스 계정 이메일 초대 (재무 데이터 보기 + 앱 관리 권한) → JSON 을 RevenueCat 에 업로드
+      - Products → Import 로 위 두 상품 가져오기
+      - Entitlements → **`premium`** 만들고 두 상품 연결 (이 이름 그대로, 앱 코드가 참조해요)
+      - Offerings → `default` → 패키지 `$rc_monthly` = monthly, `$rc_annual` = yearly → "Current" 로 지정
+      - API keys → Google Play **Public** key (`goog_…`) 복사
+- [ ] **빌드에 키 넣기**: `dart_defines.example.json` → `dart_defines.json` 으로 복사, 키 붙여넣기. 이후 빌드는 전부
+      `flutter build appbundle --release --dart-define-from-file=dart_defines.json`
+      GitHub → 저장소 Settings → Secrets → `REVENUECAT_ANDROID_KEY` 에도 같은 값 (CI APK 용).
+- [ ] **웹훅 함수 배포** (구독 상태를 Firestore 에 반영, 가족 공유 권한에 쓰여요):
+      ```
+      cd functions && npm install && cd ..
+      firebase functions:secrets:set REVENUECAT_WEBHOOK_SECRET      # 아무 긴 랜덤 문자열 ([guid]::NewGuid() 두 개 이어 붙여도 됨)
+      firebase deploy --only functions
+      ```
+      배포 끝에 나오는 URL(`https://asia-northeast3-recycle-ai-de1e1.cloudfunctions.net/revenuecatWebhook`)을
+      RevenueCat → Integrations → Webhooks → URL 에, Authorization header 에 `Bearer <그 문자열>` 등록.
+      (`firebase` 명령이 없으면 `npm install -g firebase-tools` → `firebase login`)
+- [ ] **테스트 결제**: 키 넣은 번들을 내부 테스트에 올리고, 라이선스 테스터 계정의 폰에서 설정 → 프리미엄 → "7일 무료로 시작" → Google 결제 시트 → 완료 → 홈에 프리미엄 반영. RevenueCat → Customers 에 해당 uid 가 보이면 끝. 5분 뒤 갱신 이벤트가 웹훅으로 들어오는지 Firestore `users/{uid}.premium` 확인.
+- [ ] 결제 안 되면: 상품이 "활성" 인지, 앱이 테스트 트랙에 **같은 패키지·같은 서명**으로 올라가 있는지, 테스터 계정이 라이선스 테스터인지 순서로 확인.
 
 ## 1. 코드·빌드
 
 - [ ] `pubspec.yaml` `version:` 올리기 (`1.0.0+N`, N 은 Play 에 올린 적 없는 숫자)
 - [ ] `flutter analyze` / `flutter test` 통과 (CI 초록)
-- [ ] `flutter build appbundle --release` (dart-define 없이 → App Check 는 Play Integrity)
+- [ ] `flutter build appbundle --release --dart-define-from-file=dart_defines.json` (APP_CHECK 관련 define 은 넣지 않기 → Play Integrity)
 - [ ] 내부 테스트에 올려서 Play 설치본으로 확인: 스플래시 → 홈 3초 이내, 배너 없음, 사진 분류 1회, 물어보기 1회, 수거일 저장 → 알림 권한 → 위젯
 
 ## 2. Firebase / Google Cloud
@@ -40,7 +66,7 @@
       수집 = 이메일(선택, 구글 연결 시)·사진(임시 처리, 저장 안 함)·앱 활동(분류 기록·채팅)·기기 ID(익명 UID, App Check)·비정상 종료 로그.
       전송 중 암호화 예, 삭제 요청 가능 예(설정 → 내 데이터 삭제), 제3자 공유 없음.
 - [ ] **정부 앱**: 아니요
-- [ ] **금융 기능**: 없음
+- [ ] **금융 기능**: 없음 (인앱 구독은 여기 해당 안 됨. Play 가 번들에서 결제 라이브러리를 보고 "인앱 구매" 표시를 자동으로 붙여요)
 - [ ] **건강**: 해당 없음
 
 ## 4. Play Console → 스토어 등록정보
@@ -70,4 +96,5 @@
 - [ ] Firebase 콘솔 → App Check → 지표에서 "확인되지 않은 요청"이 없는지
 - [ ] Google Cloud 결제 → 일일 비용 확인 (AI 호출량)
 - [ ] 리뷰·문의 메일(idealworld13@gmail.com) 확인 루틴
-- [ ] 1.1 계획: 구독(README 구독 절), Crashlytics(선택)
+- [ ] RevenueCat → Charts 로 체험 → 유료 전환율 보기
+- [ ] 1.1 계획: Crashlytics(선택), 리뷰 반영
