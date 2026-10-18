@@ -10,6 +10,7 @@ import '../features/legal/data_deletion.dart';
 import '../features/legal/legal_links.dart';
 import '../features/legal/legal_webview_screen.dart';
 import '../features/premium/paywall_screen.dart';
+import '../features/premium/premium_gate.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
@@ -43,10 +44,16 @@ Future<void> showSettingsSheet(BuildContext context) {
               builder: (ctx2, _) {
                 final p = AppServices.of(context).premium;
                 return AppCard(
-                  onTap: p.isPremium ? null : () {
-                    Navigator.pop(ctx);
-                    context.pushPage(const PaywallScreen());
-                  },
+                  onTap: p.isPremium
+                      ? null
+                      : () {
+                          Navigator.pop(ctx);
+                          if (p.available) {
+                            context.pushPage(const PaywallScreen());
+                          } else {
+                            showPremiumSoonSheet(context);
+                          }
+                        },
                   padding: const EdgeInsets.all(AppSpacing.base),
                   child: Row(
                     children: [
@@ -57,7 +64,12 @@ Future<void> showSettingsSheet(BuildContext context) {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(p.isPremium ? '프리미엄 사용 중' : 'ReSAI 프리미엄', style: t.titleSmall),
-                            Text(p.isPremium ? '분류·질문 무제한, 가족 공유' : '7일 무료 체험 · 월 2,900원', style: t.bodySmall),
+                            Text(
+                              p.isPremium
+                                  ? '분류·질문 무제한, 가족 공유'
+                                  : (p.available ? '7일 무료 체험 · 월 2,900원' : '곧 출시 · 분류·질문 무제한, 가족 공유'),
+                              style: t.bodySmall,
+                            ),
                           ],
                         ),
                       ),

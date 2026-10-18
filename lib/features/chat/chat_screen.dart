@@ -90,10 +90,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToEnd();
 
     try {
-      final premium = AppServices.of(context).premium.isPremium;
+      final premiumStore = AppServices.of(context).premium;
+      final premium = premiumStore.isPremium;
       final count = await usage.todayCount();
       if (!premium && count >= FreeLimits.chatPerDay) {
-        _replacePending(const ChatMessage(role: ChatRole.ai, text: '오늘 무료 질문 3회를 다 썼어요. 프리미엄은 무제한이에요.'));
+        _replacePending(ChatMessage(
+          role: ChatRole.ai,
+          text: premiumStore.available
+              ? '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.'
+              : '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요.',
+        ));
         setState(() => _remaining = 0);
         if (mounted) {
           final ok = await ensurePremium(context, reason: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요.');

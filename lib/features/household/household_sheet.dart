@@ -116,7 +116,7 @@ class _HouseholdBody extends StatelessWidget {
       if (!await requireLinkForFamily(context)) return;
     }
     if (!context.mounted) return;
-    if (!await ensurePremium(context, reason: '가족 공유는 프리미엄 기능이에요')) return;
+    if (!await ensurePremium(context, reason: '가족 공유는 프리미엄 기능이에요', unavailableMessage: '가족·룸메와 수거일을 함께 보는 기능은 프리미엄과 같이 곧 출시돼요.')) return;
     if (!context.mounted) return;
     final nickname = await _askNickname(context);
     if (nickname == null || !context.mounted) return;
