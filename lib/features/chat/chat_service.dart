@@ -35,10 +35,8 @@ class ChatService {
       return answer;
     } on ChatException {
       rethrow;
-    } on FirebaseAIException catch (e) {
-      throw ChatException(AiBackend.friendlyError(e));
     } catch (e) {
-      throw ChatException('요청 중 문제가 생겼어요: $e');
+      throw ChatException(AiBackend.friendlyAny(e));
     }
   }
 

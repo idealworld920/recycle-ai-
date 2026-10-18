@@ -70,10 +70,8 @@ class GeminiClassifier {
           InlineDataPart(mimeType, bytes),
         ]),
       ]).timeout(const Duration(seconds: 45));
-    } on FirebaseAIException catch (e) {
-      throw ClassifyException(AiBackend.friendlyError(e));
     } catch (e) {
-      throw ClassifyException('요청 중 문제가 생겼어요: $e');
+      throw ClassifyException(AiBackend.friendlyAny(e));
     }
 
     final text = response.text?.trim() ?? '';

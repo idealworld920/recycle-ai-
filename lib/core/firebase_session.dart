@@ -111,18 +111,51 @@ class FirebaseSession extends ChangeNotifier {
     }
   }
 
-  /// 디버그 빌드는 debug provider, 릴리스는 Play Integrity / App Attest.
+  /// `--dart-define=APP_CHECK=debug` 면 릴리스 빌드에서도 디버그 provider(에뮬레이터·사이드로드 테스트용),
+  /// `APP_CHECK=off` 면 아예 켜지 않는다(콘솔에서 적용(enforce)이 꺼져 있을 때만 AI 가 동작).
+  /// 비워 두면 디버그 빌드는 debug provider, 릴리스는 Play Integrity / App Attest.
+  static const String appCheckMode = String.fromEnvironment('APP_CHECK');
+  static bool get _useDebugProvider => appCheckMode == 'debug' || !kReleaseMode;
+
+  String? _appCheckError;
+
+  /// App Check 토큰을 못 받을 때. 이러면 AI 호출이 전부 거부된다.
+  String? get appCheckError => _appCheckError;
+
   Future<void> _activateAppCheck() async {
     if (kIsWeb) return; // 웹은 reCAPTCHA 키 등록 후 켜요.
+    if (appCheckMode == 'off') {
+      BootReport.mark('App Check 꺼짐 (APP_CHECK=off)');
+      return;
+    }
     try {
       await FirebaseAppCheck.instance
           .activate(
-            providerAndroid: kReleaseMode ? const AndroidPlayIntegrityProvider() : const AndroidDebugProvider(),
-            providerApple: kReleaseMode ? const AppleAppAttestWithDeviceCheckFallbackProvider() : const AppleDebugProvider(),
+            providerAndroid: _useDebugProvider ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+            providerApple: _useDebugProvider ? const AppleDebugProvider() : const AppleAppAttestWithDeviceCheckFallbackProvider(),
           )
           .timeout(const Duration(seconds: 5));
+      unawaited(_probeAppCheck());
     } catch (e) {
       debugPrint('App Check 활성화 실패: $e');
+    }
+  }
+
+  /// 토큰을 실제로 한 번 받아 본다. 실패하면 홈 배너로 알려서 "AI 가 왜 안 되지?" 를 바로 알 수 있게.
+  Future<void> _probeAppCheck() async {
+    try {
+      await FirebaseAppCheck.instance.getToken().timeout(const Duration(seconds: 15));
+      BootReport.mark('App Check 토큰 OK');
+      if (_appCheckError != null) {
+        _appCheckError = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      BootReport.mark('App Check 토큰 실패: $e');
+      _appCheckError = _useDebugProvider
+          ? '디버그 토큰이 Firebase 콘솔에 등록돼 있지 않아요. logcat 의 "debug secret" 을 App Check → 앱 → 디버그 토큰 관리에 추가하세요.'
+          : 'Play Integrity 인증에 실패했어요. 에뮬레이터·스토어 밖 설치본은 인증이 안 될 수 있어요. 콘솔 App Check 에 Play Integrity 와 SHA-256 이 등록돼 있는지 확인하세요.';
+      notifyListeners();
     }
   }
 

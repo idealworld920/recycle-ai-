@@ -96,7 +96,20 @@ adb logcat -c && adb logcat *:E flutter:V AndroidRuntime:E | grep -iE "flutter|r
 - `[boot] ... 실패` 로 시작하는 줄이 어느 단계가 실패했는지 알려줘요.
 - `Missing type parameter` / `ClassNotFoundException` / `NoSuchMethodError` 가 보이면 R8 이 뭔가를 지운 것 → 그 패키지를 `proguard-rules.pro` 에 `-keep class 패키지.** { *; }` 로 추가.
 - R8 이 뭘 지웠는지는 `build/app/outputs/mapping/release/` 의 `missing_rules.txt`, `usage.txt` 에서 볼 수 있어요.
-- Play Integrity(App Check) 는 에뮬레이터에서 토큰을 못 받을 수 있어요. 앱은 그래도 뜨고, Firebase 콘솔에서 App Check **적용(enforce)** 을 켰다면 AI 호출만 거부돼요.
+- Play Integrity(App Check) 는 에뮬레이터에서 토큰을 못 받아요. 앱은 그래도 뜨고, 홈 배너와 AI 오류 문구에 이유가 나와요. 아래 **App Check** 절 참고.
+
+### App Check (AI 호출 인증)
+
+AI 호출마다 App Check 토큰이 붙어요. 토큰을 못 받으면 `[firebase_app_check/unknown] 403 App attestation failed` 로 채팅·분류가 실패해요.
+
+| 상황 | 쓰는 provider | 할 일 |
+|---|---|---|
+| 디버그 빌드 (`flutter run`) | Debug | 처음 실행 때 logcat 에 찍히는 `Enter this debug secret into the allow list ...` 의 토큰을 Firebase 콘솔 → App Check → 앱 → ⋮ → **디버그 토큰 관리** 에 추가 (기기마다 한 번) |
+| 릴리스를 에뮬레이터·사이드로드로 테스트 | Debug (강제) | `flutter run --release --dart-define=APP_CHECK=debug` 로 빌드하고 위와 같이 디버그 토큰 등록 |
+| 콘솔에서 적용(enforce)이 꺼져 있을 때 빠른 확인 | 없음 | `--dart-define=APP_CHECK=off` (토큰 없이 호출. 적용을 켜면 거부됨) |
+| Play 내부 테스트·정식 (기본) | Play Integrity | Firebase 콘솔 → App Check → Android 앱 → **Play Integrity** 등록. 프로젝트 설정 → 디지털 지문에 업로드 키 **SHA-256** 과 Play Console → 앱 서명 → "앱 서명 키 인증서" **SHA-256** 둘 다 등록. Google Cloud 콘솔에서 **Play Integrity API** 사용 설정 |
+
+Play Integrity 는 실제 기기에서만 성공해요(에뮬레이터·루팅 기기는 실패). 스토어 밖에서 설치한 APK 도 서명 SHA-256 만 등록돼 있으면 돼요.
 
 ## 법적 문서와 Play Console 데이터 안전
 

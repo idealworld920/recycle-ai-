@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 /// Gemini 를 어느 경로로 부를지 한 곳에서 정한다.
 ///
@@ -15,6 +18,17 @@ class AiBackend {
   static const String location = 'global';
   /// 채팅·사진 분류가 함께 쓰는 모델. 여기 한 곳만 바꾸면 된다.
   static const String modelName = 'gemini-3.8-flash';
+
+  /// AI 호출에서 나올 수 있는 모든 예외를 사람이 읽을 문장으로.
+  static String friendlyAny(Object e) {
+    if (e is FirebaseAIException) return friendlyError(e);
+    if (e is TimeoutException) return '응답이 너무 오래 걸려요. 잠시 후 다시 시도해 주세요.';
+    if (e is FirebaseException && e.plugin == 'firebase_app_check') {
+      return 'AI 인증(App Check)에 실패했어요. 에뮬레이터나 스토어 밖에서 설치한 빌드에선 Play Integrity 인증이 안 될 수 있어요. (${e.message ?? e.code})';
+    }
+    if (e is FirebaseException) return 'Firebase 오류: ${e.message ?? e.code}';
+    return '요청 중 문제가 생겼어요: $e';
+  }
 
   static String friendlyError(FirebaseAIException e) {
     final m = e.message;

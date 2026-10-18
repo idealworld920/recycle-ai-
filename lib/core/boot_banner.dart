@@ -73,6 +73,7 @@ class BootBanner extends StatelessWidget {
     final out = <String>[];
     if (!firebase.busy && !firebase.ready && firebase.error != null) out.add('AI·동기화: ${firebase.error}');
     if (firebase.ready && firebase.firestoreError != null) out.add('동기화: ${firebase.firestoreError}');
+    if (firebase.appCheckError != null) out.add('AI 인증(App Check): ${firebase.appCheckError}');
     for (final i in boot.issues) {
       out.add('${i.step}: ${i.message}');
     }
