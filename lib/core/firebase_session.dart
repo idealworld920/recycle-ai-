@@ -115,7 +115,11 @@ class FirebaseSession extends ChangeNotifier {
   /// `APP_CHECK=off` 면 아예 켜지 않는다(콘솔에서 적용(enforce)이 꺼져 있을 때만 AI 가 동작).
   /// 비워 두면 디버그 빌드는 debug provider, 릴리스는 Play Integrity / App Attest.
   static const String appCheckMode = String.fromEnvironment('APP_CHECK');
-  static bool get _useDebugProvider => appCheckMode == 'debug' || !kReleaseMode;
+
+  /// `--dart-define=APP_CHECK_DEBUG_TOKEN=<uuid>` 로 디버그 토큰을 직접 정한다.
+  /// logcat 에서 찾을 필요 없이, 아무 UUID 나 만들어 Firebase 콘솔 디버그 토큰에 등록하면 된다.
+  static const String appCheckDebugToken = String.fromEnvironment('APP_CHECK_DEBUG_TOKEN');
+  static bool get _useDebugProvider => appCheckMode == 'debug' || appCheckDebugToken.isNotEmpty || !kReleaseMode;
 
   String? _appCheckError;
 
@@ -129,12 +133,16 @@ class FirebaseSession extends ChangeNotifier {
       return;
     }
     BootReport.mark(_useDebugProvider
-        ? 'App Check: 디버그 provider (토큰은 logcat 태그 DebugAppCheckProvider 에 찍힘 → 콘솔에 등록)'
+        ? (appCheckDebugToken.isNotEmpty
+            ? 'App Check: 디버그 provider, 고정 토큰 $appCheckDebugToken (콘솔 디버그 토큰에 등록돼 있어야 함)'
+            : 'App Check: 디버그 provider (토큰은 logcat 태그 DebugAppCheckProvider 에 찍힘 → 콘솔에 등록)')
         : 'App Check: Play Integrity provider');
     try {
       await FirebaseAppCheck.instance
           .activate(
-            providerAndroid: _useDebugProvider ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+            providerAndroid: _useDebugProvider
+                ? AndroidDebugProvider(debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken)
+                : const AndroidPlayIntegrityProvider(),
             providerApple: _useDebugProvider ? const AppleDebugProvider() : const AppleAppAttestWithDeviceCheckFallbackProvider(),
           )
           .timeout(const Duration(seconds: 5));

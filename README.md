@@ -105,7 +105,7 @@ AI 호출마다 App Check 토큰이 붙어요. 토큰을 못 받으면 `[firebas
 | 상황 | 쓰는 provider | 할 일 |
 |---|---|---|
 | 디버그 빌드 (`flutter run`) | Debug | 처음 실행 때 logcat 에 찍히는 `Enter this debug secret into the allow list ...` 의 토큰을 Firebase 콘솔 → App Check → 앱 → ⋮ → **디버그 토큰 관리** 에 추가 (기기마다 한 번) |
-| 릴리스를 에뮬레이터·사이드로드로 테스트 | Debug (강제) | `flutter run --release --dart-define=APP_CHECK=debug` 로 빌드하고 위와 같이 디버그 토큰 등록 |
+| 릴리스를 에뮬레이터·사이드로드로 테스트 | Debug (강제) | **제일 쉬운 방법**: UUID 를 하나 만들고(PowerShell `[guid]::NewGuid()`) Firebase 콘솔 → App Check → 앱 → ⋮ → 디버그 토큰 관리에 등록한 뒤 `flutter run --release --dart-define=APP_CHECK_DEBUG_TOKEN=<그 UUID>`. logcat 을 볼 필요가 없다. (`--dart-define=APP_CHECK=debug` 만 주면 토큰이 자동 생성되어 logcat 태그 `DebugAppCheckProvider` 에 찍힌다) |
 | 콘솔에서 적용(enforce)이 꺼져 있을 때 빠른 확인 | 없음 | `--dart-define=APP_CHECK=off` (토큰 없이 호출. 적용을 켜면 거부됨) |
 | Play 내부 테스트·정식 (기본) | Play Integrity | Firebase 콘솔 → App Check → Android 앱 → **Play Integrity** 등록. 프로젝트 설정 → 디지털 지문에 업로드 키 **SHA-256** 과 Play Console → 앱 서명 → "앱 서명 키 인증서" **SHA-256** 둘 다 등록. Google Cloud 콘솔에서 **Play Integrity API** 사용 설정 |
 
