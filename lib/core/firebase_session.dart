@@ -18,16 +18,37 @@ class FirebaseSession extends ChangeNotifier {
   /// 테스트나 Firebase 없는 환경용.
   FirebaseSession.unavailable([this._error = 'Firebase 설정이 없어요.']);
 
+  /// 각 단계가 이보다 오래 걸리면 포기하고 오류로 기록한다. 앱은 그 전에 이미 홈에 가 있다.
+  static const initTimeout = Duration(seconds: 10);
+  static const signInTimeout = Duration(seconds: 15);
+  static const probeTimeout = Duration(seconds: 8);
+
   bool _ready = false;
   String? _error;
+  String? _firestoreError;
   bool _busy = false;
+  final Completer<void> _settled = Completer<void>();
   StreamSubscription<User?>? _userSub;
 
   bool get ready => _ready;
   String? get error => _error;
+
+  /// 로그인은 됐지만 Firestore 첫 읽기가 실패했을 때.
+  String? get firestoreError => _firestoreError;
   bool get busy => _busy;
   String? get uid => _ready ? FirebaseAuth.instance.currentUser?.uid : null;
 
+  /// 첫 초기화 시도가 끝나면(성공이든 실패든) 완료된다. 스플래시가 이걸 기다린다.
+  Future<void> get settled => _settled.future;
+
+  /// 초기화를 시작만 하고 바로 돌려준다. 결과는 [ready]·[error] 와 [settled] 로 받는다.
+  static FirebaseSession begin() {
+    final s = FirebaseSession._();
+    unawaited(s.init());
+    return s;
+  }
+
+  /// 테스트용. 초기화를 기다렸다가 돌려준다.
   static Future<FirebaseSession> start() async {
     final s = FirebaseSession._();
     await s.init();
@@ -44,15 +65,16 @@ class FirebaseSession extends ChangeNotifier {
         throw StateError('firebase_options.dart 가 자리표시자예요. flutterfire configure 를 실행하세요.');
       }
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+        await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform).timeout(initTimeout);
       }
       await _activateAppCheck();
       _enableOfflineCache();
       if (FirebaseAuth.instance.currentUser == null) {
-        await FirebaseAuth.instance.signInAnonymously();
+        await FirebaseAuth.instance.signInAnonymously().timeout(signInTimeout);
       }
       _ready = FirebaseAuth.instance.currentUser != null;
       if (!_ready) _error = '익명 로그인에 실패했어요.';
+      if (_ready) unawaited(_probeFirestore());
       // 구글 연결·로그아웃·삭제로 사용자가 바뀌면 알려서 저장소들이 다시 붙게 한다.
       _userSub ??= FirebaseAuth.instance.userChanges().listen((u) {
         _ready = u != null;
@@ -63,6 +85,23 @@ class FirebaseSession extends ChangeNotifier {
       _error = _friendly(e);
     } finally {
       _busy = false;
+      if (!_settled.isCompleted) _settled.complete();
+      notifyListeners();
+    }
+  }
+
+  /// Firestore 첫 읽기. 실패해도 앱은 그대로 쓰고, 홈 배너로만 알린다.
+  Future<void> _probeFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).get().timeout(probeTimeout);
+      if (_firestoreError != null) {
+        _firestoreError = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _firestoreError = _friendly(e);
       notifyListeners();
     }
   }
@@ -71,10 +110,12 @@ class FirebaseSession extends ChangeNotifier {
   Future<void> _activateAppCheck() async {
     if (kIsWeb) return; // 웹은 reCAPTCHA 키 등록 후 켜요.
     try {
-      await FirebaseAppCheck.instance.activate(
-        providerAndroid: kReleaseMode ? const AndroidPlayIntegrityProvider() : const AndroidDebugProvider(),
-        providerApple: kReleaseMode ? const AppleAppAttestWithDeviceCheckFallbackProvider() : const AppleDebugProvider(),
-      );
+      await FirebaseAppCheck.instance
+          .activate(
+            providerAndroid: kReleaseMode ? const AndroidPlayIntegrityProvider() : const AndroidDebugProvider(),
+            providerApple: kReleaseMode ? const AppleAppAttestWithDeviceCheckFallbackProvider() : const AppleDebugProvider(),
+          )
+          .timeout(const Duration(seconds: 5));
     } catch (e) {
       debugPrint('App Check 활성화 실패: $e');
     }
@@ -89,6 +130,12 @@ class FirebaseSession extends ChangeNotifier {
   }
 
   static String _friendly(Object e) {
+    if (e is TimeoutException) return '연결이 너무 오래 걸려요. 인터넷을 확인해 주세요.';
+    if (e is FirebaseException && e.plugin == 'cloud_firestore') {
+      if (e.code == 'unavailable') return '서버에 연결하지 못했어요. 인터넷을 확인해 주세요.';
+      if (e.code == 'permission-denied') return '데이터 접근이 거부됐어요. (보안 규칙·App Check 확인)';
+      return 'Firestore 오류: ${e.message ?? e.code}';
+    }
     if (e is FirebaseAuthException) {
       if (e.code == 'operation-not-allowed') return 'Firebase 콘솔에서 익명 로그인을 켜 주세요.';
       if (e.code == 'network-request-failed') return '인터넷 연결을 확인해 주세요.';

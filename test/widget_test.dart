@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/app_services.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
+import 'package:recycle_ai/core/boot_report.dart';
 import 'package:recycle_ai/core/firebase_session.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/tips/tips_repository.dart';
@@ -42,6 +43,7 @@ void main() {
         premium: PremiumStore(PurchasesService.instance),
         household: HouseholdStore(HouseholdRepository()),
         freeLimits: FreeLimits(await SharedPreferences.getInstance()),
+        boot: BootReport(),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );

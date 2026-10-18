@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import 'features/tips/tips_repository.dart';
+import 'core/boot_report.dart';
 import 'core/firebase_session.dart';
+import 'features/tips/tips_repository.dart';
 import 'features/auth/auth_store.dart';
 import 'features/household/household_store.dart';
 import 'features/premium/free_limits.dart';
@@ -27,6 +28,7 @@ class AppServices extends InheritedWidget {
     required this.premium,
     required this.household,
     required this.freeLimits,
+    required this.boot,
     required super.child,
   });
 
@@ -41,6 +43,9 @@ class AppServices extends InheritedWidget {
   final PremiumStore premium;
   final HouseholdStore household;
   final FreeLimits freeLimits;
+
+  /// 시작 단계에서 실패한 것들. 홈 배너가 보여준다.
+  final BootReport boot;
 
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {

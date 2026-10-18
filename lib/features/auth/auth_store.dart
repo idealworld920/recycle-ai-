@@ -40,7 +40,8 @@ class AuthStore extends ChangeNotifier {
 
   static Future<AuthStore> load(AuthService service, {bool demoLinked = false}) async {
     final s = AuthStore(service, await SharedPreferences.getInstance(), demoLinked: demoLinked);
-    await s._loadPromptState();
+    // Firestore 읽기는 느릴 수 있으니 앱 시작을 막지 않는다. 실패하면 기기 기록만 쓴다.
+    unawaited(s._loadPromptState());
     return s;
   }
 
@@ -55,7 +56,12 @@ class AuthStore extends ChangeNotifier {
   }
 
   Future<void> _loadPromptState() async {
-    final doc = await _service.readUserDoc();
+    final Map<String, dynamic>? doc;
+    try {
+      doc = await _service.readUserDoc();
+    } catch (_) {
+      return;
+    }
     final remote = (doc?['promptDismissed'] as Map?)?.map((k, v) => MapEntry(k.toString(), v == true)) ?? const {};
     if (remote.isNotEmpty) {
       _dismissed = {..._dismissed, ...remote};

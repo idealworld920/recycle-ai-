@@ -39,7 +39,7 @@ GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter t
 
 ## Play Store 배포 (릴리스 빌드)
 
-**앱 식별자**: `com.idealworld.recycle_ai` (Firebase·SHA 지문이 이미 이 값으로 등록돼 있어 유지). 앱 이름 ReSAI, 버전 `1.0.0+1` (pubspec.yaml 의 `version:` 한 곳에서 관리, `+` 뒤가 versionCode).
+**앱 식별자**: `com.idealworld.recycle_ai` (Firebase·SHA 지문이 이미 이 값으로 등록돼 있어 유지). 앱 이름 ReSAI, 버전 `1.0.0+2` (pubspec.yaml 의 `version:` 한 곳에서 관리, `+` 뒤가 versionCode).
 
 **1. 업로드 키스토어 만들기** (한 번만, 노트북에서. 잃어버리면 앱 업데이트를 못 하니 백업 필수)
 ```powershell
@@ -75,6 +75,28 @@ APK 로 직접 설치해 보려면 `flutter build apk --release` → `build/app/
 **권한 (AndroidManifest)**: INTERNET, POST_NOTIFICATIONS(알림, 사용 시점에 요청), RECEIVE_BOOT_COMPLETED(재부팅 후 알림 복구). 카메라는 시스템 카메라 앱을 호출해서 CAMERA 권한이 없고, 갤러리는 Android 13+ 포토 피커라 저장소 권한이 없어요. `android.hardware.camera` 는 `required=false`. 플러그인이 합치는 권한은 빌드 후 `build/app/intermediates/merged_manifests/release/AndroidManifest.xml` 에서 확인할 수 있어요.
 
 **targetSdk 36 / compileSdk 36 / minSdk 24** (firebase_auth 요구 23 이상).
+
+### 릴리스 빌드가 스플래시에서 멈출 때
+
+디버그는 되는데 릴리스(내부 테스트)만 흰 화면에 멈추면 거의 R8(코드 축소) 아니면 시작 단계가 막힌 거예요. 지금 구조는:
+
+- `main()` 은 기기 안 저장소만 열고 **바로 그린다**. Firebase 초기화·App Check·익명 로그인·Firestore 첫 읽기는 백그라운드.
+- 앱 안 스플래시(`SplashGate`)는 Firebase 가 정리되거나 **최대 3초**까지만 기다리고 무조건 홈으로.
+- 단계마다 타임아웃(초기화 10초, 로그인 15초, Firestore 8초)이 있고, 실패 이유는 홈 상단 **작은 배너**에 뜬다 ("다시 연결" 버튼 포함).
+- 알림·홈 위젯 플러그인 초기화는 첫 프레임 뒤에, 실패해도 배너에만 남긴다.
+- R8 규칙은 `android/app/proguard-rules.pro` (Firebase·Play services·flutter_local_notifications+GSON·home_widget·workmanager keep, missing class 는 `-dontwarn`).
+
+그래도 멈추면 에뮬레이터나 폰에 릴리스로 깔고 로그를 봐요.
+```bash
+flutter devices                                  # 에뮬레이터 id 확인 (예: emulator-5554)
+flutter run --release -d emulator-5554
+# 다른 창에서
+adb logcat -c && adb logcat *:E flutter:V AndroidRuntime:E | grep -iE "flutter|recycle_ai|FATAL|boot"
+```
+- `[boot] ... 실패` 로 시작하는 줄이 어느 단계가 실패했는지 알려줘요.
+- `Missing type parameter` / `ClassNotFoundException` / `NoSuchMethodError` 가 보이면 R8 이 뭔가를 지운 것 → 그 패키지를 `proguard-rules.pro` 에 `-keep class 패키지.** { *; }` 로 추가.
+- R8 이 뭘 지웠는지는 `build/app/outputs/mapping/release/` 의 `missing_rules.txt`, `usage.txt` 에서 볼 수 있어요.
+- Play Integrity(App Check) 는 에뮬레이터에서 토큰을 못 받을 수 있어요. 앱은 그래도 뜨고, Firebase 콘솔에서 App Check **적용(enforce)** 을 켰다면 AI 호출만 거부돼요.
 
 ## 법적 문서와 Play Console 데이터 안전
 

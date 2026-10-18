@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+import '../../core/firebase_session.dart';
 
 /// 연결 시도 결과.
 sealed class LinkOutcome {
@@ -199,6 +203,60 @@ class FirebaseAuthService implements AuthService {
 }
 
 /// Firebase 없이 돌 때(테스트, 설정 전). 항상 익명으로 본다.
+/// Firebase 가 아직(또는 끝내) 준비되지 않아도 앱이 뜨도록, 준비되는 순간부터
+/// [FirebaseAuthService] 로 넘어가는 위임 서비스. 그 전엔 [OfflineAuthService] 처럼 동작한다.
+class SessionAuthService implements AuthService {
+  SessionAuthService(this._session) {
+    _session.addListener(_onSession);
+    _onSession();
+  }
+
+  final FirebaseSession _session;
+  final OfflineAuthService _offline = OfflineAuthService();
+  final StreamController<User?> _changes = StreamController<User?>.broadcast();
+  FirebaseAuthService? _firebase;
+  StreamSubscription<User?>? _sub;
+
+  AuthService get _delegate => _firebase ?? _offline;
+
+  void _onSession() {
+    if (!_session.ready || _firebase != null) return;
+    _firebase = FirebaseAuthService();
+    _sub = _firebase!.userChanges.listen(_changes.add, onError: (_) {});
+    _changes.add(_firebase!.currentUser);
+  }
+
+  @override
+  User? get currentUser => _delegate.currentUser;
+
+  @override
+  Stream<User?> get userChanges => _changes.stream;
+
+  @override
+  Future<LinkOutcome> linkGoogle() => _delegate.linkGoogle();
+
+  @override
+  Future<LinkOutcome> signInWithCredential(AuthCredential credential) => _delegate.signInWithCredential(credential);
+
+  @override
+  Future<void> signOutAndStartAnonymous() => _delegate.signOutAndStartAnonymous();
+
+  @override
+  Future<void> deleteAccount() => _delegate.deleteAccount();
+
+  @override
+  Future<void> mergeUserDoc(Map<String, dynamic> data) => _delegate.mergeUserDoc(data);
+
+  @override
+  Future<Map<String, dynamic>?> readUserDoc() => _delegate.readUserDoc();
+
+  void dispose() {
+    _session.removeListener(_onSession);
+    _sub?.cancel();
+    _changes.close();
+  }
+}
+
 class OfflineAuthService implements AuthService {
   @override
   User? get currentUser => null;

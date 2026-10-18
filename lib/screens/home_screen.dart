@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
+import '../core/boot_banner.dart';
 import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
@@ -145,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
+                const BootBanner(),
                 const SizedBox(height: AppSpacing.base),
                 ListenableBuilder(
                   listenable: AppServices.of(context).history,
