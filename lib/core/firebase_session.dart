@@ -128,6 +128,9 @@ class FirebaseSession extends ChangeNotifier {
       BootReport.mark('App Check 꺼짐 (APP_CHECK=off)');
       return;
     }
+    BootReport.mark(_useDebugProvider
+        ? 'App Check: 디버그 provider (토큰은 logcat 태그 DebugAppCheckProvider 에 찍힘 → 콘솔에 등록)'
+        : 'App Check: Play Integrity provider');
     try {
       await FirebaseAppCheck.instance
           .activate(
