@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'purchase_errors.dart';
 import 'purchases_service.dart';
 
 /// 구독 상태의 진실은 RevenueCat SDK. Firestore users/{uid}.premium 은 웹훅(Cloud Function)만 갱신한다.
 class PremiumStore extends ChangeNotifier {
-  PremiumStore(this._service) {
+  // ignore: prefer_initializing_formals
+  PremiumStore(this._service, {SharedPreferences? prefs}) : _prefs = prefs {
+    _reviewUntil = _prefs?.getInt(reviewPrefKey) ?? 0;
     _sub = _service.customerInfoStream.listen((info) {
       _premium = PurchasesService.hasPremium(info);
       _expiresAt = info.entitlements.active[PremiumConfig.entitlementId]?.expirationDate;
@@ -16,14 +19,31 @@ class PremiumStore extends ChangeNotifier {
     });
   }
 
+  static const reviewPrefKey = 'review_premium_until';
+
   final PurchasesService _service;
+  final SharedPreferences? _prefs;
+  int _reviewUntil = 0;
   StreamSubscription<CustomerInfo>? _sub;
   bool _premium = false;
   String? _expiresAt;
   Offering? _offering;
   bool _busy = false;
 
-  bool get isPremium => PremiumConfig.debugPremium || _premium;
+  bool get isPremium => PremiumConfig.debugPremium || _premium || reviewActive;
+
+  /// 검토자 코드로 열린 임시 프리미엄.
+  bool get reviewActive => _reviewUntil > DateTime.now().millisecondsSinceEpoch;
+
+  /// 설정 → 앱 정보에서 입력한 코드. 맞으면 [PremiumConfig.reviewDays] 동안 프리미엄.
+  Future<bool> tryReviewCode(String code) async {
+    final expected = PremiumConfig.reviewCode.trim();
+    if (expected.isEmpty || code.trim() != expected) return false;
+    _reviewUntil = DateTime.now().add(const Duration(days: PremiumConfig.reviewDays)).millisecondsSinceEpoch;
+    await _prefs?.setInt(reviewPrefKey, _reviewUntil);
+    notifyListeners();
+    return true;
+  }
   bool get available => _service.available;
   bool get busy => _busy;
   String? get expiresAt => _expiresAt;

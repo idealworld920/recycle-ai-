@@ -83,7 +83,7 @@ Future<void> _boot() async {
   // 2) Firebase 는 시작만 시키고 기다리지 않는다. 준비되면 저장소들이 알아서 붙는다.
   final firebase = FirebaseSession.begin();
   final auth = await AuthStore.load(SessionAuthService(firebase), demoLinked: kDemoMode);
-  final premium = PremiumStore(PurchasesService.instance);
+  final premium = PremiumStore(PurchasesService.instance, prefs: prefs);
   final household = HouseholdStore(HouseholdRepository());
   schedule.attachHousehold(household);
   String? attachedUid;

@@ -56,7 +56,20 @@
 전부 채워야 프로덕션 버튼이 열려요.
 
 - [ ] **개인정보처리방침**: https://idealworld920.github.io/recycle-ai-/privacy.html
-- [ ] **앱 액세스 권한**: "모든 기능을 특별한 액세스 권한 없이 사용할 수 있음" (익명으로 바로 시작하므로)
+- [ ] **앱 액세스 권한(로그인 세부정보)**: **"예, 제한된 부분이 있음"** (프리미엄 결제 뒤에 잠긴 기능이 있어서). Google 검토자는 결제·무료 체험을 못 하므로 **검토자 코드**를 줘요.
+      - 코드 만들기: PowerShell `[guid]::NewGuid().ToString("N")` → `dart_defines.json` 의 `REVIEW_CODE` 에 넣고 빌드 (번들마다 같은 코드 유지)
+      - Play Console 에 "안내 추가" → 이름 `Reviewer code`, 사용자 이름 `reviewer`, 비밀번호 칸에 그 코드, 안내문:
+        ```
+        회원가입·로그인 없이 바로 사용 가능합니다 (익명 계정 자동 생성).
+        유료 기능(프리미엄: 무제한 분류·질문, 가족 공유)은 결제 없이 아래 방법으로 열 수 있습니다:
+        홈 → 오른쪽 위 설정(⚙️) → 맨 아래 "앱 정보" 글자를 7번 탭 → 검토자 코드 입력창에 위 비밀번호 입력 → 30일간 프리미엄 활성화.
+        Google 계정 연결(설정 → 구글로 연결)은 선택 기능이며, 검토에 필요하지 않습니다.
+        ---
+        No sign-up or login is required (an anonymous account is created automatically).
+        Paid features (Premium: unlimited classification/questions, family sharing) can be unlocked without payment:
+        Home → Settings (gear, top right) → tap the "앱 정보" (App info) text at the bottom 7 times → enter the password above as the reviewer code → Premium is enabled for 30 days.
+        Google account linking is optional and not needed for review.
+        ```
 - [ ] **광고**: 광고 없음
 - [ ] **콘텐츠 등급**: 설문 시작 → 카테고리 "유틸리티·생산성·커뮤니케이션 등" → 폭력·성적·약물 등 전부 "아니요" → 사용자 생성 콘텐츠 "아니요"(채팅은 AI 와 1:1, 다른 사용자에게 공개되지 않음) → 전체이용가
 - [ ] **타겟층 및 콘텐츠**: 연령대 **18세 이상**만 선택 (18세 미만을 포함하면 가족 정책 심사가 붙어요. 앱이 아동 대상이 아니므로 18+ 로 두는 게 간단)

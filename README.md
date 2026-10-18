@@ -189,7 +189,9 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
    flutter run --release --dart-define-from-file=dart_defines.json
    ```
    CI 는 GitHub Secrets `REVENUECAT_ANDROID_KEY` 를 같은 이름으로 넘겨요. 키가 없으면 결제 화면 대신 "곧 출시" 안내만 떠요.
-   결제 없이 프리미엄 화면을 확인하려면 `--dart-define=PREMIUM_DEBUG=true`
+   결제 없이 프리미엄 화면을 확인하려면 `--dart-define=PREMIUM_DEBUG=true`.
+   Play 검토자용으로는 `REVIEW_CODE`(dart_defines.json) 를 넣어 두면 설정 → 앱 정보 7번 탭 → 코드 입력으로 30일 프리미엄이 열려요
+   (코드가 비어 있으면 기능이 꺼져요. `docs/RELEASE_CHECKLIST.md` 의 앱 액세스 권한 항목 참고).
 5. **웹훅 (Cloud Function)**:
    ```bash
    cd functions && npm install && cd ..

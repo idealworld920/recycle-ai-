@@ -15,6 +15,11 @@ class PremiumConfig {
   /// 개발 중 결제 없이 프리미엄 화면을 보려면 `--dart-define=PREMIUM_DEBUG=true`.
   static const debugPremium = bool.fromEnvironment('PREMIUM_DEBUG');
 
+  /// Play 검토자용. `--dart-define=REVIEW_CODE=...` 로 넣은 코드를 설정 → 앱 정보 7번 탭 → 입력하면
+  /// 결제 없이 30일 동안 프리미엄이 열린다. 비어 있으면 기능 자체가 꺼진다. 코드는 저장소에 두지 않는다.
+  static const reviewCode = String.fromEnvironment('REVIEW_CODE');
+  static const reviewDays = 30;
+
   static const entitlementId = 'premium';
   static const monthlyProductId = 'resai_premium_monthly';
   static const yearlyProductId = 'resai_premium_yearly';

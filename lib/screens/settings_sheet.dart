@@ -11,6 +11,7 @@ import '../features/legal/legal_links.dart';
 import '../features/legal/legal_webview_screen.dart';
 import '../features/premium/paywall_screen.dart';
 import '../features/premium/premium_gate.dart';
+import '../features/premium/purchases_service.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
@@ -204,11 +205,13 @@ Future<void> showSettingsSheet(BuildContext context) {
             const SizedBox(height: AppSpacing.xl),
             Text('앱 정보', style: t.titleSmall),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              'ReSAI(리사이) 1.0.0\n'
-              '사진 한 장으로 올바른 분리배출 방법을 알려주는 앱이에요.\n'
-              '판별 결과는 참고용이며, 최종 기준은 거주 지역 지자체 안내를 따라 주세요.',
-              style: t.bodyMedium?.copyWith(color: c.textSecondary),
+            _AppInfo(
+              child: Text(
+                'ReSAI(리사이) 1.0.0\n'
+                '사진 한 장으로 올바른 분리배출 방법을 알려주는 앱이에요.\n'
+                '판별 결과는 참고용이며, 최종 기준은 거주 지역 지자체 안내를 따라 주세요.',
+                style: t.bodyMedium?.copyWith(color: c.textSecondary),
+              ),
             ),
           ],
         );
@@ -244,4 +247,52 @@ class _LinkRow extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// 앱 정보를 7번 탭하면 검토자 코드 입력창. Play 검토자가 결제 없이 프리미엄을 확인하는 용도.
+class _AppInfo extends StatefulWidget {
+  const _AppInfo({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_AppInfo> createState() => _AppInfoState();
+}
+
+class _AppInfoState extends State<_AppInfo> {
+  int _taps = 0;
+
+  Future<void> _tap() async {
+    _taps++;
+    if (_taps < 7) return;
+    _taps = 0;
+    final premium = AppServices.of(context).premium;
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('검토자 코드'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Reviewer code'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('확인')),
+        ],
+      ),
+    );
+    if (code == null || code.isEmpty || !mounted) return;
+    final ok = await premium.tryReviewCode(code);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok ? '검토 모드: 프리미엄이 ${PremiumConfig.reviewDays}일 동안 열렸어요.' : '코드가 맞지 않아요.'),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(behavior: HitTestBehavior.opaque, onTap: _tap, child: widget.child);
 }
