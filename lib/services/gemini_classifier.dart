@@ -58,6 +58,7 @@ class GeminiClassifier {
           temperature: 0.2,
           responseMimeType: 'application/json',
           responseSchema: responseSchema(),
+          thinkingConfig: AiBackend.thinking(),
         ),
       );
 

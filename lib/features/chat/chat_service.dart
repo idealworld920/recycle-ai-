@@ -24,7 +24,8 @@ class ChatService {
   static GenerativeModel _defaultModel() => aiBackend().generativeModel(
         model: AiBackend.modelName,
         systemInstruction: Content.system(systemPrompt),
-        generationConfig: GenerationConfig(temperature: 0.4, maxOutputTokens: 300),
+        // 생각 토큰까지 포함한 한도라 넉넉히. 답 길이는 시스템 프롬프트(3문장)로 잡는다.
+        generationConfig: GenerationConfig(temperature: 0.4, maxOutputTokens: 1024, thinkingConfig: AiBackend.thinking()),
       );
 
   Future<String> send(String text) async {
@@ -32,7 +33,8 @@ class ChatService {
       final res = await _chat.sendMessage(Content.text(text)).timeout(const Duration(seconds: 40));
       final answer = res.text?.trim();
       if (answer == null || answer.isEmpty) throw const ChatException('답변이 비어 있어요. 다시 물어봐 주세요.');
-      return answer;
+      final cut = res.candidates.isNotEmpty && res.candidates.first.finishReason == FinishReason.maxTokens;
+      return cut ? '$answer …' : answer;
     } on ChatException {
       rethrow;
     } catch (e) {

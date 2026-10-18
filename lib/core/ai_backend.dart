@@ -19,6 +19,10 @@ class AiBackend {
   /// 채팅·사진 분류가 함께 쓰는 모델. 여기 한 곳만 바꾸면 된다.
   static const String modelName = 'gemini-3.8-flash';
 
+  /// Gemini 3.x 는 답하기 전에 "생각(thinking)" 토큰을 쓰고, 그게 maxOutputTokens 에 같이 잡힌다.
+  /// 생각을 낮게 잡아야 짧은 한도에서도 답이 잘리지 않고 빠르다.
+  static ThinkingConfig thinking() => ThinkingConfig.withThinkingLevel(ThinkingLevel.low);
+
   /// AI 호출에서 나올 수 있는 모든 예외를 사람이 읽을 문장으로.
   static String friendlyAny(Object e) {
     if (e is FirebaseAIException) return friendlyError(e);
