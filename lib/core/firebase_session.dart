@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../firebase_options.dart';
+import 'boot_report.dart';
 
 /// Firebase 초기화 → App Check → 익명 로그인까지 한 번에 처리하고 상태를 알려준다.
 ///
@@ -67,11 +68,14 @@ class FirebaseSession extends ChangeNotifier {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform).timeout(initTimeout);
       }
+      BootReport.mark('Firebase 초기화 끝');
       await _activateAppCheck();
+      BootReport.mark('App Check 끝');
       _enableOfflineCache();
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(signInTimeout);
       }
+      BootReport.mark('익명 로그인 끝');
       _ready = FirebaseAuth.instance.currentUser != null;
       if (!_ready) _error = '익명 로그인에 실패했어요.';
       if (_ready) unawaited(_probeFirestore());
@@ -83,6 +87,7 @@ class FirebaseSession extends ChangeNotifier {
     } catch (e) {
       _ready = false;
       _error = _friendly(e);
+      BootReport.mark('Firebase 실패: $e');
     } finally {
       _busy = false;
       if (!_settled.isCompleted) _settled.complete();

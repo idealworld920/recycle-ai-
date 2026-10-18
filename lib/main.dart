@@ -37,12 +37,19 @@ const bool kDemoMode = bool.fromEnvironment('DEMO');
 Future<void> main() async {
   // main() 안에서 무엇이 터져도 스플래시에 멈춰 있지 않게, 최소한 오류 화면은 띄운다.
   await runZonedGuarded(_boot, (e, st) {
-    debugPrint('[boot] 처리되지 않은 오류: $e\n$st');
+    // ignore: avoid_print
+    print('[boot] 처리되지 않은 오류: $e\n$st');
   });
 }
 
 Future<void> _boot() async {
   WidgetsFlutterBinding.ensureInitialized();
+  BootReport.mark('시작 (release=$kReleaseMode)');
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    // ignore: avoid_print
+    print('[boot] Flutter 오류: ${details.exceptionAsString()}');
+  };
   final boot = BootReport(silent: kDemoMode);
   // Android 13+ 에서 저장소 권한 없이 시스템 포토 피커를 쓴다.
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
@@ -56,10 +63,12 @@ Future<void> _boot() async {
   final HistoryStore history;
   try {
     prefs = await SharedPreferences.getInstance();
+    BootReport.mark('SharedPreferences 열림');
     settings = await SettingsStore.load();
     history = await HistoryStore.load();
   } catch (e, st) {
-    debugPrint('[boot] 로컬 저장소 열기 실패: $e\n$st');
+    // ignore: avoid_print
+    print('[boot] 로컬 저장소 열기 실패: $e\n$st');
     runApp(_FatalScreen(message: '$e'));
     return;
   }
@@ -69,6 +78,7 @@ Future<void> _boot() async {
   final regionRepo = await boot.guard('지역 데이터', RegionRepository.load, fallback: () => RegionRepository.fromJsonString('{"items":[]}'));
   final region = await boot.guard('지역 설정', () => RegionStore.load(regionRepo), fallback: () => RegionStore(prefs, regionRepo));
   final freeLimits = FreeLimits(prefs);
+  BootReport.mark('로컬 저장소 준비 끝');
 
   // 2) Firebase 는 시작만 시키고 기다리지 않는다. 준비되면 저장소들이 알아서 붙는다.
   final firebase = FirebaseSession.begin();
@@ -98,6 +108,7 @@ Future<void> _boot() async {
   }
 
   // 3) 바로 그린다. 스플래시는 Firebase 가 정리되거나 최대 3초까지만 기다린다.
+  BootReport.mark('runApp');
   runApp(RecycleApp(
     settings: settings,
     history: history,
@@ -116,6 +127,7 @@ Future<void> _boot() async {
   // 4) 알림·위젯 같은 플랫폼 플러그인은 첫 프레임 뒤에. 실패하면 배너에만 남긴다.
   unawaited(boot.run('알림', NotificationService.instance.init, timeout: const Duration(seconds: 10)));
   unawaited(boot.run('홈 위젯', WidgetService.init, timeout: const Duration(seconds: 10)));
+  WidgetsBinding.instance.addPostFrameCallback((_) => BootReport.mark('첫 프레임 그림'));
 }
 
 /// 로컬 저장소조차 못 열었을 때. 흰 스플래시에 갇히는 것보다 낫다.

@@ -16,8 +16,15 @@ class BootReport extends ChangeNotifier {
   bool get hasIssues => _issues.isNotEmpty;
   bool get dismissed => _dismissed;
 
+  /// 진행 표시. 릴리스에서도 logcat(flutter 태그)에 남아서 어디서 멈췄는지 알 수 있다.
+  static void mark(String step) {
+    // ignore: avoid_print
+    print('[boot] $step');
+  }
+
   void add(String step, Object error) {
-    debugPrint('[boot] $step 실패: $error');
+    // ignore: avoid_print
+    print('[boot] $step 실패: $error');
     _issues.removeWhere((i) => i.step == step);
     _issues.add(BootIssue(step, _shorten(error)));
     _dismissed = false;
