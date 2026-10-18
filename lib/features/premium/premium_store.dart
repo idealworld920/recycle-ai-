@@ -57,6 +57,15 @@ class PremiumStore extends ChangeNotifier {
   }
 
   Future<PurchaseOutcome> purchase(Package package) => _run(() => _service.purchase(package));
+  Future<PurchaseOutcome> purchaseOption(SubscriptionOption option) => _run(() => _service.purchaseOption(option));
+
+  /// 체험 오퍼(무료 구간이 있는 옵션). Play 는 체험 자격이 있는 사용자에게만 내려준다.
+  static SubscriptionOption? trialOption(Package? p) =>
+      p?.storeProduct.subscriptionOptions?.where((o) => o.freePhase != null).firstOrNull;
+
+  /// 기본 요금제(바로 결제).
+  static SubscriptionOption? basePlanOption(Package? p) =>
+      p?.storeProduct.subscriptionOptions?.where((o) => o.isBasePlan).firstOrNull;
   Future<PurchaseOutcome> restore() => _run(_service.restore);
 
   Future<PurchaseOutcome> _run(Future<PurchaseOutcome> Function() action) async {

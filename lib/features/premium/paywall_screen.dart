@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../auth/link_flows.dart';
 import '../places/external_links.dart';
+import 'premium_store.dart';
 import 'purchase_errors.dart';
 
 /// 프리미엄 페이월. 성공하면 true 를 돌려준다.
@@ -26,6 +27,8 @@ class PaywallScreen extends StatefulWidget {
 
 class _PaywallScreenState extends State<PaywallScreen> {
   bool _yearly = true;
+  /// true = 7일 무료 체험 후 결제, false = 오늘 바로 결제. 둘 다 사용자가 고른다.
+  bool _trial = true;
   bool _askedLink = false;
 
   @override
@@ -49,9 +52,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _toast('상품 정보를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
       return;
     }
-    final r = await store.purchase(pkg);
+    final trialOpt = PremiumStore.trialOption(pkg);
+    final baseOpt = PremiumStore.basePlanOption(pkg);
+    final useTrial = _trial && trialOpt != null;
+    final option = useTrial ? trialOpt : baseOpt;
+    // 옵션 정보를 못 받은 경우(드묾)엔 패키지로 사면 Play 가 기본 동작(자격 있으면 체험)으로 처리한다.
+    final r = option != null ? await store.purchaseOption(option) : await store.purchase(pkg);
     if (!mounted) return;
-    _handle(r, successMessage: '프리미엄이 시작됐어요. 7일 동안 무료예요.');
+    _handle(r, successMessage: useTrial ? '프리미엄이 시작됐어요. 7일 동안 무료예요.' : '프리미엄이 시작됐어요.');
   }
 
   Future<void> _restore() async {
@@ -132,17 +140,56 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton(
-              onPressed: store.busy ? null : _buy,
-              child: Text(store.busy ? '처리하는 중…' : '7일 무료로 시작'),
-            ),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              _yearly ? '7일 무료 체험 후 연 19,900원. 언제든 해지할 수 있어요.' : '7일 무료 체험 후 월 2,900원. 언제든 해지할 수 있어요.',
-              textAlign: TextAlign.center,
-              style: t.bodySmall,
-            ),
+            Builder(builder: (context) {
+              final pkg = _yearly ? store.yearly : store.monthly;
+              // 상품을 아직 못 받았으면(키 없음·로딩 중) 체험을 기본으로 보여준다.
+              final trialAvailable = pkg == null || PremiumStore.trialOption(pkg) != null;
+              final useTrial = _trial && trialAvailable;
+              final price = _yearly ? '연 ${_price(store.yearly, '19,900원')}' : '월 ${_price(store.monthly, '2,900원')}';
+              return Column(
+                children: [
+                  if (trialAvailable)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PlanTile(
+                            selected: _trial,
+                            title: '7일 무료 체험',
+                            price: '체험 끝나면 $price',
+                            onTap: () => setState(() => _trial = true),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: _PlanTile(
+                            selected: !_trial,
+                            title: '바로 결제',
+                            price: '오늘 $price',
+                            onTap: () => setState(() => _trial = false),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
+                      child: Text('무료 체험은 처음 구독할 때 한 번만 제공돼요.', style: t.bodySmall),
+                    ),
+                  const SizedBox(height: AppSpacing.lg),
+                  FilledButton(
+                    onPressed: store.busy ? null : _buy,
+                    child: Text(store.busy ? '처리하는 중…' : (useTrial ? '7일 무료로 시작' : '구독 시작 · $price')),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    useTrial ? '7일 무료 체험 후 $price 자동 갱신. 언제든 해지할 수 있어요.' : '$price 자동 갱신. 언제든 해지할 수 있어요.',
+                    textAlign: TextAlign.center,
+                    style: t.bodySmall,
+                  ),
+                ],
+              );
+            }),
             if (!store.available) ...[
               const SizedBox(height: AppSpacing.md),
               InfoBox(icon: Symbols.info_rounded, child: Text('결제는 스토어 심사 후 열려요. 지금은 미리보기예요.', style: t.bodySmall)),

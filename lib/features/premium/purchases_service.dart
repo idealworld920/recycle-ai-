@@ -92,6 +92,18 @@ class PurchasesService {
     }
   }
 
+  /// Play 의 특정 옵션(기본 요금제 = 바로 결제, 오퍼 = 무료 체험)을 골라서 산다.
+  Future<PurchaseOutcome> purchaseOption(SubscriptionOption option) async {
+    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요. 곧 준비할게요.');
+    try {
+      final r = await Purchases.purchase(PurchaseParams.subscriptionOption(option));
+      _controller.add(r.customerInfo);
+      return const PurchaseSuccess();
+    } catch (e) {
+      return PurchaseErrors.outcomeOf(e);
+    }
+  }
+
   Future<PurchaseOutcome> restore() async {
     if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요.');
     try {
