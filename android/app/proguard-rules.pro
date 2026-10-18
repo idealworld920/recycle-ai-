@@ -10,6 +10,22 @@
 -keep class io.flutter.plugins.** { *; }
 -dontwarn io.flutter.**
 
+# ★ 릴리스에서 스플래시에 멈추던 실제 원인.
+# shared_preferences_android 2.5 / path_provider_android 2.3 은 Pigeon JNI(jnigen) 로 Dart 가 자바
+# 메서드를 "이름 + 시그니처 문자열" 로 찾는다. 시그니처에 kotlin.coroutines.Continuation 같은 코틀린
+# 클래스가 들어가는데 R8 이 그 이름을 바꾸면 NoSuchMethodError 로 SharedPreferences 가 죽는다.
+# 그래서 시그니처에 등장하는 클래스는 이름까지 그대로 둔다.
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+-keep class io.flutter.plugins.pathprovider.** { *; }
+-keep class com.github.dart_lang.jni.** { *; }
+-keep class com.github.dart_lang.jni_flutter.** { *; }
+-keep class kotlin.coroutines.** { *; }
+-keep class kotlin.jvm.internal.DefaultConstructorMarker { *; }
+-keep class kotlin.enums.EnumEntries { *; }
+-keep class kotlin.Unit { *; }
+-keep class kotlinx.coroutines.** { *; }
+-keepnames class kotlin.** { *; }
+
 # Firebase / Google Play services (Auth, Firestore, App Check, AI Logic, Play Integrity)
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
