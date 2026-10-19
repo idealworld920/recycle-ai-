@@ -39,7 +39,7 @@ GitHub Actions가 `main`에 푸시될 때마다 `flutter analyze` → `flutter t
 
 ## Play Store 배포 (릴리스 빌드)
 
-**앱 식별자**: `com.idealworld.recycle_ai` (Firebase·SHA 지문이 이미 이 값으로 등록돼 있어 유지). 앱 이름 ReSAI, 버전 `1.0.0+6` (pubspec.yaml 의 `version:` 한 곳에서 관리, `+` 뒤가 versionCode).
+**앱 식별자**: `com.idealworld.recycle_ai` (Firebase·SHA 지문이 이미 이 값으로 등록돼 있어 유지). 앱 이름 ReSAI, 버전 `1.0.0+7` (pubspec.yaml 의 `version:` 한 곳에서 관리, `+` 뒤가 versionCode).
 
 **1. 업로드 키스토어 만들기** (한 번만, 노트북에서. 잃어버리면 앱 업데이트를 못 하니 백업 필수)
 ```powershell

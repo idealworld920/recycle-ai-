@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -92,7 +94,8 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final premiumStore = AppServices.of(context).premium;
       final premium = premiumStore.isPremium;
-      final count = await usage.todayCount();
+      // 화면에 들어올 때 읽어 둔 남은 횟수를 쓰고, 없을 때만 서버에 묻는다. 매번 왕복하면 답이 느려진다.
+      final count = _remaining != null ? FreeLimits.chatPerDay - _remaining! : await usage.todayCount();
       if (!premium && count >= FreeLimits.chatPerDay) {
         _replacePending(ChatMessage(
           role: ChatRole.ai,
@@ -108,7 +111,8 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
       final answer = await service.send(text);
-      await usage.increment();
+      // 사용량 기록은 답을 보여준 뒤 백그라운드로. 실패해도 답은 이미 왔다.
+      unawaited(usage.increment().catchError((_) {}));
       _replacePending(ChatMessage(role: ChatRole.ai, text: answer));
       setState(() => _remaining = premium ? null : (FreeLimits.chatPerDay - count - 1).clamp(0, FreeLimits.chatPerDay));
     } on ChatException catch (e) {

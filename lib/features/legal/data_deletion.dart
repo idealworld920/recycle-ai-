@@ -56,8 +56,10 @@ Future<void> runDataDeletion(BuildContext context) async {
   try {
     if (services.household.active) await services.household.leave();
     await services.auth.deleteAccount(); // 서버 데이터 삭제 + 계정 삭제 + 새 익명 계정
-    await services.resetLocalData();
-    await services.settings.resetAll(); // 온보딩·동의·안내 플래그 초기화
+    await Future.wait([
+      services.resetLocalData(),
+      services.settings.resetAll(), // 온보딩·동의·안내 플래그 초기화
+    ]);
     if (!context.mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
     messenger.showSnackBar(const SnackBar(content: Text('데이터를 모두 삭제했어요.')));

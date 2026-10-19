@@ -49,9 +49,7 @@ class AppServices extends InheritedWidget {
 
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {
-    await history.resetLocal();
-    await collection.resetLocal();
-    await schedule.resetLocal();
+    await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal()]);
   }
 
   static AppServices of(BuildContext context) {

@@ -47,7 +47,7 @@ class PlacesSection extends StatelessWidget {
               icon: Symbols.medication_rounded,
               title: '폐의약품 수거함',
               subtitle: '약국·보건소·주민센터에 비치. 가까운 약국 찾기',
-              onTap: () => _openMedicine(context),
+              onTap: () => _openMedicine(context, region),
             ),
             const SizedBox(height: AppSpacing.sm),
             _PlaceCard(
@@ -97,7 +97,7 @@ class PlacesSection extends StatelessWidget {
     );
   }
 
-  Future<void> _openMedicine(BuildContext context) async {
+  Future<void> _openMedicine(BuildContext context, Region? region) async {
     await showAppSheet(
       context,
       title: '폐의약품 수거함',
@@ -111,9 +111,9 @@ class PlacesSection extends StatelessWidget {
           Text('일부 지역은 우체통 배출도 가능해요 (전용 봉투 필요). 거주 지역 확인이 필요해요.', style: ctx.text.bodySmall),
           const SizedBox(height: AppSpacing.lg),
           FilledButton.icon(
-            onPressed: ExternalLinks.openNearbyPharmacy,
+            onPressed: () => ExternalLinks.openNearbyPharmacy(area: region?.name),
             icon: const Icon(Symbols.map_rounded, size: 20),
-            label: const Text('가까운 약국 지도에서 찾기'),
+            label: Text(region == null ? '가까운 약국 지도에서 찾기' : '${region.name} 약국 지도에서 찾기'),
           ),
         ],
       ),

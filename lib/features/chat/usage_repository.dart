@@ -24,8 +24,14 @@ class UsageRepository {
   DocumentReference<Map<String, dynamic>> get _todayDoc =>
       _db.collection('users').doc(uid).collection('usage').doc(dayKey(_now()));
 
+  /// 서버 값을 3초 안에 못 받으면 캐시 값으로 (오프라인·느린 망에서 채팅이 멈추지 않게).
   Future<int> todayCount() async {
-    final snap = await _todayDoc.get();
+    DocumentSnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await _todayDoc.get().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      snap = await _todayDoc.get(const GetOptions(source: Source.cache));
+    }
     final v = snap.data()?['count'];
     return v is num ? v.toInt() : 0;
   }

@@ -161,22 +161,24 @@ class FirebaseAuthService implements AuthService {
 
   static const _subcollections = ['history', 'checkins', 'collection', 'settings', 'usage'];
 
-  /// users/{uid} 아래 데이터 전부 삭제. 400개씩 배치.
+  /// users/{uid} 아래 데이터 전부 삭제. 하위 컬렉션은 동시에, 각각 400개씩 배치.
   Future<void> _deleteUserData(String uid) async {
     final userDoc = _db.collection('users').doc(uid);
-    for (final name in _subcollections) {
-      while (true) {
-        final snap = await userDoc.collection(name).limit(400).get();
-        if (snap.docs.isEmpty) break;
-        final batch = _db.batch();
-        for (final d in snap.docs) {
-          batch.delete(d.reference);
-        }
-        await batch.commit();
-        if (snap.docs.length < 400) break;
-      }
-    }
+    await Future.wait(_subcollections.map((name) => _deleteCollection(userDoc.collection(name))));
     await userDoc.delete();
+  }
+
+  Future<void> _deleteCollection(CollectionReference<Map<String, dynamic>> col) async {
+    while (true) {
+      final snap = await col.limit(400).get();
+      if (snap.docs.isEmpty) break;
+      final batch = _db.batch();
+      for (final d in snap.docs) {
+        batch.delete(d.reference);
+      }
+      await batch.commit();
+      if (snap.docs.length < 400) break;
+    }
   }
 
   @override

@@ -28,7 +28,7 @@ class LockedOverlay extends StatelessWidget {
       children: [
         Icon(Symbols.lock_rounded, size: 18, color: c.textPrimary, fill: 1),
         const SizedBox(width: AppSpacing.sm),
-        Flexible(child: Text(message, style: t.bodySmall?.copyWith(color: c.textPrimary))),
+        Flexible(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: c.textPrimary))),
         const SizedBox(width: AppSpacing.sm),
         TextButton(
           style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), minimumSize: const Size(0, 32)),
@@ -51,10 +51,14 @@ class LockedOverlay extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          IgnorePointer(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Opacity(opacity: 0.6, child: child),
+          // 가려지는 내용이 한 줄짜리면 잠금 안내가 위아래로 잘리므로 최소 높이를 확보한다.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: IgnorePointer(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Opacity(opacity: 0.6, child: Center(child: child)),
+              ),
             ),
           ),
           Positioned.fill(
