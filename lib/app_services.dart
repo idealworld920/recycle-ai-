@@ -4,6 +4,7 @@ import 'core/boot_report.dart';
 import 'core/firebase_session.dart';
 import 'features/tips/tips_repository.dart';
 import 'features/auth/auth_store.dart';
+import 'features/feedback/feedback_store.dart';
 import 'features/household/household_store.dart';
 import 'features/premium/free_limits.dart';
 import 'features/premium/premium_store.dart';
@@ -29,6 +30,7 @@ class AppServices extends InheritedWidget {
     required this.household,
     required this.freeLimits,
     required this.boot,
+    required this.feedback,
     required super.child,
   });
 
@@ -47,9 +49,12 @@ class AppServices extends InheritedWidget {
   /// 시작 단계에서 실패한 것들. 홈 배너가 보여준다.
   final BootReport boot;
 
+  /// "결과가 틀렸나요?" 피드백과 품목별 사용자 정답.
+  final FeedbackStore feedback;
+
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {
-    await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal()]);
+    await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal(), feedback.resetLocal()]);
   }
 
   static AppServices of(BuildContext context) {

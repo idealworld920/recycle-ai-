@@ -1,10 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../core/mascot.dart';
+import '../tips/tip_model.dart';
 import 'app_actions.dart';
 import 'pickup_schedule.dart';
+import 'reminder_copy.dart';
 
 /// 수거일 전날 알림. 요일 반복으로 잡아두면 재부팅 뒤에도 플러그인의
 /// ScheduledNotificationBootReceiver 가 다시 등록해 준다.
@@ -19,6 +26,10 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+
+  /// 문구 생성기. main() 에서 팁 데이터가 준비되면 꽂아 준다. 없으면 기본 문구.
+  ReminderCopy? copy;
+  String? _mascotIconPath;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -70,33 +81,60 @@ class NotificationService {
     }
     if (schedule.isEmpty) return;
 
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        channelId,
-        channelName,
-        channelDescription: channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-        category: AndroidNotificationCategory.reminder,
-      ),
-      iOS: DarwinNotificationDetails(),
-    );
-
+    final icon = await _mascotIcon();
     final now = tz.TZDateTime.now(tz.local);
+    final usedTips = <Tip>[];
     for (final type in WasteType.values) {
       for (final pickupDay in schedule.daysOf(type)) {
+        final tip = copy?.pickTip(type);
+        if (tip != null) usedTips.add(tip);
+        final body = copy?.body(type, tip: tip) ?? ReminderCopy.lead(type);
         final when = _nextInstance(now, PickupSchedule.reminderWeekday(pickupDay), schedule.notifyHour, schedule.notifyMinute);
         await _plugin.zonedSchedule(
           id: PickupSchedule.notificationId(type, pickupDay),
-          title: '내일은 ${type.label} 버리는 날',
-          body: type.reminderBody,
+          title: ReminderCopy.title(type),
+          body: body,
           scheduledDate: when,
-          notificationDetails: details,
+          notificationDetails: _details(body, icon),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           payload: AppActions.openCamera,
         );
       }
+    }
+    if (usedTips.isNotEmpty) await copy?.markUsed(usedTips);
+  }
+
+  /// 본문이 길어서 펼쳐 보이게(BigText) 하고, 리뿅이 PNG 를 큰 아이콘으로.
+  NotificationDetails _details(String body, String? iconPath) => NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.reminder,
+          styleInformation: BigTextStyleInformation(body),
+          largeIcon: iconPath == null ? null : FilePathAndroidBitmap(iconPath),
+        ),
+        iOS: const DarwinNotificationDetails(),
+      );
+
+  /// 알림엔 GIF 를 못 쓰므로 정지 PNG 를 앱 폴더에 한 번 복사해 둔다.
+  Future<String?> _mascotIcon() async {
+    if (kIsWeb || !Platform.isAndroid) return null;
+    if (_mascotIconPath != null) return _mascotIconPath;
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final file = File('${dir.path}/mascot_happy.png');
+      if (!await file.exists()) {
+        final data = await rootBundle.load(Mascot.happy.png);
+        await file.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
+      }
+      return _mascotIconPath = file.path;
+    } catch (e) {
+      debugPrint('마스코트 아이콘 준비 실패: $e');
+      return null;
     }
   }
 
@@ -112,14 +150,13 @@ class NotificationService {
   /// 에뮬레이터 확인용: 5초 뒤 한 번 울리는 테스트 알림.
   Future<void> showTest(WasteType type) async {
     await init();
+    final body = copy?.body(type) ?? ReminderCopy.lead(type);
     await _plugin.zonedSchedule(
       id: 1,
-      title: '내일은 ${type.label} 버리는 날',
-      body: type.reminderBody,
+      title: ReminderCopy.title(type),
+      body: body,
       scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(channelId, channelName, channelDescription: channelDescription, importance: Importance.high, priority: Priority.high),
-      ),
+      notificationDetails: _details(body, await _mascotIcon()),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: AppActions.openCamera,
     );

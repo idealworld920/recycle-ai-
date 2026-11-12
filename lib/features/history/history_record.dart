@@ -49,6 +49,7 @@ class HistoryRecord {
         'steps': r.steps,
         'warnings': r.warnings,
         'tip': r.tip,
+        if (r.reason.isNotEmpty) 'reason': r.reason,
       },
     );
   }

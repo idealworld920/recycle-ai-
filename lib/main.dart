@@ -12,6 +12,7 @@ import 'core/firebase_session.dart';
 import 'core/splash_gate.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/auth_store.dart';
+import 'features/feedback/feedback_store.dart';
 import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
 import 'features/household/household_repository.dart';
@@ -23,6 +24,7 @@ import 'features/premium/purchases_service.dart';
 import 'features/places/region.dart';
 import 'features/places/region_store.dart';
 import 'features/schedule/notification_service.dart';
+import 'features/schedule/reminder_copy.dart';
 import 'features/schedule/schedule_repository.dart';
 import 'features/schedule/schedule_store.dart';
 import 'features/schedule/widget_service.dart';
@@ -78,6 +80,8 @@ Future<void> _boot() async {
   final regionRepo = await boot.guard('지역 데이터', RegionRepository.load, fallback: () => RegionRepository.fromJsonString('{"items":[]}'));
   final region = await boot.guard('지역 설정', () => RegionStore.load(regionRepo), fallback: () => RegionStore(prefs, regionRepo));
   final freeLimits = FreeLimits(prefs);
+  final feedback = FeedbackStore(prefs);
+  NotificationService.instance.copy = ReminderCopy(tips, prefs);
   BootReport.mark('로컬 저장소 준비 끝');
 
   // 2) Firebase 는 시작만 시키고 기다리지 않는다. 준비되면 저장소들이 알아서 붙는다.
@@ -95,6 +99,7 @@ Future<void> _boot() async {
     collection.attachUser(firebase.uid);
     premium.attachUser(firebase.uid);
     household.attachUser(firebase.uid);
+    feedback.attachUser(firebase.uid);
   }
 
   attachAll();
@@ -122,11 +127,14 @@ Future<void> _boot() async {
     household: household,
     freeLimits: freeLimits,
     boot: boot,
+    feedback: feedback,
   ));
 
   // 4) 알림·위젯 같은 플랫폼 플러그인은 첫 프레임 뒤에. 실패하면 배너에만 남긴다.
   unawaited(boot.run('알림', NotificationService.instance.init, timeout: const Duration(seconds: 10)));
   unawaited(boot.run('홈 위젯', WidgetService.init, timeout: const Duration(seconds: 10)));
+  // 알림 팁 문구를 바꿔 준다 (같은 팁 2주 내 반복 안 함). 실패해도 조용히.
+  unawaited(schedule.refreshReminders().catchError((_) {}));
   WidgetsBinding.instance.addPostFrameCallback((_) => BootReport.mark('첫 프레임 그림'));
 }
 
@@ -177,6 +185,7 @@ class RecycleApp extends StatelessWidget {
     required this.household,
     required this.freeLimits,
     required this.boot,
+    required this.feedback,
   });
 
   final SettingsStore settings;
@@ -191,6 +200,7 @@ class RecycleApp extends StatelessWidget {
   final HouseholdStore household;
   final FreeLimits freeLimits;
   final BootReport boot;
+  final FeedbackStore feedback;
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +217,7 @@ class RecycleApp extends StatelessWidget {
       household: household,
       freeLimits: freeLimits,
       boot: boot,
+      feedback: feedback,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,

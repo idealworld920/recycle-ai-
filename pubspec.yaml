@@ -80,6 +80,7 @@ flutter:
     - assets/data/tips.json
     - assets/data/bulky_waste_links.json
     - assets/branding/logo_192.png
+    - assets/branding/mascot/
 
   fonts:
     - family: Pretendard

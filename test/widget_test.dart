@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recycle_ai/app_services.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
+import 'package:recycle_ai/features/feedback/feedback_store.dart';
 import 'package:recycle_ai/core/boot_report.dart';
 import 'package:recycle_ai/core/firebase_session.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
@@ -44,6 +45,7 @@ void main() {
         household: HouseholdStore(HouseholdRepository()),
         freeLimits: FreeLimits(await SharedPreferences.getInstance()),
         boot: BootReport(),
+      feedback: FeedbackStore(await SharedPreferences.getInstance()),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );

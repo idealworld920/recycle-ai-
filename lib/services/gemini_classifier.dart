@@ -37,6 +37,7 @@ class GeminiClassifier {
 - steps 는 실제로 버리기 전에 해야 할 행동을 순서대로 2~5개, 각 한 문장.
 - warnings 는 흔히 하는 실수나 주의할 점 0~3개. 없으면 빈 배열.
 - tip 은 한 문장짜리 짧은 보충 설명.
+- reason 은 "왜 이 분류인지" 를 재질·상태 근거로 한 문장 (예: "투명하고 색이 없는 PET 재질이라 투명 페트병이에요.").
 - 모든 문장은 한국어 존댓말로, 간결하게.
 ''';
 
@@ -48,6 +49,7 @@ class GeminiClassifier {
           'steps': Schema.array(items: Schema.string()),
           'warnings': Schema.array(items: Schema.string()),
           'tip': Schema.string(),
+          'reason': Schema.string(description: '이 분류인 이유 한 문장'),
         },
       );
 

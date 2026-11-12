@@ -125,6 +125,13 @@ class ScheduleStore extends ChangeNotifier {
     }
   }
 
+  /// 앱을 켤 때 한 번: 같은 설정으로 다시 등록해서 알림 팁 문구가 바뀌게 한다.
+  Future<void> refreshReminders() async {
+    final s = _schedule;
+    if (s == null || s.isEmpty) return;
+    await NotificationService.instance.reschedule(s);
+  }
+
   /// 계정 전환 시 기기 설정을 비운다. 알림·위젯도 같이 정리.
   Future<void> resetLocal() async {
     await _repo.resetLocal();

@@ -62,6 +62,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  DateTime? _busySince;
   final _picker = ImagePicker();
   bool _busy = false;
   int _handledSeq = 0;
@@ -116,7 +117,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (picked == null) return;
 
-    setState(() => _busy = true);
+    // 사진 선택 → 결과 표시까지 재서 3초 목표를 지키는지 본다.
+    final startedAt = DateTime.now();
+    setState(() {
+      _busy = true;
+      _busySince = startedAt;
+    });
     final classifier = GeminiClassifier();
     try {
       final bytes = await picked.readAsBytes();
@@ -134,8 +140,10 @@ class _HomeScreenState extends State<HomeScreen> {
         toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
       }
       if (!mounted) return;
+      final elapsed = DateTime.now().difference(startedAt);
+      debugPrint('[classify] ${elapsed.inMilliseconds}ms (목표 3000ms)');
       HapticFeedback.mediumImpact();
-      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true, toast: toast));
+      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true, toast: toast, elapsed: elapsed));
     } on ClassifyException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -244,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          if (_busy) const Positioned.fill(child: ScanningOverlay()),
+          if (_busy) Positioned.fill(child: ScanningOverlay(startedAt: _busySince)),
         ],
       ),
     );

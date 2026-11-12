@@ -10,6 +10,7 @@ import 'package:recycle_ai/core/splash_gate.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
+import 'package:recycle_ai/features/feedback/feedback_store.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/household/household_repository.dart';
 import 'package:recycle_ai/features/household/household_store.dart';
@@ -68,6 +69,7 @@ void main() {
       household: HouseholdStore(HouseholdRepository()),
       freeLimits: FreeLimits(await SharedPreferences.getInstance()),
       boot: boot,
+      feedback: FeedbackStore(await SharedPreferences.getInstance()),
       child: MaterialApp(theme: AppTheme.light(), home: const Scaffold(body: BootBanner())),
     ));
     expect(find.text('일부 기능을 준비하지 못했어요'), findsOneWidget);

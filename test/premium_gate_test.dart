@@ -6,6 +6,7 @@ import 'package:recycle_ai/core/firebase_session.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
+import 'package:recycle_ai/features/feedback/feedback_store.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/household/household_repository.dart';
 import 'package:recycle_ai/features/household/household_store.dart';
@@ -40,6 +41,7 @@ void main() {
       household: HouseholdStore(HouseholdRepository()),
       freeLimits: FreeLimits(await SharedPreferences.getInstance()),
       boot: BootReport(),
+      feedback: FeedbackStore(await SharedPreferences.getInstance()),
       child: MaterialApp(
         theme: AppTheme.light(),
         home: Builder(

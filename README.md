@@ -224,6 +224,20 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
    ```
 4. 위젯을 누르면 앱 홈이 열려요
 
+## 성장 기능 (feature/growth-1)
+
+- **결과 화면**: 품목명 → 분류 뱃지 → "왜?" 한 줄(AI `reason`) → 배출 단계 → 지자체별 차이 노란 박스(팁의 `localNote`) 순서.
+  사진 선택→결과 3초를 넘기면 대기 화면이 리뿅이 thinking + "조금만 기다려뿅" 으로 바뀌고, 소요 시간은 `[classify] …ms` 로 로그.
+- **공유**: 결과 화면 공유 아이콘·[공유하기] → 1080x1350 카드(`lib/features/share/share_card.dart`, dart:ui Canvas 로 그림) 를
+  share_plus 로 시스템 공유 시트에. 공유 횟수는 `users/{uid}.shareCount` 에 누적.
+- **"결과가 틀렸나요?"**: 4분류 정답 + 메모 → Firestore `feedback/{id}` (쓰기 전용, 규칙 포함). 같은 품목을 다시 분류하면
+  사용자 정답을 "내가 고친 답" 뱃지로 먼저 보여준다 (기기 캐시). 제출 후 리뿅이 "고마워뿅!".
+  → 규칙이 바뀌었으니 **`firebase deploy --only firestore:rules`** 를 다시 해야 서버 저장이 된다.
+- **수거일 알림**: 제목 "리뿅이: 내일 재활용 날이뿅!", 본문은 안내 한 줄 + tips.json 의 같은 종류 팁 한 줄.
+  같은 팁은 2주 안에 반복하지 않고(`reminder_tips_used`), 앱을 켤 때마다 다시 등록해 문구가 바뀐다. 리뿅이 PNG 가 큰 아이콘.
+- **리뿅이 에셋**: `assets/branding/mascot/r_*.gif` + 첫 프레임 `r_*_static.png` (`python3 tool/mascot_frames.py` 로 추출).
+  시스템 "애니메이션 줄이기" 가 켜져 있으면 PNG 를 쓴다. 설정 화면엔 등장하지 않는다. 현재 happy / cheer / thinking 3종.
+
 ## 구조
 
 ```

@@ -12,6 +12,7 @@ class RecycleResult {
     required this.warnings,
     required this.tip,
     required this.createdAt,
+    this.reason = '',
     this.imagePath,
   });
 
@@ -24,6 +25,9 @@ class RecycleResult {
   final List<String> warnings;
   final String tip;
   final DateTime createdAt;
+
+  /// "왜 이 분류인지" 한 문장. 결과 화면 상단과 공유 카드에 쓴다.
+  final String reason;
 
   /// 기록 화면에서 보여줄 로컬 이미지 경로. 저장 전에는 null.
   final String? imagePath;
@@ -70,6 +74,7 @@ class RecycleResult {
       steps: _stringList(map['steps']),
       warnings: _stringList(map['warnings']),
       tip: (map['tip'] as String?)?.trim() ?? '',
+      reason: (map['reason'] as String?)?.trim() ?? '',
       createdAt: createdAt,
       imagePath: map['imagePath'] as String?,
     );

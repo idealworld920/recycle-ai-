@@ -197,7 +197,7 @@ class HistoryStore extends ChangeNotifier {
   /// 스크린샷·데모용 샘플.
   Future<void> seedDemo() async {
     final now = DateTime.now();
-    HistoryRecord make(String name, RecycleCategory c, double conf, List<String> steps, List<String> warns, String tip, int minutesAgo) {
+    HistoryRecord make(String name, RecycleCategory c, double conf, List<String> steps, List<String> warns, String tip, int minutesAgo, {String reason = ''}) {
       final r = RecycleResult(
         itemName: name,
         category: c,
@@ -205,6 +205,7 @@ class HistoryStore extends ChangeNotifier {
         steps: steps,
         warnings: warns,
         tip: tip,
+        reason: reason,
         createdAt: now.subtract(Duration(minutes: minutesAgo)),
       );
       return HistoryRecord.fromResult(r, id: _newId(r.createdAt));
@@ -213,9 +214,11 @@ class HistoryStore extends ChangeNotifier {
     _items = [
       make('생수 페트병', RecycleCategory.pet, 0.96,
           ['내용물을 비우고 물로 헹궈요.', '라벨을 떼어 비닐로 버려요.', '찌그러뜨리고 뚜껑을 닫아요.'],
-          ['색이 있는 페트병은 일반 플라스틱이에요.'], '찌그러뜨리면 수거함 공간을 아낄 수 있어요.', 12),
+          ['색이 있는 페트병은 일반 플라스틱이에요.'], '찌그러뜨리면 수거함 공간을 아낄 수 있어요.', 12,
+          reason: '투명하고 색이 없는 PET 재질이라 투명 페트병이에요.'),
       make('컵라면 용기', RecycleCategory.general, 0.91,
-          ['남은 국물을 버려요.', '종량제 봉투에 넣어요.'], ['음식물이 묻은 스티로폼은 재활용이 안 돼요.'], '', 180),
+          ['남은 국물을 버려요.', '종량제 봉투에 넣어요.'], ['음식물이 묻은 스티로폼은 재활용이 안 돼요.'], '', 180,
+          reason: '국물 자국이 남은 스티로폼은 재활용이 어려워 일반 쓰레기예요.'),
       make('택배 상자', RecycleCategory.paper, 0.98,
           ['송장과 테이프를 떼요.', '펼쳐서 납작하게 만들어요.', '종이류끼리 묶어요.'], const [], '송장의 개인정보는 꼭 떼서 버려요.', 1500),
       make('보조배터리', RecycleCategory.hazardous, 0.94,

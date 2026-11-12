@@ -76,6 +76,16 @@ service cloud.firestore {
       }
     }
 
+    // "결과가 틀렸나요?" 피드백. 본인 uid 로 만들기만, 읽기·수정은 콘솔에서만.
+    match /feedback/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'imageHash', 'itemName', 'aiResult', 'userAnswer', 'memo', 'createdAt'])
+        && request.resource.data.userAnswer in ['recycle', 'general', 'food', 'special']
+        && request.resource.data.memo is string && request.resource.data.memo.size() <= 200;
+      allow read, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

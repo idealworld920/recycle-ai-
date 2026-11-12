@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../app_services.dart';
+import '../core/mascot.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../data/recycling_guide.dart';
+import '../features/feedback/feedback_sheet.dart';
+import '../features/share/share_service.dart';
 import '../features/tips/tip_card.dart';
 import '../features/tips/tips_screen.dart';
 import '../models/recycle_result.dart';
@@ -16,7 +19,7 @@ import '../widgets/category_badge.dart';
 import 'guide_screen.dart';
 
 class ResultScreen extends StatefulWidget {
-  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast});
+  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast, this.elapsed});
 
   final RecycleResult result;
   final bool isNew;
@@ -30,11 +33,23 @@ class ResultScreen extends StatefulWidget {
   /// 화면이 뜬 직후 보여줄 짧은 안내 (예: 도감 추가).
   final String? toast;
 
+  /// 사진 선택부터 결과까지 걸린 시간. 3초를 넘겼으면 리뿅이가 한마디 한다.
+  final Duration? elapsed;
+
   @override
   State<ResultScreen> createState() => _ResultScreenState();
 }
 
 class _ResultScreenState extends State<ResultScreen> {
+  bool _sharing = false;
+
+  Future<void> _share() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    await ShareService.shareResult(context, result: result, photo: imageBytes);
+    if (mounted) setState(() => _sharing = false);
+  }
+
   RecycleResult get result => widget.result;
   bool get isNew => widget.isNew;
   Uint8List? get imageBytes => widget.imageBytes;
@@ -57,10 +72,24 @@ class _ResultScreenState extends State<ResultScreen> {
     final t = context.text;
     final cat = result.category;
     final guide = guideFor(cat);
-    final tip = AppServices.of(context).tips.findForItem(result.itemName);
+    final services = AppServices.of(context);
+    final tip = services.tips.findForItem(result.itemName);
+    final override = services.feedback.overrideFor(result.itemName);
+    final showOverride = override != null && override != cat.group;
+    final slow = (widget.elapsed ?? Duration.zero) > const Duration(seconds: 3);
+    final localNote = tip?.hasLocalNote == true ? tip!.localNote : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('판별 결과')),
+      appBar: AppBar(
+        title: const Text('판별 결과'),
+        actions: [
+          IconButton(
+            onPressed: _sharing ? null : _share,
+            icon: const Icon(Symbols.share_rounded),
+            tooltip: '공유',
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.xxl),
         children: [
@@ -86,29 +115,55 @@ class _ResultScreenState extends State<ResultScreen> {
               child: Icon(cat.icon, size: 48, color: c.textPrimary),
             ),
           const SizedBox(height: AppSpacing.xl),
-          Row(children: [CategoryBadge.of(cat, large: true)]),
-          const SizedBox(height: AppSpacing.md),
+
+          // 1. 품목명
           Text(result.itemName, style: t.headlineSmall),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Icon(
-                cat.isRecyclable ? Symbols.check_circle_rounded : Symbols.do_not_disturb_on_rounded,
-                size: 18,
-                color: cat.isRecyclable ? c.primary : c.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(cat.isRecyclable ? '재활용 가능' : '재활용 불가', style: t.bodyMedium),
-              const SizedBox(width: AppSpacing.md),
-              Text('AI 확신도 ${result.confidencePercent}%', style: t.bodySmall),
-            ],
-          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // 2. 카테고리 뱃지 (+ 내가 고친 답이 있으면 그걸 먼저)
+          if (showOverride) ...[
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                CategoryBadge(label: '${override.label} · 내가 고친 답', group: override, large: true),
+                Text('AI 분류: ${cat.label}', style: t.bodySmall),
+              ],
+            ),
+          ] else
+            Row(
+              children: [
+                CategoryBadge.of(cat, large: true),
+                const SizedBox(width: AppSpacing.md),
+                Icon(
+                  cat.isRecyclable ? Symbols.check_circle_rounded : Symbols.do_not_disturb_on_rounded,
+                  size: 18,
+                  color: cat.isRecyclable ? c.primary : c.textSecondary,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(cat.isRecyclable ? '재활용 가능' : '재활용 불가', style: t.bodyMedium),
+                const Spacer(),
+                Text('확신도 ${result.confidencePercent}%', style: t.bodySmall),
+              ],
+            ),
           if (result.confidencePercent < 60) ...[
             const SizedBox(height: AppSpacing.sm),
             Text('확신도가 낮아요. 물건이 잘 보이게 다시 찍으면 더 정확해져요.', style: t.bodySmall?.copyWith(color: c.error)),
           ],
+
+          // 3. 왜?
+          if (result.reason.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.base),
+            _Reason(text: result.reason),
+          ],
+          if (slow) ...[
+            const SizedBox(height: AppSpacing.md),
+            const MascotSay(mascot: Mascot.cheer, text: '기다려줘서 고마워뿅! 꼼꼼히 봤어뿅.', size: 56),
+          ],
           const SizedBox(height: AppSpacing.xxl),
 
+          // 4. 배출 방법
           if (result.steps.isNotEmpty) ...[
             Text('이렇게 버려요', style: t.titleMedium),
             const SizedBox(height: AppSpacing.sm),
@@ -117,6 +172,12 @@ class _ResultScreenState extends State<ResultScreen> {
               if (i != result.steps.length - 1) const Divider(),
             ],
             const SizedBox(height: AppSpacing.xl),
+          ],
+
+          // 5. 지역 차이
+          if (localNote != null) ...[
+            _LocalNote(text: localNote),
+            const SizedBox(height: AppSpacing.md),
           ],
 
           if (result.warnings.isNotEmpty) ...[
@@ -174,14 +235,96 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
           const SizedBox(height: AppSpacing.sm),
           Text('AI 판별 결과는 참고용이에요. 지자체마다 기준이 조금씩 달라요.', style: t.bodySmall),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs), foregroundColor: c.textSecondary),
+              onPressed: () => showFeedbackSheet(context, result: result, imageBytes: imageBytes),
+              child: const Text('결과가 틀렸나요?'),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.base),
-        child: FilledButton(
-          onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
-          child: Text(isNew ? '다른 물건 판별하기' : '확인'),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _sharing ? null : _share,
+                icon: const Icon(Symbols.share_rounded, size: 20),
+                label: Text(_sharing ? '만드는 중…' : '공유하기', maxLines: 1, overflow: TextOverflow.fade, softWrap: false),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
+                child: Text(isNew ? '다른 물건 판별하기' : '확인'),
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// "왜?" 한 줄. 분류 근거를 짧게.
+class _Reason extends StatelessWidget {
+  const _Reason({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = context.text;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+          decoration: BoxDecoration(color: c.ink, borderRadius: BorderRadius.circular(AppRadius.chip)),
+          child: Text('왜?', style: t.labelLarge?.copyWith(color: c.onInk, fontSize: 12.5)),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(child: Text(text, style: t.bodyMedium?.copyWith(color: c.textPrimary))),
+      ],
+    );
+  }
+}
+
+/// 지자체별로 다를 수 있는 항목. 노란 박스.
+class _LocalNote extends StatelessWidget {
+  const _LocalNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = context.text;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(color: c.warningSoft, borderRadius: BorderRadius.circular(AppRadius.card)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Symbols.location_on_rounded, size: 20, color: c.warningText),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('지자체별로 다를 수 있어요', style: t.titleSmall?.copyWith(color: c.warningText)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(text, style: t.bodyMedium?.copyWith(color: c.warningText)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
