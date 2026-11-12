@@ -1,13 +1,20 @@
-"""ReSAI 로고(쓰레기통 안의 R) 생성기.
+"""ReSAI 앱 아이콘 파생 파일 생성기.
 
+원본: assets/branding/app_icon_source.png (둥근 사각 파란 배경 + 흰 쓰레기통·R·뚜껑).
 python3 tool/make_icons.py
-→ assets/store/, web/icons/, web/favicon.png, android mipmap/적응형 아이콘을 모두 다시 만든다.
+→ android mipmap(레거시+적응형 foreground), web/icons, web/favicon.png, assets/store/icon_512.png,
+  assets/store/feature_graphic_1024x500.png, assets/branding/logo_192.png(스플래시), assets/branding/app_icon_128.png(공유 카드)
+
+모든 파생본은 원본 해상도에서 바로 LANCZOS 축소한다 (작은 파일 재확대 금지).
+배경색은 브랜드 #2563EB 로 통일한다 (원본 PNG 자체는 손대지 않는다).
 """
 from PIL import Image, ImageDraw, ImageFont
+import math
 import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(ROOT, 'assets/branding/app_icon_source.png')
 BRAND = (37, 99, 235)  # #2563EB (primary)
 BRAND_HEX = '#2563EB'
 WHITE = (255, 255, 255)
@@ -16,73 +23,105 @@ MUTED = (107, 107, 107)
 BOLD = os.path.join(ROOT, 'assets/fonts/Pretendard-Bold.otf')
 SEMI = os.path.join(ROOT, 'assets/fonts/Pretendard-SemiBold.otf')
 REG = os.path.join(ROOT, 'assets/fonts/Pretendard-Regular.otf')
-SS = 4  # 슈퍼샘플링 배율
 
 
-def bin_mark(size, fg=WHITE, bg=BRAND, scale=1.0):
-    """투명 배경 위에 쓰레기통 + 안쪽에 R(배경색으로 뚫림). [scale] 로 마크 크기 조절."""
-    S = size * SS
-    img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+class Source:
+    """원본에서 (1) 타일 영역·모서리 반지름 (2) 흰 요소 알파 스프라이트를 뽑는다."""
+
+    def __init__(self, path):
+        im = Image.open(path).convert('RGB')
+        r, g, b = im.split()
+        # 파랑 배경은 R 채널이 거의 0, 흰색은 255 → R 채널이 곧 '흰 정도'
+        white = r.point(lambda v: max(0, min(255, int((v - 8) * 255 / (246 - 8)))))
+        blue = Image.eval(white, lambda v: 255 - v)
+        bbox = blue.getbbox()  # 타일(파란 영역) 경계
+        self.tile_box = bbox
+        l, t, rgt, btm = bbox
+        self.tile_w, self.tile_h = rgt - l, btm - t
+        # 모서리 반지름: 좌상단 코너의 흰 픽셀 넓이 = r^2 (1 - pi/4)
+        q = min(self.tile_w, self.tile_h) // 4
+        corner = white.crop((l, t, l + q, t + q))
+        area = sum(corner.get_flattened_data() if hasattr(corner, 'get_flattened_data') else corner.getdata()) / 255
+        self.radius = math.sqrt(area / (1 - math.pi / 4))
+        # 타일 안쪽의 흰 요소만 (코너 바깥 흰색 제거)
+        # 타일 경계의 안티앨리어싱 픽셀(연파랑)이 요소로 잡히지 않게 경계를 안쪽으로 조금 줄인다
+        inset = max(6, self.tile_w // 100)
+        mask = Image.new('L', im.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle([l + inset, t + inset, rgt - 1 - inset, btm - 1 - inset], radius=int(self.radius - inset), fill=255)
+        alpha = Image.composite(white, Image.new('L', im.size, 0), mask)
+        alpha = alpha.point(lambda v: 0 if v < 12 else v)
+        self.elem_box = alpha.point(lambda v: 255 if v > 24 else 0).getbbox()
+        sprite = Image.new('RGBA', im.size, WHITE + (0,))
+        sprite.putalpha(alpha)
+        self.sprite = sprite.crop(self.elem_box)  # 흰 요소만, 투명 배경
+        # 타일 기준 요소 위치 (비율)
+        self.elem_rel = ((self.elem_box[0] - l) / self.tile_w, (self.elem_box[1] - t) / self.tile_h,
+                         (self.elem_box[2] - l) / self.tile_w, (self.elem_box[3] - t) / self.tile_h)
+        # 최소 외접원 (적응형 아이콘에서 원형 마스크에 안 잘리게 배치하려고)
+        self.mec_center, self.mec_radius = self._enclosing_circle()
+
+    def _enclosing_circle(self):
+        """스프라이트의 불투명 픽셀을 모두 담는 최소 원 (Badoiu-Clarkson 근사). 좌표는 스프라이트 기준."""
+        small = self.sprite.split()[3].resize((self.sprite.width // 4, self.sprite.height // 4), Image.BOX)
+        pts = [(x * 4 + 2, y * 4 + 2) for y in range(small.height) for x in range(small.width) if small.getpixel((x, y)) > 96]
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        for i in range(1, 400):
+            fx, fy = max(pts, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
+            cx += (fx - cx) / (i + 1)
+            cy += (fy - cy) / (i + 1)
+        rad = max(math.hypot(p[0] - cx, p[1] - cy) for p in pts) + 3
+        return (cx, cy), rad
+
+
+SRCI = Source(SRC)
+
+
+def tile(size, radius_ratio=None):
+    """원본과 같은 배치의 아이콘 타일. radius_ratio=None 이면 원본 모서리, 0 이면 꽉 찬 정사각."""
+    W = SRCI.tile_w
+    rr = (SRCI.radius / W) if radius_ratio is None else radius_ratio
+    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    u = S * scale  # 마크가 차지하는 한 변
-    ox = (S - u) / 2
-    oy = (S - u) / 2
-    r = u * 0.04
-    # 손잡이
-    hw, hh = u * 0.22, u * 0.07
-    d.rounded_rectangle([ox + (u - hw) / 2, oy + u * 0.09, ox + (u + hw) / 2, oy + u * 0.09 + hh], radius=r, fill=fg)
-    # 뚜껑
-    lw, lh = u * 0.74, u * 0.11
-    d.rounded_rectangle([ox + (u - lw) / 2, oy + u * 0.15, ox + (u + lw) / 2, oy + u * 0.15 + lh], radius=r, fill=fg)
-    # 몸통 (아래로 살짝 좁아지는 사다리꼴 + 둥근 아래 모서리)
-    top, bottom = oy + u * 0.30, oy + u * 0.90
-    tw, bw = u * 0.62, u * 0.52
-    body = [
-        (ox + (u - tw) / 2, top), (ox + (u + tw) / 2, top),
-        (ox + (u + bw) / 2, bottom), (ox + (u - bw) / 2, bottom),
-    ]
-    d.polygon(body, fill=fg)
-    # 아래 모서리 둥글게: 바닥 캡슐
-    d.rounded_rectangle([ox + (u - bw) / 2, bottom - u * 0.08, ox + (u + bw) / 2, bottom], radius=u * 0.05, fill=fg)
-    # 안쪽 R (배경색으로)
-    f = ImageFont.truetype(BOLD, int(u * 0.40))
-    b = d.textbbox((0, 0), 'R', font=f, anchor='lt')
-    w, h = b[2] - b[0], b[3] - b[1]
-    cx = ox + u / 2
-    cy = (top + bottom) / 2 + u * 0.005
-    d.text((cx - w / 2 - b[0], cy - h / 2 - b[1]), 'R', font=f, fill=bg, anchor='lt')
+    if rr > 0:
+        d.rounded_rectangle([0, 0, W - 1, W - 1], radius=int(W * rr), fill=BRAND + (255,))
+    else:
+        d.rectangle([0, 0, W, W], fill=BRAND + (255,))
+    ex, ey = int(SRCI.elem_rel[0] * W), int(SRCI.elem_rel[1] * W)
+    img.alpha_composite(SRCI.sprite, (ex, ey))
     return img.resize((size, size), Image.LANCZOS)
 
 
-def tile(size, radius_ratio, mark_scale=0.78):
-    """브랜드 색 타일 + 마크."""
-    S = size * SS
-    img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    if radius_ratio > 0:
-        d.rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * radius_ratio), fill=BRAND)
-    else:
-        d.rectangle([0, 0, S, S], fill=BRAND)
-    img = img.resize((size, size), Image.LANCZOS)
-    m = bin_mark(size, scale=mark_scale)
-    img.alpha_composite(m)
+def adaptive_foreground(size, safe=0.66):
+    """108dp 캔버스용 전경. 흰 요소의 최소 외접원이 캔버스 중앙 [safe] 지름 원 안에 들어가게 축소 배치."""
+    scale = (size * safe / 2) / SRCI.mec_radius
+    sw, sh = int(SRCI.sprite.width * scale), int(SRCI.sprite.height * scale)
+    sp = SRCI.sprite.resize((sw, sh), Image.LANCZOS)
+    cx, cy = SRCI.mec_center
+    ox, oy = round(size / 2 - cx * scale), round(size / 2 - cy * scale)
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    img.alpha_composite(sp, (ox, oy))
+    return img
+
+
+def maskable(size, safe=0.66):
+    """PWA maskable: 꽉 찬 브랜드 배경 + 중앙 안전 영역 안의 요소."""
+    img = Image.new('RGBA', (size, size), BRAND + (255,))
+    img.alpha_composite(adaptive_foreground(size, safe))
     return img
 
 
 def save(img, rel, mode='RGBA'):
     path = os.path.join(ROOT, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    (img.convert(mode)).save(path, optimize=True)
+    img.convert(mode).save(path, optimize=True)
     print('wrote', rel, img.size)
 
 
-def main():
-    # 스토어
-    save(tile(512, 0), 'assets/store/icon_512.png', 'RGB')
-    # 피처 그래픽
+def feature_graphic():
     fg = Image.new('RGB', (1024, 500), WHITE)
     d = ImageDraw.Draw(fg)
-    t = tile(220, 0.22)
+    t = tile(220)
     fg.paste(t, (96, 140), t)
     x = 372
     d.text((x, 150), 'ReSAI', font=ImageFont.truetype(BOLD, 84), fill=INK)
@@ -96,23 +135,31 @@ def main():
         d.rounded_rectangle([cx, cy, cx + w + 36, cy + 44], radius=22, fill=(247, 247, 248))
         d.text((cx + 18, cy + 10), c, font=fchip, fill=INK, anchor='lt')
         cx += w + 36 + 12
-    save(fg, 'assets/store/feature_graphic_1024x500.png', 'RGB')
+    return fg
 
+
+def main():
+    print(f'source tile {SRCI.tile_w}px, corner radius {SRCI.radius:.0f}px ({SRCI.radius / SRCI.tile_w:.2f}), '
+          f'elements box {SRCI.elem_box}, enclosing circle r={SRCI.mec_radius:.0f}px')
+    # 스토어 (Play 가 모서리를 깎으므로 꽉 찬 정사각, 알파 없음)
+    save(tile(512, 0), 'assets/store/icon_512.png', 'RGB')
+    save(feature_graphic(), 'assets/store/feature_graphic_1024x500.png', 'RGB')
+    # 앱 안: 스플래시 로고, 공유 카드 브랜딩 아이콘
+    save(tile(192), 'assets/branding/logo_192.png')
+    save(tile(128), 'assets/branding/app_icon_128.png')
     # 웹
-    save(tile(192, 0.22), 'web/icons/Icon-192.png')
-    save(tile(512, 0.22), 'web/icons/Icon-512.png')
-    save(tile(192, 0, 0.6), 'web/icons/Icon-maskable-192.png')
-    save(tile(512, 0, 0.6), 'web/icons/Icon-maskable-512.png')
-    save(tile(64, 0.22).resize((32, 32), Image.LANCZOS), 'web/favicon.png')
-
+    save(tile(192), 'web/icons/Icon-192.png')
+    save(tile(512), 'web/icons/Icon-512.png')
+    save(maskable(192), 'web/icons/Icon-maskable-192.png')
+    save(maskable(512), 'web/icons/Icon-maskable-512.png')
+    save(tile(32), 'web/favicon.png')
     # 안드로이드 런처 (레거시 정사각 + 적응형)
     legacy = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
     for dpi, px in legacy.items():
-        save(tile(px, 0.18), f'android/app/src/main/res/mipmap-{dpi}/ic_launcher.png')
-    # 적응형: 108dp 중 안전 영역 66dp → 마크는 캔버스의 약 0.56
+        save(tile(px), f'android/app/src/main/res/mipmap-{dpi}/ic_launcher.png')
     fgsize = {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}
     for dpi, px in fgsize.items():
-        save(bin_mark(px, scale=0.50), f'android/app/src/main/res/mipmap-{dpi}/ic_launcher_foreground.png')
+        save(adaptive_foreground(px), f'android/app/src/main/res/mipmap-{dpi}/ic_launcher_foreground.png')
     xml_dir = os.path.join(ROOT, 'android/app/src/main/res/mipmap-anydpi-v26')
     os.makedirs(xml_dir, exist_ok=True)
     for name in ['ic_launcher', 'ic_launcher_round']:

@@ -25,8 +25,13 @@
 
 문구는 `tool/make_screenshots.py` 의 `FRAMES` 에서 바꾼다.
 
-## 브랜드 색 · SVG 원본
+## 브랜드 색 · 아이콘 원본
 
 - 브랜드 색: 파랑 `#2563EB` (앱 primary 와 동일). `tool/make_icons.py` 의 `BRAND` 한 곳에서 바꾼다.
-- `assets/branding/logo.svg`: 파랑 둥근 타일 + 흰 쓰레기통 + R (web/icons/icon.svg 와 동일)
-- `assets/branding/mark.svg`: 투명 배경 마크만 (파랑 위에 올려 쓰는 용도)
+- 아이콘 원본: `assets/branding/app_icon_source.png` (1254px, 둥근 사각 파란 배경 위 흰 쓰레기통·R·뚜껑). 원본은 손대지 않는다.
+  원본의 배경은 `#0254EF` 에 가깝지만 파생본은 모두 브랜드 색 `#2563EB` 로 통일한다.
+- `python3 tool/make_icons.py` 가 원본에서 바로 축소해 아래를 전부 다시 만든다 (작은 파일을 재확대하지 않는다):
+  - `assets/store/icon_512.png` (꽉 찬 정사각, 알파 없음) · `assets/store/feature_graphic_1024x500.png` (왼쪽 아이콘)
+  - `web/icons/Icon-192.png` `Icon-512.png` (둥근 사각) · `Icon-maskable-192.png` `Icon-maskable-512.png` (꽉 찬 배경 + 중앙 66% 요소) · `web/favicon.png` (32)
+  - `android/.../mipmap-*/ic_launcher.png` (레거시, 48~192) · `ic_launcher_foreground.png` (적응형 전경 108~432: 흰 요소의 최소 외접원이 캔버스 중앙 66% 원 안에 들어가 원형 마스크에서 뚜껑 손잡이가 안 잘린다) · 배경은 `@color/ic_launcher_background` = `#2563EB`
+  - `assets/branding/logo_192.png` (스플래시) · `assets/branding/app_icon_128.png` (공유 카드 브랜딩 영역에 64px 로 그림)

@@ -83,6 +83,7 @@ flutter:
     - assets/data/regions.json
     - assets/data/carbon_factors.json
     - assets/branding/logo_192.png
+    - assets/branding/app_icon_128.png
     - assets/branding/mascot/
 
   fonts:

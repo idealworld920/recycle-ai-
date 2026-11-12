@@ -30,9 +30,20 @@ class ReportShareCard {
     const pad = 72.0;
     var y = story ? 220.0 : 96.0;
 
-    _t('ReSAI 월간 리포트', TextStyle(fontFamily: 'Pretendard', fontSize: 30, fontWeight: FontWeight.w600, color: textSecondary), w - pad * 2).paint(canvas, Offset(pad, y));
+    // 헤더 오른쪽에 리뿅이(idle PNG). 브랜딩 영역(하단)과는 겹치지 않는다.
+    const mascotH = 168.0;
+    var mascotW = 0.0;
+    final mascot = await _asset(Mascot.idle.png);
+    if (mascot != null) {
+      mascotW = mascotH * mascot.width / mascot.height;
+      final src = Rect.fromLTWH(0, 0, mascot.width.toDouble(), mascot.height.toDouble());
+      canvas.drawImageRect(mascot, src, Rect.fromLTWH(w - pad - mascotW, y - 24, mascotW, mascotH), Paint()..filterQuality = FilterQuality.medium);
+      mascot.dispose();
+    }
+    final headW = w - pad * 2 - (mascotW > 0 ? mascotW + 24 : 0);
+    _t('ReSAI 월간 리포트', TextStyle(fontFamily: 'Pretendard', fontSize: 30, fontWeight: FontWeight.w600, color: textSecondary), headW).paint(canvas, Offset(pad, y));
     y += 48;
-    _t(report.title, TextStyle(fontFamily: 'Pretendard', fontSize: 72, fontWeight: FontWeight.w700, color: ink, height: 1.15), w - pad * 2).paint(canvas, Offset(pad, y));
+    _t(report.title, TextStyle(fontFamily: 'Pretendard', fontSize: 72, fontWeight: FontWeight.w700, color: ink, height: 1.15), headW).paint(canvas, Offset(pad, y));
     y += story ? 150 : 120;
 
     // 핵심 숫자 3개
@@ -70,26 +81,15 @@ class ReportShareCard {
       }
     }
 
-    // 하단: 마스코트(idle PNG) + 로고 + URL + 추정치 문구
-    final footerTop = h - (showCarbon ? 260 : 220);
-    canvas.drawLine(Offset(pad, footerTop - 28), Offset(w - pad, footerTop - 28), Paint()..color = divider..strokeWidth = 2);
-    final mascot = await _asset(Mascot.idle.png);
-    if (mascot != null) {
-      final src = Rect.fromLTWH(0, 0, mascot.width.toDouble(), mascot.height.toDouble());
-      final scale = 128 / mascot.height;
-      canvas.drawImageRect(mascot, src, Rect.fromLTWH(pad, footerTop, mascot.width * scale, 128), Paint()..filterQuality = FilterQuality.medium);
-      mascot.dispose();
-    }
-    const textX = pad + 128 + 28;
-    final logoRect = RRect.fromRectAndRadius(Rect.fromLTWH(textX, footerTop + 6, 52, 52), const Radius.circular(14));
-    canvas.drawRRect(logoRect, Paint()..color = primary);
-    _t('R', const TextStyle(fontFamily: 'Pretendard', fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white), 52, align: TextAlign.center).paint(canvas, Offset(textX, footerTop + 11));
-    _t('ReSAI', TextStyle(fontFamily: 'Pretendard', fontSize: 40, fontWeight: FontWeight.w700, color: ink), 500).paint(canvas, Offset(textX + 64, footerTop + 4));
-    _t('찍으면 알려주는 AI 분리수거  ·  ${ShareCard.shortUrl}', TextStyle(fontFamily: 'Pretendard', fontSize: 26, fontWeight: FontWeight.w500, color: textSecondary), w - textX - pad)
-        .paint(canvas, Offset(textX, footerTop + 72));
+    // 하단 브랜딩: 앱 아이콘 + ReSAI + URL (+ 추정치 문구)
+    final footerTop = h - pad - ShareCard.brandingHeight - (showCarbon ? 64 : 0);
+    canvas.drawLine(Offset(pad, footerTop - 36), Offset(w - pad, footerTop - 36), Paint()..color = divider..strokeWidth = 2);
+    await ShareCard.drawBranding(canvas, Offset(pad, footerTop), w - pad * 2, ink: ink, textSecondary: textSecondary);
+    final tag = _t('찍으면 알려주는 AI 분리수거', TextStyle(fontFamily: 'Pretendard', fontSize: 24, fontWeight: FontWeight.w400, color: textSecondary), 500, align: TextAlign.right);
+    tag.paint(canvas, Offset(w - pad - tag.width, footerTop + 42));
     if (showCarbon) {
       _t(caption, TextStyle(fontFamily: 'Pretendard', fontSize: 22, fontWeight: FontWeight.w400, color: textSecondary), w - pad * 2, maxLines: 2)
-          .paint(canvas, Offset(pad, footerTop + 150));
+          .paint(canvas, Offset(pad, footerTop + ShareCard.brandingHeight + 20));
     }
 
     final picture = recorder.endRecording();
