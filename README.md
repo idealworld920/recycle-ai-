@@ -316,6 +316,25 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - Firestore 규칙이 바뀌었다 (`feedback` type `region`, `regionNoteReports`). **`firebase deploy --only firestore:rules`** 필요.
 - 새 패키지: `firebase_analytics` 하나.
 
+## 온보딩 (최초 실행 1회)
+
+`lib/features/onboarding/` — `onboarding_screen.dart`(흐름) · `intro_animation.dart`(인트로·말풍선) · `pages.dart`(1·2페이지 목업) · `consent_sheet.dart`(동의).
+완료 여부는 shared_preferences `onboardingDone`. Firebase 익명 로그인은 백그라운드에서 따로 돌고 온보딩을 막지 않는다 (온보딩일 때는 SplashGate 를 거치지 않는다).
+
+0. **인트로**: 흰 배경, `r_intro.gif` 240px 를 2초 타이머로 1회만 재생(끝나면 마지막 프레임 PNG 로 고정), 1.6초에 "리뿅이 등장했뿅!" 말풍선 400ms 페이드인, 2.6초에 1페이지로 200ms 슬라이드. 아무 데나 탭하면 즉시. 다시 보기에서도 인트로부터.
+1. **찍으면 알려줘요**: 실제 `ResultCard`(`lib/widgets/result_card.dart`, 결과 화면과 같은 위젯)를 "컵라면 용기 / 일반 쓰레기 / 기름이 밴 용기는 재활용이 어려워요" 샘플로 그린 목업 + `r_wink.gif` 96px. 우상단 [건너뛰기] → 동의 페이지.
+2. **수거일도 챙겨드려요**: 수거일 카드 두 상태(D-1 · 오늘 버리는 날) + 홈 위젯 미리보기 목업 + `r_happy.gif`.
+3. **시작하기 전에**: 모두 동의 / [필수] 이용약관 · 개인정보처리방침(인앱 웹뷰 [보기]) / [선택] 수거일·리포트 알림. 필수 2개 전엔 [시작하기] 비활성. 뒤로가기는 2페이지로.
+   저장: 기기 `consent_*` + `users/{uid}.consent = {terms, privacy, marketing, version: "2026-11"}`. 익명 로그인이 아직이면 `consent_remote_pending` 으로 두고 `attachAll` 이 로그인 뒤 올린다. **알림 권한은 여기서 묻지 않는다** (수거일 저장 시점에).
+4. **완료 → 카메라 화면** (`lib/screens/capture_screen.dart`): 홈 위에 떠서 바로 시스템 카메라를 열고, 상단에 "뭐든 가져와뿅! 리뿅이가 알려주겠뿅!" + `r_wink` 48px 를 첫 1회만(`firstCameraHintShown`) 5초 또는 사진 선택까지. 뒤로가기 → 홈.
+   사진 선택→분류→결과는 `lib/features/classify/classify_flow.dart` 로 빼서 홈과 카메라 화면이 같이 쓴다.
+
+- 설정 → 약관 카드의 **온보딩 다시 보기**: 동의는 다시 묻지 않고 0→1→2 보고 홈으로.
+- 시스템 "애니메이션 줄이기": 인트로는 마지막 프레임 정지 이미지 1초 뒤 넘어가고, 페이지 리뿅이는 `_static.png`.
+- GIF 배경: 올려주신 원본은 완전 흰색이 아니라(#FBFBFB) 흰 화면에서 네모가 비쳐, `python3 tool/gif_keyout.py r_intro r_wink` 로 모서리에서 이어진 배경만 투명 처리했다 (얼굴의 흰 눈·입은 유지).
+- 테스트 `test/onboarding_test.dart`: 최초 실행 전체 / 모두 동의 / 건너뛰기 / 필수 미체크 비활성 / 뒤로가기 / 인트로 탭 / 다시 보기 / 애니메이션 줄이기.
+- 캡처용 데모: `--dart-define=DEMO=true --dart-define=DEMO_ONBOARDING=true` 면 데모 시드가 온보딩을 건너뛰지 않는다.
+
 ## 구조
 
 ```
@@ -337,7 +356,8 @@ lib/
     auth/                     익명 → 구글 연결, 잠금 UI, 로그아웃·계정 삭제
     premium/                  RevenueCat 구독, 페이월, 무료 한도
     household/                가족 공유 집: 초대 코드, 공유 수거일, 멤버 체크인
-    onboarding/               최초 실행 소개 + 동의 화면
+    onboarding/               최초 실행: 인트로(리뿅이 등장) → 가치 2장 → 동의 → 카메라
+    classify/                 사진 선택 → AI 분류 → 결과 (홈·카메라 화면 공용)
     legal/                    약관·개인정보 링크, 인앱 웹뷰, 권한 사전 안내, 내 데이터 삭제
     tips/                     품목별 팁 검색 (지역별 regionNotes 박스 포함)
     report/                   월간 리포트: 계산·화면·공유 카드·탄소 계수 로더

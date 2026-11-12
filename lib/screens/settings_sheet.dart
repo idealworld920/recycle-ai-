@@ -8,6 +8,7 @@ import '../features/auth/account_section.dart';
 import '../features/household/household_sheet.dart';
 import '../features/legal/data_deletion.dart';
 import '../features/legal/legal_links.dart';
+import '../features/onboarding/onboarding_screen.dart';
 import '../features/legal/legal_webview_screen.dart';
 import '../features/premium/paywall_screen.dart';
 import '../features/premium/premium_gate.dart';
@@ -188,6 +189,18 @@ Future<void> showSettingsSheet(BuildContext context) {
                     icon: Symbols.privacy_tip_rounded,
                     label: '개인정보처리방침',
                     onTap: () => LegalWebViewScreen.open(context, title: '개인정보처리방침', url: LegalLinks.privacy),
+                  ),
+                  const Divider(),
+                  _LinkRow(
+                    icon: Symbols.replay_rounded,
+                    label: '온보딩 다시 보기',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      context.pushPage(OnboardingScreen(
+                        replay: true,
+                        onDone: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                      ));
+                    },
                   ),
                   const Divider(),
                   _LinkRow(

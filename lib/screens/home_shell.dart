@@ -7,6 +7,7 @@ import '../features/history/history_screen.dart';
 import '../features/report/report_screen.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/tips/tips_screen.dart';
+import 'capture_screen.dart';
 import 'guide_screen.dart';
 import 'home_screen.dart';
 
@@ -25,6 +26,7 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     AppActions.instance.pending.addListener(_onAction);
+    _onAction();
   }
 
   @override
@@ -39,6 +41,12 @@ class _HomeShellState extends State<HomeShell> {
     if (action == null) return;
     if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
     if (action.$1 == AppActions.openHistory && _index != 4) setState(() => _index = 4);
+    if (action.$1 == AppActions.openCapture && action.$2 != _handledCapture) {
+      _handledCapture = action.$2;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pushPage(const CaptureScreen());
+      });
+    }
     if (action.$1 == AppActions.openReport && action.$2 != _handledReport) {
       _handledReport = action.$2;
       final now = DateTime.now();
@@ -50,6 +58,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   int? _handledReport;
+  int? _handledCapture;
 
   @override
   Widget build(BuildContext context) {

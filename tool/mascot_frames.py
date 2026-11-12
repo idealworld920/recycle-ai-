@@ -1,4 +1,4 @@
-"""리뿅이 GIF 에서 첫 프레임을 PNG 로 뽑는다.
+"""리뿅이 GIF 에서 첫 프레임(인트로는 마지막 프레임)을 PNG 로 뽑는다.
 
 python3 tool/mascot_frames.py
 → assets/branding/mascot/r_*.gif 마다 r_*_static.png 생성 (투명 배경 유지).
@@ -10,9 +10,12 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / 'assets' / 'branding' / 'mascot'
 
+# 마지막 프레임을 써야 하는 것 (인트로: 끝난 모습에서 멈춘다)
+LAST_FRAME = {'r_intro'}
+
 for gif in sorted(DIR.glob('r_*.gif')):
     im = Image.open(gif)
-    im.seek(0)
+    im.seek(im.n_frames - 1 if gif.stem in LAST_FRAME else 0)
     frame = im.convert('RGBA')
     # 투명 인덱스가 배경으로 깔린 경우 모서리 색을 투명 처리
     bg = frame.getpixel((0, 0))

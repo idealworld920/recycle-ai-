@@ -7,7 +7,7 @@ import '../core/theme/app_theme.dart';
 import '../data/recycling_guide.dart';
 import '../widgets/app_card.dart';
 import '../widgets/category_badge.dart';
-import 'result_screen.dart' show StepNumber;
+import '../widgets/result_card.dart' show StepNumber;
 
 class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});

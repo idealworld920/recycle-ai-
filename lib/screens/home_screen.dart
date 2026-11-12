@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -9,22 +8,18 @@ import '../core/theme/app_sheet.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/auth_store.dart';
+import '../features/classify/classify_flow.dart';
 import '../features/auth/link_banner.dart';
 import '../features/history/history_record.dart';
-import '../features/legal/permission_primer.dart';
-import '../features/premium/free_limits.dart';
 import '../features/places/region_picker_sheet.dart';
-import '../features/premium/premium_gate.dart';
 import '../features/stats/stats_calculator.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/schedule/pickup_card.dart';
 import '../features/tips/tip_card.dart';
 import '../features/tips/tip_model.dart';
 import '../features/tips/tips_repository.dart';
-import '../services/gemini_classifier.dart';
 import '../widgets/app_chip.dart';
 import '../widgets/scanning_overlay.dart';
-import 'result_screen.dart';
 import 'settings_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -65,7 +60,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime? _busySince;
-  final _picker = ImagePicker();
   bool _busy = false;
   int _handledSeq = 0;
 
@@ -95,69 +89,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pick(ImageSource source) async {
     if (_busy) return;
-    HapticFeedback.lightImpact();
-    final services = AppServices.of(context);
-
-    if (!services.firebase.ready) {
-      _showError(services.firebase.error ?? 'AI 서버에 연결하지 못했어요. 설정에서 다시 연결해 주세요.');
-      return;
-    }
-    if (!services.premium.isPremium && services.freeLimits.classifyExhausted) {
-      final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.');
-      if (!ok) return;
-    }
-    if (!mounted) return;
-    if (source == ImageSource.camera && !await PermissionPrimer.show(context, PermissionPrimer.camera)) return;
-    if (!mounted) return;
-
-    XFile? picked;
-    try {
-      picked = await _picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
-    } catch (_) {
-      _showError('사진을 가져오지 못했어요. 카메라와 사진 권한을 확인해 주세요.');
-      return;
-    }
-    if (picked == null) return;
-
-    // 사진 선택 → 결과 표시까지 재서 3초 목표를 지키는지 본다.
-    final startedAt = DateTime.now();
-    setState(() {
-      _busy = true;
-      _busySince = startedAt;
-    });
-    final classifier = GeminiClassifier();
-    try {
-      final bytes = await picked.readAsBytes();
-      final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
-      final result = await classifier.classifyBytes(bytes, mimeType: mime, regionName: services.region.admin?.displayName);
-      // 모델 응답 뒤의 저장 작업(기록·무료 횟수·도감)은 서로 독립이라 한꺼번에.
-      final tip = services.tips.findForItem(result.itemName);
-      final results = await Future.wait<Object?>([
-        services.history.addResult(result, imageBytes: bytes),
-        if (!services.premium.isPremium) services.freeLimits.incrementClassify(),
-        if (tip != null) services.collection.collect(tip, itemName: result.itemName) else Future.value(false),
-      ]);
-      String? toast;
-      if (results.last == true) {
-        toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
-      }
-      if (!mounted) return;
-      final elapsed = DateTime.now().difference(startedAt);
-      debugPrint('[classify] ${elapsed.inMilliseconds}ms (목표 3000ms)');
-      HapticFeedback.mediumImpact();
-      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true, toast: toast, elapsed: elapsed));
-    } on ClassifyException catch (e) {
-      _showError(e.message);
-    } catch (e) {
-      _showError('알 수 없는 오류가 났어요: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    await ClassifyFlow.run(
+      context,
+      source,
+      onBusy: (since) {
+        if (!mounted) return;
+        setState(() {
+          _busy = since != null;
+          _busySince = since;
+        });
+      },
+    );
   }
 
   @override

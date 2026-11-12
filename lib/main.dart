@@ -26,6 +26,7 @@ import 'features/report/carbon_factors.dart';
 import 'features/places/admin_region.dart';
 import 'features/places/region.dart';
 import 'features/places/region_store.dart';
+import 'features/schedule/app_actions.dart';
 import 'features/schedule/notification_service.dart';
 import 'features/schedule/reminder_copy.dart';
 import 'features/schedule/schedule_repository.dart';
@@ -38,6 +39,9 @@ import 'services/settings_store.dart';
 
 /// `--dart-define=DEMO=true` 로 빌드하면 스토어 스크린샷용 샘플 기록을 넣는다.
 const bool kDemoMode = bool.fromEnvironment('DEMO');
+
+/// 데모 빌드에서 온보딩(첫 실행 경로)을 캡처할 때 켠다.
+const bool kDemoOnboarding = bool.fromEnvironment('DEMO_ONBOARDING');
 
 Future<void> main() async {
   // main() 안에서 무엇이 터져도 스플래시에 멈춰 있지 않게, 최소한 오류 화면은 띄운다.
@@ -107,6 +111,10 @@ Future<void> _boot() async {
     premium.attachUser(firebase.uid);
     household.attachUser(firebase.uid);
     feedback.attachUser(firebase.uid);
+    // 온보딩 동의가 로그인 전에 끝났으면 지금 올린다.
+    if (settings.consentRemotePending) {
+      auth.service.mergeUserDoc({'consent': settings.consentDoc}).then((_) => settings.markConsentSynced()).catchError((_) {});
+    }
     if (!region.isSet) {
       auth.service.readUserDoc().then((doc) => region.adoptRemote((doc?['region'] as Map?)?.cast<String, dynamic>())).catchError((_) {});
     }
@@ -118,7 +126,7 @@ Future<void> _boot() async {
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
     await schedule.seedDemo();
-    await settings.setOnboarded(true);
+    if (!kDemoOnboarding) await settings.setOnboarded(true);
     await region.select(region.repository.byId('서울_마포구'));
   }
 
@@ -183,7 +191,7 @@ class _FatalScreen extends StatelessWidget {
   }
 }
 
-class RecycleApp extends StatelessWidget {
+class RecycleApp extends StatefulWidget {
   const RecycleApp({
     super.key,
     required this.settings,
@@ -218,34 +226,48 @@ class RecycleApp extends StatelessWidget {
   final CarbonFactors carbon;
 
   @override
+  State<RecycleApp> createState() => _RecycleAppState();
+}
+
+class _RecycleAppState extends State<RecycleApp> {
+  /// 이번 실행에서 온보딩을 보여줬으면, 끝난 뒤 스플래시 없이 바로 홈으로.
+  bool _showedOnboarding = false;
+
+  @override
   Widget build(BuildContext context) {
+    final settings = widget.settings;
+    final firebase = widget.firebase;
     return AppServices(
       settings: settings,
-      history: history,
-      tips: tips,
+      history: widget.history,
+      tips: widget.tips,
       firebase: firebase,
-      schedule: schedule,
-      collection: collection,
-      region: region,
-      auth: auth,
-      premium: premium,
-      household: household,
-      freeLimits: freeLimits,
-      boot: boot,
-      feedback: feedback,
-      carbon: carbon,
+      schedule: widget.schedule,
+      collection: widget.collection,
+      region: widget.region,
+      auth: widget.auth,
+      premium: widget.premium,
+      household: widget.household,
+      freeLimits: widget.freeLimits,
+      boot: widget.boot,
+      feedback: widget.feedback,
+      carbon: widget.carbon,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        home: SplashGate(
-          until: firebase.settled,
-          child: ListenableBuilder(
-            listenable: settings,
-            builder: (context, _) => settings.onboarded
-                ? const HomeShell()
-                : OnboardingScreen(onDone: () => settings.setOnboarded(true)),
-          ),
+        // 온보딩은 Firebase(익명 로그인)를 기다리지 않는다. 끝나면 홈 위에 카메라 화면을 바로 띄운다.
+        home: ListenableBuilder(
+          listenable: settings,
+          builder: (context, _) {
+            if (!settings.onboarded) {
+              _showedOnboarding = true;
+              // 동의 저장(onboardingDone)은 온보딩 안에서 끝난다. 여기서는 카메라 화면만 예약.
+              return OnboardingScreen(onDone: () => AppActions.instance.fire(AppActions.openCapture));
+            }
+            if (_showedOnboarding) return const HomeShell();
+            return SplashGate(until: firebase.settled, child: const HomeShell());
+          },
         ),
       ),
     );

@@ -9,11 +9,13 @@ void main() {
     final s = await SettingsStore.load();
     expect(s.onboarded, isFalse);
     expect(s.consentedRequired, isFalse);
-    await s.saveConsent(terms: true, privacy: true, notifications: false, version: '1.0');
+    await s.saveConsent(terms: true, privacy: true, marketing: false, version: '2026-11');
     await s.setOnboarded(true);
     expect(s.consentedRequired, isTrue);
-    expect(s.consentVersion, '1.0');
-    expect(s.consentedNotifications, isFalse);
+    expect(s.consentVersion, '2026-11');
+    expect(s.consentRemotePending, isTrue);
+    expect(s.consentDoc['marketing'], false);
+    expect(s.consentedMarketing, isFalse);
     expect(s.onboarded, isTrue);
   });
 
@@ -27,7 +29,7 @@ void main() {
 
   test('내 데이터 삭제 시 전부 초기화', () async {
     final s = await SettingsStore.load();
-    await s.saveConsent(terms: true, privacy: true, notifications: true, version: '1.0');
+    await s.saveConsent(terms: true, privacy: true, marketing: true, version: '2026-11');
     await s.setOnboarded(true);
     await s.resetAll();
     expect(s.onboarded, isFalse);

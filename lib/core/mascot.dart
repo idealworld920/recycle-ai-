@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'theme/app_spacing.dart';
 import 'theme/app_theme.dart';
 
-/// 리뿅이. 결과·대기·피드백 화면에만 나오고 설정 화면엔 등장하지 않는다.
+/// 리뿅이. 결과·대기·피드백·온보딩 화면에만 나오고 설정 화면엔 등장하지 않는다.
 ///
 /// GIF 가 기본이고, 시스템 "애니메이션 줄이기" 가 켜져 있거나 [animated] 가 false 면
 /// 첫 프레임 PNG(`r_*_static.png`)를 쓴다. 공유 카드·알림은 항상 PNG.
@@ -12,6 +12,10 @@ enum Mascot {
   cheer('r_cheer'),
   thinking('r_thinking'),
   laugh('r_laugh'),
+  /// 윙크. 온보딩 1페이지·첫 카메라 힌트.
+  wink('r_wink'),
+  /// 온보딩 인트로: 쓰레기통 뚜껑이 열리는 2초. 정지 이미지는 마지막 프레임.
+  intro('r_intro'),
   /// 가만히 있는 리뿅이. 정지 이미지만 있다 (GIF 없음).
   idle('r_idle', hasGif: false);
 

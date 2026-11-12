@@ -6,6 +6,6 @@ class LegalLinks {
   static const privacy = '$base/privacy.html';
   static const terms = '$base/terms.html';
 
-  /// 동의 화면에 표시되는 문서 버전. 문서를 바꾸면 올려서 재동의를 받는다.
-  static const version = '1.0';
+  /// 동의 화면에 표시되는 문서 버전(연-월). 문서를 바꾸면 올려서 재동의를 받는다.
+  static const version = '2026-11';
 }
