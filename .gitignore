@@ -60,3 +60,7 @@ android/key.properties
 
 # 빌드 시 넣는 비밀 값 (RevenueCat 키 등). 템플릿은 dart_defines.example.json
 dart_defines.json
+
+# Gradle/Kotlin 로컬 산출물
+android/build/
+android/.kotlin/
