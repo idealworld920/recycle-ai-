@@ -194,6 +194,10 @@ class HistoryStore extends ChangeNotifier {
     return [for (final k in keys) (k, map[k]!)];
   }
 
+  /// [now] 기준 지난달 [day]일 정오까지의 분(分). 데모 시드용.
+  static int _minutesToLastMonth(DateTime now, int day) =>
+      now.difference(DateTime(now.year, now.month - 1, day, 12)).inMinutes;
+
   /// 스크린샷·데모용 샘플.
   Future<void> seedDemo() async {
     final now = DateTime.now();
@@ -224,6 +228,10 @@ class HistoryStore extends ChangeNotifier {
       make('보조배터리', RecycleCategory.hazardous, 0.94,
           ['일반 쓰레기에 버리지 않아요.', '폐건전지 수거함에 넣어요.'], ['부풀어 있으면 만지지 마세요.'], '', 2900),
       make('바나나 껍질', RecycleCategory.food, 0.97, ['물기를 빼요.', '음식물 봉투에 넣어요.'], const [], '', 4300),
+      // 지난달 기록 (월간 리포트 카드용)
+      make('캔 음료', RecycleCategory.can, 0.95, ['내용물을 비워요.', '찌그러뜨려 캔류에 넣어요.'], const [], '', _minutesToLastMonth(now, 10)),
+      make('컵라면 용기', RecycleCategory.general, 0.9, ['남은 국물을 버려요.', '종량제 봉투에 넣어요.'], const [], '', _minutesToLastMonth(now, 20)),
+      make('생수 페트병', RecycleCategory.pet, 0.96, ['내용물을 비우고 물로 헹궈요.'], const [], '', _minutesToLastMonth(now, 5)),
     ];
     await _writeAll();
     notifyListeners();

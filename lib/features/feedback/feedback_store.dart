@@ -59,6 +59,7 @@ class FeedbackStore extends ChangeNotifier {
       final db = _firestore ?? FirebaseFirestore.instance;
       await db.collection('feedback').add({
         'uid': uid,
+        'type': 'classification',
         'imageHash': imageBytes == null ? null : fnv1a64(imageBytes),
         'itemName': result.itemName,
         'aiResult': {
@@ -76,9 +77,74 @@ class FeedbackStore extends ChangeNotifier {
     }
   }
 
+  // ---- 지역 노트 "이 정보가 다른가요?" ----
+
+  static const reportedPrefKey = 'region_note_reported';
+  static const hideAfterReports = 3;
+  final Map<String, int> _reportCounts = {};
+
+  static String noteKey(String code, String tipId) => '${code}_$tipId';
+
+  /// 이 기기에서 이미 신고한 노트인가.
+  bool hasReportedRegionNote(String code, String tipId) =>
+      (_prefs.getStringList(reportedPrefKey) ?? const []).contains(noteKey(code, tipId));
+
+  /// 같은 지역·품목 신고가 [hideAfterReports] 건 이상이면 노트를 숨긴다. 서버 조회는 한 번만.
+  Future<bool> isRegionNoteHidden(String code, String tipId) async {
+    final key = noteKey(code, tipId);
+    final cached = _reportCounts[key];
+    if (cached != null) return cached >= hideAfterReports;
+    if (_uid == null) return false;
+    try {
+      final db = _firestore ?? FirebaseFirestore.instance;
+      final snap = await db.collection('regionNoteReports').doc(key).get().timeout(const Duration(seconds: 4));
+      final count = (snap.data()?['count'] as num?)?.toInt() ?? 0;
+      _reportCounts[key] = count;
+      return count >= hideAfterReports;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 신고: feedback(type: region) 한 건 + 지역·품목별 카운터 1 증가 (한 사용자 1회).
+  Future<bool> reportRegionNote({required String code, required String tipId, required String itemName, required String note, String memo = ''}) async {
+    final key = noteKey(code, tipId);
+    final reported = _prefs.getStringList(reportedPrefKey) ?? <String>[];
+    if (reported.contains(key)) return false;
+    await _prefs.setStringList(reportedPrefKey, [...reported, key]);
+    notifyListeners();
+    final uid = _uid;
+    if (uid == null) return true;
+    try {
+      final db = _firestore ?? FirebaseFirestore.instance;
+      await db.collection('feedback').add({
+        'uid': uid,
+        'type': 'region',
+        'regionCode': code,
+        'tipId': tipId,
+        'itemName': itemName,
+        'aiResult': {'note': note},
+        'userAnswer': 'region_note_wrong',
+        'memo': memo.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      await db.collection('regionNoteReports').doc(key).set({
+        'count': FieldValue.increment(1),
+        'reporters': FieldValue.arrayUnion([uid]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      _reportCounts[key] = (_reportCounts[key] ?? 0) + 1;
+    } catch (e) {
+      debugPrint('지역 노트 신고 저장 실패: $e');
+    }
+    return true;
+  }
+
   Future<void> resetLocal() async {
     _overrides = {};
+    _reportCounts.clear();
     await _prefs.remove(prefKey);
+    await _prefs.remove(reportedPrefKey);
     notifyListeners();
   }
 

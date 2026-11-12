@@ -80,10 +80,28 @@ service cloud.firestore {
     match /feedback/{id} {
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid', 'imageHash', 'itemName', 'aiResult', 'userAnswer', 'memo', 'createdAt'])
-        && request.resource.data.userAnswer in ['recycle', 'general', 'food', 'special']
+        && request.resource.data.keys().hasOnly(['uid', 'type', 'imageHash', 'itemName', 'aiResult', 'userAnswer', 'memo', 'createdAt', 'regionCode', 'tipId'])
+        && request.resource.data.type in ['classification', 'region']
+        && request.resource.data.userAnswer in ['recycle', 'general', 'food', 'special', 'region_note_wrong']
         && request.resource.data.memo is string && request.resource.data.memo.size() <= 200;
       allow read, update, delete: if false;
+    }
+
+    // 지역 노트 신고 카운터. 한 사용자가 한 번만 올릴 수 있고(count == reporters 수), 3건이면 앱이 노트를 숨긴다.
+    match /regionNoteReports/{key} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['count', 'reporters', 'updatedAt'])
+        && request.resource.data.reporters == [request.auth.uid]
+        && request.resource.data.count == 1;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['count', 'reporters', 'updatedAt'])
+        && !(request.auth.uid in resource.data.reporters)
+        && request.resource.data.reporters.hasAll(resource.data.reporters)
+        && request.resource.data.reporters.size() == resource.data.reporters.size() + 1
+        && request.auth.uid in request.resource.data.reporters
+        && request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
     }
 
     match /{document=**} {

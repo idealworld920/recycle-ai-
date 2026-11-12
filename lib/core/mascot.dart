@@ -10,13 +10,17 @@ import 'theme/app_theme.dart';
 enum Mascot {
   happy('r_happy'),
   cheer('r_cheer'),
-  thinking('r_thinking');
+  thinking('r_thinking'),
+  laugh('r_laugh'),
+  /// 가만히 있는 리뿅이. 정지 이미지만 있다 (GIF 없음).
+  idle('r_idle', hasGif: false);
 
-  const Mascot(this._base);
+  const Mascot(this._base, {this.hasGif = true});
 
   final String _base;
+  final bool hasGif;
 
-  String get gif => 'assets/branding/mascot/$_base.gif';
+  String get gif => hasGif ? 'assets/branding/mascot/$_base.gif' : png;
   String get png => 'assets/branding/mascot/${_base}_static.png';
 }
 
@@ -30,7 +34,7 @@ class MascotImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    final useGif = animated && !reduceMotion;
+    final useGif = animated && !reduceMotion && mascot.hasGif;
     return Image.asset(
       useGif ? mascot.gif : mascot.png,
       width: size,

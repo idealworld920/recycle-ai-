@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "출처(환경부·한국환경공단·산림청·지자체 공식 자료)를 직접 확인한 계수만 넣는다. factors 가 비어 있으면 리포트의 탄소 절감 섹션은 숨겨진다. 조사 기록: docs/carbon_factors_research.md",
+  "pine": {
+    "kgCO2PerTreePerYear": 6.6,
+    "tree": "30년생 소나무 1그루",
+    "basis": "30년생 소나무 1그루의 연간 이산화탄소 흡수량",
+    "source": {
+      "org": "서울특별시 기후환경본부 보도자료(국립산림과학원 인용)",
+      "doc": "서울시, 온실가스 목표관리제로 여의도면적 110배 숲 조성효과",
+      "url": "https://news.seoul.go.kr/env/archives/31374",
+      "year": 2013
+    },
+    "quote": "30년생 소나무 1그루가 연간 흡수하는 이산화탄소(CO2) 흡수량 : 6.6kg (국립산림과학원)",
+    "verifiedAt": "2026-11-12"
+  },
+  "factors": {}
+}

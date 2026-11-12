@@ -13,7 +13,9 @@ import '../features/auth/link_banner.dart';
 import '../features/history/history_record.dart';
 import '../features/legal/permission_primer.dart';
 import '../features/premium/free_limits.dart';
+import '../features/places/region_picker_sheet.dart';
 import '../features/premium/premium_gate.dart';
+import '../features/stats/stats_calculator.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/schedule/pickup_card.dart';
 import '../features/tips/tip_card.dart';
@@ -127,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final bytes = await picked.readAsBytes();
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
-      final result = await classifier.classifyBytes(bytes, mimeType: mime);
+      final result = await classifier.classifyBytes(bytes, mimeType: mime, regionName: services.region.admin?.displayName);
       // 모델 응답 뒤의 저장 작업(기록·무료 횟수·도감)은 서로 독립이라 한꺼번에.
       final tip = services.tips.findForItem(result.itemName);
       final results = await Future.wait<Object?>([
@@ -197,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text('오늘은 뭘 버릴까요?', style: t.headlineSmall),
                 const SizedBox(height: AppSpacing.lg),
                 const PickupCard(),
+                const _HomeFooterLines(),
                 const SizedBox(height: AppSpacing.xl),
                 Row(
                   children: [
@@ -255,6 +258,63 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_busy) Positioned.fill(child: ScanningOverlay(startedAt: _busySince)),
         ],
       ),
+    );
+  }
+}
+
+
+/// 수거일 카드 아래 한 줄짜리 안내들: 이번 달 요약(→ 기록 탭), 지역 미설정 안내(→ 지역 설정).
+class _HomeFooterLines extends StatelessWidget {
+  const _HomeFooterLines();
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppServices.of(context);
+    final c = context.colors;
+    final t = context.text;
+    return ListenableBuilder(
+      listenable: Listenable.merge([services.history, services.region]),
+      builder: (context, _) {
+        final summary = StatsCalculator.monthlySummary(services.history.items, DateTime.now());
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (summary.total > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              InkWell(
+                borderRadius: BorderRadius.circular(AppSpacing.sm),
+                onTap: () => AppActions.instance.fire(AppActions.openHistory),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Row(
+                    children: [
+                      Icon(Symbols.bar_chart_rounded, size: 18, color: c.textSecondary),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: Text('이번 달 ${summary.total}개 분류 · 재활용 ${summary.recycleRate ?? 0}%', style: t.bodySmall?.copyWith(color: c.textPrimary))),
+                      Icon(Symbols.chevron_right_rounded, size: 18, color: c.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (!services.region.isSet) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Icon(Symbols.location_on_rounded, size: 18, color: c.textSecondary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text('지역을 설정하면 우리 동네 기준으로 알려드려요', style: t.bodySmall)),
+                  TextButton(
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), minimumSize: const Size(0, 32)),
+                    onPressed: () => showRegionPickerSheet(context),
+                    child: const Text('설정'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

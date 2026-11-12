@@ -5,6 +5,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/category_badge.dart';
+import '../places/region_guidance.dart';
 import 'tip_model.dart';
 
 /// 품목명 + 분류 뱃지 + 단계 목록 + 주의 박스.
@@ -21,6 +22,10 @@ class TipCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (tip.isRegionVariant) ...[
+            RegionGuidance(tip: tip, compact: true),
+            const SizedBox(height: AppSpacing.md),
+          ],
           Row(
             children: [
               Expanded(child: Text(tip.name, style: t.titleSmall)),
@@ -62,7 +67,7 @@ class TipCard extends StatelessWidget {
               ),
             ),
           ],
-          if (tip.hasLocalNote) ...[
+          if (tip.hasLocalNote && !tip.isRegionVariant) ...[
             const SizedBox(height: AppSpacing.sm),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -99,7 +99,7 @@ Future<void> showSettingsSheet(BuildContext context) {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            Text('내 지역', style: t.titleSmall),
+            Text('거주 지역', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(
               onTap: () {
@@ -111,13 +111,13 @@ Future<void> showSettingsSheet(BuildContext context) {
                 children: [
                   Icon(Symbols.location_on_rounded, color: c.textPrimary),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text(regionLabel(region.selected), style: t.titleSmall)),
+                  Expanded(child: Text(region.displayName, style: t.titleSmall)),
                   Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text('대형폐기물 신고, 수거함 안내에 써요. 위치 권한은 쓰지 않아요.', style: t.bodySmall),
+            Text('우리 동네 배출 기준 안내, 대형폐기물 신고, 수거함 안내에 써요. 위치 권한은 쓰지 않아요.', style: t.bodySmall),
             const SizedBox(height: AppSpacing.xl),
             Text('수거일', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),

@@ -5,6 +5,7 @@ import 'core/firebase_session.dart';
 import 'features/tips/tips_repository.dart';
 import 'features/auth/auth_store.dart';
 import 'features/feedback/feedback_store.dart';
+import 'features/report/carbon_factors.dart';
 import 'features/household/household_store.dart';
 import 'features/premium/free_limits.dart';
 import 'features/premium/premium_store.dart';
@@ -31,6 +32,7 @@ class AppServices extends InheritedWidget {
     required this.freeLimits,
     required this.boot,
     required this.feedback,
+    required this.carbon,
     required super.child,
   });
 
@@ -51,6 +53,9 @@ class AppServices extends InheritedWidget {
 
   /// "결과가 틀렸나요?" 피드백과 품목별 사용자 정답.
   final FeedbackStore feedback;
+
+  /// 월간 리포트 탄소 환산 계수 (출처 있는 것만).
+  final CarbonFactors carbon;
 
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {

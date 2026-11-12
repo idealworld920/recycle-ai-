@@ -31,6 +31,8 @@ jobs:
         env:
           FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      - name: 데이터 검증 (지역 노트 출처·탄소 계수 출처)
+        run: dart run tool/validate_data.dart
       - run: flutter analyze
       - run: flutter test
 

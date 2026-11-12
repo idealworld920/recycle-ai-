@@ -12,6 +12,7 @@ import '../auth/auth_store.dart';
 import '../auth/link_banner.dart';
 import '../auth/link_flows.dart';
 import '../auth/locked_overlay.dart';
+import '../report/report_card.dart';
 import '../stats/collection_sheet.dart';
 import '../stats/monthly_summary_card.dart';
 import '../stats/stats_calculator.dart';
@@ -73,6 +74,7 @@ class HistoryScreen extends StatelessWidget {
                     title: '설치한 지 30일, 기록이 꽤 쌓였어요',
                     body: '구글로 연결해 두면 기기를 바꾸거나 앱을 지워도 기록이 그대로예요.',
                   ),
+                ReportCard(now: now),
                 MonthlySummaryCard(
                   summary: StatsCalculator.monthlySummary(items, now),
                   month: now,

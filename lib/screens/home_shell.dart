@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../core/theme/app_theme.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/history/history_screen.dart';
+import '../features/report/report_screen.dart';
 import '../features/schedule/app_actions.dart';
 import '../features/tips/tips_screen.dart';
 import 'guide_screen.dart';
@@ -37,7 +38,18 @@ class _HomeShellState extends State<HomeShell> {
     final action = AppActions.instance.pending.value;
     if (action == null) return;
     if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
+    if (action.$1 == AppActions.openHistory && _index != 4) setState(() => _index = 4);
+    if (action.$1 == AppActions.openReport && action.$2 != _handledReport) {
+      _handledReport = action.$2;
+      final now = DateTime.now();
+      final last = DateTime(now.year, now.month - 1, 1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pushPage(ReportScreen(month: last));
+      });
+    }
   }
+
+  int? _handledReport;
 
   @override
   Widget build(BuildContext context) {

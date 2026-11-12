@@ -41,7 +41,8 @@ class NotificationService {
     await _plugin.initialize(
       settings: const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (response) {
-        if (response.payload == AppActions.openCamera) AppActions.instance.fire(AppActions.openCamera);
+        final p = response.payload;
+        if (p == AppActions.openCamera || p == AppActions.openReport) AppActions.instance.fire(p!);
       },
     );
     _initialized = true;
@@ -49,8 +50,9 @@ class NotificationService {
     // 알림을 눌러서 앱이 켜진 경우.
     try {
       final launch = await _plugin.getNotificationAppLaunchDetails();
-      if (launch?.didNotificationLaunchApp == true && launch?.notificationResponse?.payload == AppActions.openCamera) {
-        AppActions.instance.fire(AppActions.openCamera);
+      final p = launch?.notificationResponse?.payload;
+      if (launch?.didNotificationLaunchApp == true && (p == AppActions.openCamera || p == AppActions.openReport)) {
+        AppActions.instance.fire(p!);
       }
     } catch (_) {}
   }
@@ -145,6 +147,28 @@ class NotificationService {
       t = t.add(const Duration(days: 1));
     }
     return t;
+  }
+
+  static const monthlyReportId = 200;
+
+  /// 매월 1일 09:00 "지난달 리포트" 알림. 앱을 켤 때마다 다시 잡아도 같은 id 라 중복되지 않는다.
+  Future<void> scheduleMonthlyReport() async {
+    if (kIsWeb) return;
+    await init();
+    final now = tz.TZDateTime.now(tz.local);
+    var when = tz.TZDateTime(tz.local, now.year, now.month, 1, 9);
+    if (!when.isAfter(now)) when = tz.TZDateTime(tz.local, now.year, now.month + 1, 1, 9);
+    const body = '한 달 동안 뭘 얼마나 분류했는지, 재활용률은 올랐는지 정리했어요. 눌러서 확인해 보세요.';
+    await _plugin.zonedSchedule(
+      id: monthlyReportId,
+      title: '리뿅이: 지난달 리포트 나왔뿅!',
+      body: body,
+      scheduledDate: when,
+      notificationDetails: _details(body, await _mascotIcon()),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
+      payload: AppActions.openReport,
+    );
   }
 
   /// 에뮬레이터 확인용: 5초 뒤 한 번 울리는 테스트 알림.

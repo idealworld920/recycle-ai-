@@ -38,6 +38,8 @@ class GeminiClassifier {
 - warnings 는 흔히 하는 실수나 주의할 점 0~3개. 없으면 빈 배열.
 - tip 은 한 문장짜리 짧은 보충 설명.
 - reason 은 "왜 이 분류인지" 를 재질·상태 근거로 한 문장 (예: "투명하고 색이 없는 PET 재질이라 투명 페트병이에요.").
+- 사용자의 거주 지역이 주어지면 참고하되, 그 지자체의 세부 기준을 확실히 모르면 모른다고 답하고
+  "거주 구청 분리배출 안내를 확인하세요" 라고 안내해. 지자체 기준을 절대 지어내지 마.
 - 모든 문장은 한국어 존댓말로, 간결하게.
 ''';
 
@@ -64,12 +66,16 @@ class GeminiClassifier {
         ),
       );
 
-  Future<RecycleResult> classifyBytes(Uint8List bytes, {String mimeType = 'image/jpeg'}) async {
+  /// [regionName] 은 "서울 마포구" 처럼 사용자가 고른 거주 지역. 모델이 참고만 하고, 모르면 모른다고 답하도록 지시돼 있다.
+  Future<RecycleResult> classifyBytes(Uint8List bytes, {String mimeType = 'image/jpeg', String? regionName}) async {
     GenerateContentResponse response;
+    final ask = regionName == null || regionName.isEmpty
+        ? '이 사진 속 물건의 분리배출 방법을 알려줘.'
+        : '이 사진 속 물건의 분리배출 방법을 알려줘. 사용자 거주 지역: $regionName. 이 지자체의 세부 기준을 확실히 모르면 지어내지 말고 구청 안내 확인을 권해.';
     try {
       response = await _model.generateContent([
         Content.multi([
-          TextPart('이 사진 속 물건의 분리배출 방법을 알려줘.'),
+          TextPart(ask),
           InlineDataPart(mimeType, bytes),
         ]),
       ]).timeout(const Duration(seconds: 45));

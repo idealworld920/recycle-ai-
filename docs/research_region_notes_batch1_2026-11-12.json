@@ -1,0 +1,323 @@
+{
+  "11110": {
+    "name": "종로구",
+    "wasteGuideUrl": "https://www.jongno.go.kr/Main.do?menuNo=1365",
+    "wasteGuideUrlReason": "생활정보>환경/청소>자원 재활용>재활용품 분리배출 방법 (품목별 표)",
+    "items": {
+      "cup_noodle": {
+        "note": "1회용 컵라면 용기는 스티로폼류 재활용 불가품목으로 분류됨",
+        "sourceUrl": "https://www.jongno.go.kr/Main.do?menuNo=1365",
+        "quote": "1회용 컵라면 용기, 테이프, 물기, 생선비늘, 흙 등이 묻어있는 스티로폼, 과일받침, 건축용(접착제 묻은) 스티로폼, 타물질로 코팅된 스티로폼은 불가",
+        "verifiedAt": "2026-11-12"
+      },
+      "ice_pack": null,
+      "aseptic_pack": null,
+      "paper_cup": {
+        "note": "1회용 종이컵은 종이팩류로 분류, 비우고 헹궈 말린 후 다른 종이류와 섞지 않고 배출",
+        "sourceUrl": "https://www.jongno.go.kr/Main.do?menuNo=1365",
+        "quote": "종이팩류(우유팩, 1회용 종이컵) … 내용물을 비우고 물로 헹구는 등 이물질을 제거하고 말린 후 배출 … 다른 종이류와 혼합하여 배출 금지",
+        "verifiedAt": "2026-11-12"
+      },
+      "styrofoam": {
+        "note": "스티로폼(농수산물상자 등)은 흩날리지 않게 묶어 배출, 이물질 묻은 것·과일받침·건축용은 불가",
+        "sourceUrl": "https://www.jongno.go.kr/Main.do?menuNo=1365",
+        "quote": "스티로폼 | 전자제품 완충재(가전제품사에서 회수) 농수산물상자 | 흩날리지 않게 묶어서 배출 | … 과일받침, 건축용(접착제 묻은) 스티로폼, 타물질로 코팅된 스티로폼은 불가",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "ice_pack": "페이지에 해당 품목 언급 없음",
+      "aseptic_pack": "종이팩류(우유팩·두유팩·주스팩 등)만 언급, '멸균팩' 명시 없음"
+    }
+  },
+  "11140": {
+    "name": "중구",
+    "wasteGuideUrl": null,
+    "wasteGuideUrlReason": "www.junggu.seoul.kr TLS 인증서 체인 불완전(중간 인증서 미제공)으로 검증 실패하여 접속 불가; junggu.seoul.kr(비-www)은 세션 네트워크 정책상 차단(403). 검색상 후보 URL(미검증): https://www.junggu.seoul.kr/content.do?cmsid=1432",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": null,
+      "aseptic_pack": null,
+      "paper_cup": null,
+      "styrofoam": null
+    },
+    "itemReasons": {
+      "cup_noodle": "사이트 접속 불가(TLS 인증서 검증 실패)",
+      "ice_pack": "사이트 접속 불가(TLS 인증서 검증 실패)",
+      "aseptic_pack": "사이트 접속 불가(TLS 인증서 검증 실패)",
+      "paper_cup": "사이트 접속 불가(TLS 인증서 검증 실패)",
+      "styrofoam": "사이트 접속 불가(TLS 인증서 검증 실패)"
+    }
+  },
+  "11170": {
+    "name": "용산구",
+    "wasteGuideUrl": null,
+    "wasteGuideUrlReason": "www.yongsan.go.kr 서버가 TLS 연결 후 빈 응답(Empty reply from server)만 반환, 경로·헤더·HTTP 버전을 바꿔 수차례 재시도해도 동일",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": null,
+      "aseptic_pack": null,
+      "paper_cup": null,
+      "styrofoam": null
+    },
+    "itemReasons": {
+      "cup_noodle": "사이트 응답 없음(빈 응답)",
+      "ice_pack": "사이트 응답 없음(빈 응답)",
+      "aseptic_pack": "사이트 응답 없음(빈 응답)",
+      "paper_cup": "사이트 응답 없음(빈 응답)",
+      "styrofoam": "사이트 응답 없음(빈 응답)"
+    }
+  },
+  "11440": {
+    "name": "마포구",
+    "wasteGuideUrl": "https://www.mapo.go.kr/site/main/content/mapo05060501",
+    "wasteGuideUrlReason": "분야별 정보>환경/재활용>청소/재활용>쓰레기배출안내(재활용품 배출안내 포함)",
+    "items": {
+      "cup_noodle": {
+        "note": "컵라면용기는 이물질 제거 후 물로 헹궈 스티로폼으로 배출, 이물질 묻은 것은 재활용 불가",
+        "sourceUrl": "https://www.mapo.go.kr/site/main/content/mapo05060501",
+        "quote": "과일,생선상자,컵라면용기, 일회용 받침접시 | 이물질 제거하고 물로 깨끗이 행군 다음 배출 | (재활용 불가) 이물질이 묻은 컵라면 용기 등",
+        "verifiedAt": "2026-11-12"
+      },
+      "ice_pack": null,
+      "aseptic_pack": {
+        "note": "멸균팩(두유·주스·소주팩)은 종이팩으로 배출하되 속에 은박지 든 멸균팩은 재활용 불가",
+        "sourceUrl": "https://www.mapo.go.kr/site/main/content/mapo05060501",
+        "quote": "종이팩 | - 살균팩:우유팩 - 멸균팩:두유팩,주스팩,소주팩, 음료팩 | - 우유팩을 물로 헹구어 펼쳐 묶어서 배출 | (재활용 불가) 속에 은박지가 들어있는 멸균팩",
+        "verifiedAt": "2026-11-12",
+        "caveat": "같은 표에서 멸균팩을 재활용 가능 품목으로 열거하면서 '속에 은박지가 들어있는 멸균팩'은 불가 품목으로 표기"
+      },
+      "paper_cup": {
+        "note": "종이컵은 종이팩과 함께 내용물 비우고 가급적 물로 헹군 후 압착하여 배출",
+        "sourceUrl": "https://www.mapo.go.kr/site/main/content/mapo05060501",
+        "quote": "○ 종이팩, 종이컵 (우유, 두유, 주스팩 등) - 내용물은 비우고 가급적 물로 헹군 후 압착하여 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "styrofoam": {
+        "note": "스티로폼은 비우고 헹궈 이물질·상표 제거 후 배출, 코팅·건축용·오염된 것은 종량제봉투 등",
+        "sourceUrl": "https://www.mapo.go.kr/site/main/content/mapo05060501",
+        "quote": "5. 스티로폼 … 내용물을 비우고 물로 헹구는 등 이물질을 제거하여 배출 … 음식물이 묻어 있거나 이물질을 제거하기 어려운 경우 등은 종량제봉투 또는 특수규격마대에 배출",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "ice_pack": "페이지에 해당 품목 언급 없음"
+    }
+  },
+  "11680": {
+    "name": "강남구",
+    "wasteGuideUrl": "https://www.gangnam.go.kr/board/waste/list.do?mid=ID02_011109",
+    "wasteGuideUrlReason": "쓰레기배출안내 게시판(재활용품 배출 항목 포함). 품목별 상세는 첨부 PDF 리플렛이라 본문에는 품목 설명이 적음",
+    "items": {
+      "cup_noodle": {
+        "note": "씻어도 기름기가 안 지워지는 컵라면 용기는 종량제봉투에 배출",
+        "sourceUrl": "https://www.gangnam.go.kr/gangnamlife/2026/html/vol375/sub01_03_01.html",
+        "quote": "씻어도 기름기나 내용물이 지워지지 않는 컵라면 용기, 마요네즈·케첩 통, 기름통은 종량제봉투에 넣는 것이 맞다.",
+        "verifiedAt": "2026-11-12",
+        "caveat": "구 소식지 '강남생활' 2026 vol.375 기사(구청 사이트 내)"
+      },
+      "ice_pack": {
+        "note": "아이스팩 내용물은 종량제봉투에 버리고, 가급적 재사용하거나 수거함에 배출",
+        "sourceUrl": "https://www.gangnam.go.kr/board/cardnews/197/view.do",
+        "quote": "아이스팩의 내용물은 수질오염의 위험이 있어 종량제 봉투에 버리는 게 맞아요. 가급적 환경을 위해 재사용하거나 집 근처에 수거함이 있다면 그 쪽에 배출해주세요.",
+        "verifiedAt": "2026-11-12",
+        "caveat": "2019-11-26 구청 카드뉴스(자료출처 정책브리핑 표기). 최신 기준 여부는 확인 안 됨"
+      },
+      "aseptic_pack": null,
+      "paper_cup": null,
+      "styrofoam": {
+        "note": "스티로폼은 묶거나 투명비닐에 넣어 배출",
+        "sourceUrl": "https://www.gangnam.go.kr/board/waste/list.do?mid=ID02_011109",
+        "quote": "분리배출표시가 있는 비닐 포장재는 투명비닐봉투에 넣어 배출하고 스티로폼은 묶거나 투명비닐에 넣어 배출",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "aseptic_pack": "열람한 페이지(배출안내 게시판·소식지·카드뉴스)에 언급 없음; 상세 리플렛은 PDF 첨부라 열지 않음",
+      "paper_cup": "열람한 페이지에 언급 없음; 상세 리플렛은 PDF 첨부라 열지 않음"
+    }
+  },
+  "11710": {
+    "name": "송파구",
+    "wasteGuideUrl": "https://www.songpa.go.kr/www/contents.do?key=3164",
+    "wasteGuideUrlReason": "청소/재활용>재활용품 배출안내>재활용품 분리배출 방법",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": null,
+      "aseptic_pack": {
+        "note": "멸균팩은 종이팩으로 배출하되 우유팩(일반팩)과 분리해서 배출",
+        "sourceUrl": "https://www.songpa.go.kr/www/contents.do?key=3164",
+        "quote": "종이팩 전용수거함이 없는 경우에는 … 종이류 수거함으로 배출 (우유팩과 멸균팩 분리해서 배출) … 단, 일반팩(우유팩)과 멸균팩을 각각 분리하여 배출 (혼합배출 X)",
+        "verifiedAt": "2026-11-12"
+      },
+      "paper_cup": {
+        "note": "종이컵은 종이팩이 아닌 종이류로, 내용물 비우고 헹궈 이물질 제거 후 배출",
+        "sourceUrl": "https://www.songpa.go.kr/www/contents.do?key=3164",
+        "quote": "종이컵 | 배출방법 | 내용물을 비우고 물로 헹구는 등 이물질을 제거하여 배출 … (종이팩 비해당품목) 종이, 신문지 등 종이류, 종이컵 등 | 종이류 수거함으로 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "styrofoam": {
+        "note": "스티로폼 완충재는 비우고 헹궈 이물질·상표 제거 후 배출, 코팅·건축용·오염된 것은 비해당",
+        "sourceUrl": "https://www.songpa.go.kr/www/contents.do?key=3164",
+        "quote": "스티로폼 완충재 | 내용물을 비우고 물로 헹구는 등 이물질을 제거하여 배출 | 부착상표 등 스티로폼과 다른 재질은 제거한 후 배출 | 비해당품목 타 재질과 코팅 또는 접착된 발포스티렌, 건축용 내·외장재 스티로폼",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "cup_noodle": "페이지에 해당 품목 언급 없음",
+      "ice_pack": "페이지에 해당 품목 언급 없음"
+    }
+  },
+  "11650": {
+    "name": "서초구",
+    "wasteGuideUrl": "https://www.seocho.go.kr/site/seocho/04/10408030301002015070706.jsp",
+    "wasteGuideUrlReason": "청소>재활용안내>재활용분리배출요령(배출요일·수거체계). 품목별 표는 같은 메뉴의 '재활용되는품목' https://www.seocho.go.kr/site/seocho/04/10408030302002015070706.jsp",
+    "items": {
+      "cup_noodle": {
+        "note": "컵라면용기는 이물질 제거 후 플라스틱류로 배출",
+        "sourceUrl": "https://www.seocho.go.kr/site/seocho/04/10408030302002015070706.jsp",
+        "quote": "플라스틱 | 유색페트병, 세제용기, 우유병, 음료수병, 함지박, 플라스틱 상자, 김치통, 컵라면용기(이물질제거), 포장용 받침용기 등",
+        "verifiedAt": "2026-11-12"
+      },
+      "ice_pack": {
+        "note": "젤타입 아이스팩은 뜯지 말고 통째로 종량제봉투, 물타입은 물 버리고 포장재별 분리배출",
+        "sourceUrl": "https://www.seocho.go.kr/site/seocho/04/10414041500002021100804.jsp",
+        "quote": "젤타입 아이스팩 배출 기본 원칙 : 포장재를 뜯지 말고 통째로 종량제봉투(일반쓰레기) 배출 … 물타입 아이스팩(얼음)은 잘라서 물은 버리고, 포장재에 맞게 분리배출",
+        "verifiedAt": "2026-11-12",
+        "caveat": "같은 페이지에 '아이스팩 수거함 수거종료일 : 2026년10월30일(금)' 명시"
+      },
+      "aseptic_pack": null,
+      "paper_cup": {
+        "note": "종이컵은 수거보상제 대상으로 주민센터에 가져가면 화장지·종량제봉투·서초코인으로 교환",
+        "sourceUrl": "https://www.seocho.go.kr/site/seocho/04/10414041400002021070101.jsp",
+        "quote": "종이팩(컵) 등을 주민센터에 가져오시면 보상기준에 따라 화장지와 종량제봉투 또는 서초코인(택1)으로 교환해 드립니다. … 종이컵 | 소형(자판기용) 300개 … 대형(커피전문점) 70개",
+        "verifiedAt": "2026-11-12",
+        "caveat": "일반 분리배출 요령이 아니라 수거보상제 안내. '재활용되는품목' 표에는 종이컵 언급 없음"
+      },
+      "styrofoam": {
+        "note": "스티로폼은 이물질 및 라벨 제거 후 배출, 이물질 묻은 것은 재활용 불가",
+        "sourceUrl": "https://www.seocho.go.kr/site/seocho/04/10408030302002015070706.jsp",
+        "quote": "스티로폼은 이물질 및 라벨 제거 후 … 기 타 | 폐비닐/폐필름류(비닐봉투, 과자·라면봉지), 종이팩, 스티로폼, 의류 등 | … 이물질이 묻어 있는 것",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "aseptic_pack": "종이팩(우유팩,두유팩 등)만 언급, '멸균팩' 명시 없음"
+    }
+  },
+  "11350": {
+    "name": "노원구",
+    "wasteGuideUrl": null,
+    "wasteGuideUrlReason": "www.nowon.go.kr 서버 인증서가 *.nowon.kr 용이라 호스트명 불일치로 TLS 검증 실패(접속 불가). 실제 서비스 도메인(nowon.kr)은 세션 허용 호스트가 아님",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": null,
+      "aseptic_pack": null,
+      "paper_cup": null,
+      "styrofoam": null
+    },
+    "itemReasons": {
+      "cup_noodle": "사이트 접속 불가(TLS 호스트명 불일치)",
+      "ice_pack": "사이트 접속 불가(TLS 호스트명 불일치)",
+      "aseptic_pack": "사이트 접속 불가(TLS 호스트명 불일치)",
+      "paper_cup": "사이트 접속 불가(TLS 호스트명 불일치)",
+      "styrofoam": "사이트 접속 불가(TLS 호스트명 불일치)"
+    }
+  },
+  "11620": {
+    "name": "관악구",
+    "wasteGuideUrl": "https://www.gwanak.go.kr/site/gwanak/07/10703010200002016051206.jsp",
+    "wasteGuideUrlReason": "청소>재활용품 분리배출(재활용품 배출방법·품목·세부요령)",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": null,
+      "aseptic_pack": null,
+      "paper_cup": {
+        "note": "종이컵은 종이류 재활용 품목으로, 물기·비닐코팅·스프링 등 제거 후 배출",
+        "sourceUrl": "https://www.gwanak.go.kr/site/gwanak/07/10703010200002016051206.jsp",
+        "quote": "종이류 | 종이팩, 신문지, 책자·노트, 종이컵, 기타 종이류 | 물기, 비닐코팅, 스프링 등 제거 후 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "styrofoam": {
+        "note": "스티로폼 완충재는 상표 등 다른 재질 제거 후 배출, 건축용·이물질 묻은 것은 재활용 불가",
+        "sourceUrl": "https://www.gwanak.go.kr/site/gwanak/07/10703010200002016051206.jsp",
+        "quote": "스티로폼 | 스티로폼 완충재 | 부착상표 등 스티로폼과 다른 재질은 제거 후 배출 … (재활용 안되는 품목) 건축용 스티로폼, 이물질이 묻은 것",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "cup_noodle": "페이지에 해당 품목 언급 없음",
+      "ice_pack": "페이지에 해당 품목 언급 없음",
+      "aseptic_pack": "종이팩(우유팩, 두유팩, 소주팩, 쥬스팩 등)만 언급, '멸균팩' 명시 없음"
+    }
+  },
+  "11560": {
+    "name": "영등포구",
+    "wasteGuideUrl": "https://www.ydp.go.kr/www/contents.do?key=2733",
+    "wasteGuideUrlReason": "청소>재활용분리배출(재활용가능품 목록 및 배출 요령 표)",
+    "items": {
+      "cup_noodle": null,
+      "ice_pack": {
+        "note": "젤타입 아이스팩은 종량제봉투, 물타입은 물 버린 뒤 포장재는 분리배출 또는 종량제봉투",
+        "sourceUrl": "https://www.ydp.go.kr/www/contents.do?key=2733",
+        "quote": "아이스팩 | 젤타입 | 종량제봉투에 배출 | 물타입 | 물은 싱크대에 배출 후, 포장재는 분리배출 또는 종량제봉투에 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "aseptic_pack": {
+        "note": "멸균팩은 종이팩으로 비우고 헹궈 말린 후 종이팩 전용수거함에 배출",
+        "sourceUrl": "https://www.ydp.go.kr/www/contents.do?key=2733",
+        "quote": "종이팩(살균팩, 멸균팩) - 내용물을 비우고 물로 헹구는 등 이물질을 제거하고 말린 후 배출 … 다른 종이류와 혼합되지 않게 종이팩 전용수거함에 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "paper_cup": {
+        "note": "종이컵은 비우고 헹군 후 압착하여 봉투에 넣거나 묶어서 배출",
+        "sourceUrl": "https://www.ydp.go.kr/www/contents.do?key=2733",
+        "quote": "종이컵 - 내용물을 비우고 물로 헹군 후 압착하여 봉투에 넣거나 한데 묶어서 배출",
+        "verifiedAt": "2026-11-12"
+      },
+      "styrofoam": {
+        "note": "흰색 스티로폼은 송장·테이프 제거 후 배출, 유색·오염된 것은 종량제봉투",
+        "sourceUrl": "https://www.ydp.go.kr/www/contents.do?key=2733",
+        "quote": "스티로폼류 | 흰색 스티로폼 | 택배 송장·테이프 등 이물질 제거 후 배출 | 유색 및 오염된 경우 종량제 봉투에 배출",
+        "verifiedAt": "2026-11-12"
+      }
+    },
+    "itemReasons": {
+      "cup_noodle": "페이지에 해당 품목 언급 없음"
+    }
+  },
+  "11410": {
+    "name": "서대문구",
+    "wasteGuideUrl": "https://www.sdm.go.kr/civil/type/recycle.do",
+    "wasteGuideUrlReason": "종합민원>분야별 민원 안내>청소>재활용품 배출. 본문은 안내 이미지 2장(JPG)으로만 구성",
+    "items": {
+      "cup_noodle": {
+        "note": "컵라면·컵밥 용기는 깨끗이 씻어 재질별 분리배출 시 재활용 가능, 아니면 종량제봉투",
+        "sourceUrl": "https://www.sdm.go.kr/civil/type/recycle.do",
+        "quote": "컵라면·컵밥 용기: 깨끗이 씻은 후 재질·종류별로 모아서 분리배출된 경우 재활용이 가능하나, 그렇지 않을 경우 선별이 어려우므로 종량제 봉투에 버려주세요.",
+        "verifiedAt": "2026-11-12",
+        "caveat": "페이지 본문이 이미지(/images/work/waste250401.jpg, waste250402.jpg)라 이미지 텍스트를 직접 읽어 전사함"
+      },
+      "ice_pack": {
+        "note": "젤 아이스팩은 전용수거함이 있으면 분리배출, 없으면 종량제봉투",
+        "sourceUrl": "https://www.sdm.go.kr/civil/type/recycle.do",
+        "quote": "젤 아이스팩: 전용수거함이 있을 경우 분리배출해주시고, 없을 경우 종량제 봉투에 버려주세요. * 순수 종이+얼음으로 된 아이스팩의 경우 분리배출 해주세요.",
+        "verifiedAt": "2026-11-12",
+        "caveat": "페이지 본문이 이미지(/images/work/waste250401.jpg, waste250402.jpg)라 이미지 텍스트를 직접 읽어 전사함"
+      },
+      "aseptic_pack": null,
+      "paper_cup": null,
+      "styrofoam": {
+        "note": "오염 안 된 백색 스티로폼은 묶거나 투명비닐에 넣어 배출, 코팅·유색·오염된 것은 재활용 불가",
+        "sourceUrl": "https://www.sdm.go.kr/civil/type/recycle.do",
+        "quote": "스티로폼(전자제품 완충제, 오염되지 않은 백색 스티로폼) | 바람에 날아가지 않도록 묶거나 투명비닐에 넣어 배출 | 재활용 불가: 코팅된 아이스박스, 코팅·유색·오염된 스티로폼, 우드락, 건축용 단열재",
+        "verifiedAt": "2026-11-12",
+        "caveat": "페이지 본문이 이미지(/images/work/waste250401.jpg, waste250402.jpg)라 이미지 텍스트를 직접 읽어 전사함"
+      }
+    },
+    "itemReasons": {
+      "aseptic_pack": "이미지에 종이류 예시로 '우유팩'만 있고 '멸균팩' 명시 없음",
+      "paper_cup": "이미지에 종이컵 언급 없음"
+    }
+  }
+}

@@ -238,6 +238,84 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - **리뿅이 에셋**: `assets/branding/mascot/r_*.gif` + 첫 프레임 `r_*_static.png` (`python3 tool/mascot_frames.py` 로 추출).
   시스템 "애니메이션 줄이기" 가 켜져 있으면 PNG 를 쓴다. 설정 화면엔 등장하지 않는다. 현재 happy / cheer / thinking 3종.
 
+## 지역 정확도 + 월간 리포트 (feature/growth-2)
+
+원칙: **확실하지 않은 정보는 넣지 않는다.** 지역 정보와 탄소 계수는 "없음"이 "틀림"보다 낫다.
+
+### 거주 지역 설정
+- `assets/data/regions.json`: 행정안전부 법정동코드(code.go.kr) 원본(`docs/regions_raw_codegokr_2026-11-12.json`)에서
+  `python3 tool/build_regions.py` 로 생성. 시/도 16개 · 시/군/구 256개 (일반구가 있는 시는 "수원시 장안구"처럼 구 단위).
+  공식 코드표 기준으로 광주·전남은 **전남광주통합특별시(12)** 로 합쳐져 있다.
+- 설정 → 거주 지역: 검색 + 시/도 → 시/군/구 2단계 선택. 위치 권한은 쓰지 않는다. `users/{uid}.region` 에 저장하고
+  기기에는 `region_code_v2` 로 둔다 (예전 `region_v1` 이름 저장값은 자동 이관).
+- 홈 하단에 "거주 지역을 설정하면 우리 동네 기준으로 안내해요" 한 줄 (미설정일 때만).
+
+### 지역별 안내 (regionNotes)
+- `tips.json` 의 `regionNotes: { "<시군구코드>": { note, sourceUrl, verifiedAt } }`. 대상 품목 5개: 컵라면 용기 · 아이스팩 · 멸균팩 · 종이컵 · 스티로폼.
+- **구청 공식 분리배출 안내 페이지**에서 직접 확인한 것만 넣는다. 소식지·카드뉴스·수거보상제 공지는 넣지 않는다.
+  근거(원문 인용·URL·확인일)는 `docs/region_notes_evidence.md`, 병합은 `python3 tool/merge_region_notes.py <조사.json> --exclude …`.
+- 결과/팁 화면: 노트가 있으면 파란 박스 "📍 {시군구} 기준" + 출처 보기 + 확인일, 없으면 노란 박스 + 구청 안내 페이지 링크(`wasteGuideUrl`)
+  또는 "거주 지역 설정" 버튼. "이 정보가 다른가요?" → `feedback`(type `region`) + `regionNoteReports/{code}_{tipId}` 카운터, 3건 이상이면 자동 숨김.
+- AI 프롬프트에 거주 지역을 넘기되 "지자체 기준을 모르면 모른다고, 지어내지 말 것"을 명시.
+
+#### regionNotes 채움 현황 (2026-11-12)
+
+서울 25개 구 × 5개 품목 = 125칸 중 **58칸 채움** (안내 페이지 URL 확보 23/25개 구)
+
+| 구 | 컵라면 용기 | 아이스팩 | 멸균팩 | 종이컵 | 스티로폼 | 안내 URL | 비고 |
+|---|---|---|---|---|---|---|---|
+| 종로구 | ✓ | – | – | ✓ | ✓ | ✓ |  |
+| 중구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 용산구 | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | – | www.yongsan.go.kr 서버가 TLS 연결 후 빈 응답(Empty reply from server) |
+| 성동구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 광진구 | ✓ | – | ✓ | – | ✓ | ✓ |  |
+| 동대문구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 중랑구 | – | – | – | – | ✓ | ✓ |  |
+| 성북구 | ✗ | – | – | – | ✓ | ✓ |  |
+| 강북구 | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | – | www.gangbuk.go.kr의 모든 경로가 JS 쿠키(sabFingerPrint/sabSignature) |
+| 도봉구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 노원구 | ✓ | ✓ | – | ✓ | ✓ | ✓ | '우유팩 등'만 언급, '멸균팩' 명시 없음 |
+| 은평구 | ✓ | – | – | – | ✓ | ✓ |  |
+| 서대문구 | ✓ | ✓ | – | – | ✓ | ✓ |  |
+| 마포구 | ✓ | – | ✓ | ✓ | ✓ | ✓ | 페이지에 해당 품목 언급 없음 |
+| 양천구 | – | ✓ | – | ✓ | ✓ | ✓ |  |
+| 강서구 | – | – | ✓ | ✓ | ✓ | ✓ |  |
+| 구로구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 금천구 | – | – | ✓ | ✓ | ✓ | ✓ |  |
+| 영등포구 | – | ✓ | ✓ | ✓ | ✓ | ✓ | 페이지에 해당 품목 언급 없음 |
+| 동작구 | – | ✗ | – | ✓ | ✓ | ✓ |  |
+| 관악구 | – | – | – | ✓ | ✓ | ✓ |  |
+| 서초구 | ✓ | ✓ | – | ✗ | ✓ | ✓ | 종이팩(우유팩,두유팩 등)만 언급, '멸균팩' 명시 없음 |
+| 강남구 | ✗ | ✗ | – | – | ✓ | ✓ |  |
+| 송파구 | – | – | ✓ | ✓ | ✓ | ✓ | 페이지에 해당 품목 언급 없음 |
+| 강동구 | – | – | ✓ | ✓ | ✓ | ✓ |  |
+
+✓ 채움 · ✗ 구청 사이트에 있으나 분리배출 안내가 아니라 제외(소식지·카드뉴스·사업 공지·재질 예시만) · – 안내 페이지에 해당 품목 언급 없음 · ⊘ 구청 사이트 접속 불가 · ? 미조사. 칸별 원문·사유는 docs/region_notes_evidence.md
+
+미조사·접속 불가 구와 서울 외 지역은 다음 라운드에서. 조사 원본은 `docs/research_region_notes_batch*_2026-11-12.json`, 표 재생성: `python3 tool/region_notes_table.py <조사.json…> --exclude …`
+
+### 월간 리포트
+- 매월 1일 09:00 로컬 알림(id 200) → 지난달 리포트. 기록 탭 상단 카드(지난달 기록 1건 이상)에서도 연다.
+- 섹션: 헤더(리뿅이 — 재활용률이 지난달 이상이면 happy, 하락하면 idle + "다음 달엔 같이 올려보자뿅!") · 총 분류 · 재활용률 · 분류 비율 막대 · TOP3 ·
+  탄소 절감 환산 · 수거일 체크 · 공유 · 면책 한 줄. 지난달 비교·연속 주는 비로그인 시 LockedOverlay.
+- **탄소 계수는 `assets/data/carbon_factors.json` 에 출처(기관·문서·URL·연도)가 있는 것만.** 계수가 있는 품목이 그 달 기록의 50% 미만이면 ⑥ 섹션을 숨긴다.
+  현재 `factors` 는 **비어 있어 ⑥은 "데이터가 더 쌓이면 보여드릴게요"** 로 나온다. 조사 기록과 비워 둔 이유: `docs/carbon_factors_research.md`.
+
+| 계수 | 값 | 출처 |
+|---|---|---|
+| 소나무 환산 | 6.6 kgCO2/그루/년 (30년생) | 서울특별시 기후환경본부 보도자료(2013, 국립산림과학원 인용) https://news.seoul.go.kr/env/archives/31374 |
+| 품목별 계수 | 없음 | 환경부·공단 공식 페이지에서 품목 1개당(또는 kg당 + 평균 무게) 수치를 확인하지 못함 |
+
+- 공유 카드 1080x1350(피드) / 1080x1920(스토리), `lib/features/report/report_share_card.dart`. 애널리틱스 `report_viewed` / `report_shared`.
+- 리포트는 기록 50건 이상일 때만 `users/{uid}/reports/{yyyy-MM}` 에 캐시.
+- 홈 하단 "이번 달 n개 분류 · 재활용 m%" → 기록 탭.
+
+### 데이터 검증
+- `dart run tool/validate_data.dart`: regions 코드 형식·중복, regionNotes 의 코드 존재·https 출처·확인일·80자, carbon_factors 의 출처 필수 항목을 검사하고 하나라도 빠지면 종료 코드 1.
+  CI(`.github/workflows/build.yml`)에서 analyze 전에 돈다.
+- Firestore 규칙이 바뀌었다 (`feedback` type `region`, `regionNoteReports`). **`firebase deploy --only firestore:rules`** 필요.
+- 새 패키지: `firebase_analytics` 하나.
+
 ## 구조
 
 ```
@@ -255,13 +333,15 @@ lib/
     chat/                     물어보기 채팅 (하루 5회 제한)
     schedule/                 수거일 설정·전날 알림·홈 위젯·버렸어요 체크인
     stats/                    월간 요약·주간 스트릭·도감
-    places/                   버리는 곳: 지역 선택, 대형폐기물 신고·수거함 링크
+    places/                   거주 지역(법정동코드) 선택, 지역별 안내 박스, 대형폐기물 신고·수거함 링크
     auth/                     익명 → 구글 연결, 잠금 UI, 로그아웃·계정 삭제
     premium/                  RevenueCat 구독, 페이월, 무료 한도
     household/                가족 공유 집: 초대 코드, 공유 수거일, 멤버 체크인
     onboarding/               최초 실행 소개 + 동의 화면
     legal/                    약관·개인정보 링크, 인앱 웹뷰, 권한 사전 안내, 내 데이터 삭제
-    tips/                     품목별 팁 검색
+    tips/                     품목별 팁 검색 (지역별 regionNotes 박스 포함)
+    report/                   월간 리포트: 계산·화면·공유 카드·탄소 계수 로더
+    feedback/                 결과 피드백, 지역 노트 신고
     history/                  분류 기록 (로컬 저장)
   services/
     gemini_classifier.dart    firebase_ai 로 사진 판별 (JSON 스키마 응답)
@@ -279,6 +359,6 @@ flutter test
 
 ## 앞으로 할 것
 
-- [ ] 결과 공유하기 (share_plus)
-- [ ] 지역(지자체)별 배출 요일·기준 안내
+- [ ] 서울 외 지역 regionNotes 채우기, 접속 못 한 구(중구·용산구·노원구) 재확인
+- [ ] 탄소 품목 계수: 환경부 「탄소중립 생활 실천 안내서」 원문 확보 후 채우기
 - [ ] 분류 피드백("틀렸어요") 수집으로 프롬프트 개선

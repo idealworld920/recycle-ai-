@@ -10,6 +10,7 @@ import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../data/recycling_guide.dart';
 import '../features/feedback/feedback_sheet.dart';
+import '../features/places/region_guidance.dart';
 import '../features/share/share_service.dart';
 import '../features/tips/tip_card.dart';
 import '../features/tips/tips_screen.dart';
@@ -77,7 +78,6 @@ class _ResultScreenState extends State<ResultScreen> {
     final override = services.feedback.overrideFor(result.itemName);
     final showOverride = override != null && override != cat.group;
     final slow = (widget.elapsed ?? Duration.zero) > const Duration(seconds: 3);
-    final localNote = tip?.hasLocalNote == true ? tip!.localNote : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -174,9 +174,9 @@ class _ResultScreenState extends State<ResultScreen> {
             const SizedBox(height: AppSpacing.xl),
           ],
 
-          // 5. 지역 차이
-          if (localNote != null) ...[
-            _LocalNote(text: localNote),
+          // 5. 지역 기준: 검증된 우리 동네 노트(파랑) 또는 "지자체별로 다를 수 있어요"(노랑)
+          if (tip != null && (tip.isRegionVariant || tip.hasLocalNote)) ...[
+            RegionGuidance(tip: tip),
             const SizedBox(height: AppSpacing.md),
           ],
 
@@ -296,39 +296,6 @@ class _Reason extends StatelessWidget {
   }
 }
 
-/// 지자체별로 다를 수 있는 항목. 노란 박스.
-class _LocalNote extends StatelessWidget {
-  const _LocalNote({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.text;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(color: c.warningSoft, borderRadius: BorderRadius.circular(AppRadius.card)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Symbols.location_on_rounded, size: 20, color: c.warningText),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('지자체별로 다를 수 있어요', style: t.titleSmall?.copyWith(color: c.warningText)),
-                const SizedBox(height: AppSpacing.xs),
-                Text(text, style: t.bodyMedium?.copyWith(color: c.warningText)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// 번호 + 문장 한 줄. 결과·가이드에서 같이 쓴다.
 class _Step extends StatelessWidget {

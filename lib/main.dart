@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
@@ -21,6 +22,8 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'features/premium/free_limits.dart';
 import 'features/premium/premium_store.dart';
 import 'features/premium/purchases_service.dart';
+import 'features/report/carbon_factors.dart';
+import 'features/places/admin_region.dart';
 import 'features/places/region.dart';
 import 'features/places/region_store.dart';
 import 'features/schedule/notification_service.dart';
@@ -78,7 +81,9 @@ Future<void> _boot() async {
   final schedule = await boot.guard('수거일 설정', ScheduleStore.load, fallback: () => ScheduleStore(ScheduleRepository(prefs)));
   final collection = await boot.guard('도감', () => CollectionStore.load(tips), fallback: () => CollectionStore(prefs, tips));
   final regionRepo = await boot.guard('지역 데이터', RegionRepository.load, fallback: () => RegionRepository.fromJsonString('{"items":[]}'));
-  final region = await boot.guard('지역 설정', () => RegionStore.load(regionRepo), fallback: () => RegionStore(prefs, regionRepo));
+  final adminRepo = await boot.guard('행정구역 데이터', AdminRegionRepository.load, fallback: AdminRegionRepository.empty);
+  final region = await boot.guard('지역 설정', () => RegionStore.load(regionRepo, admin: adminRepo), fallback: () => RegionStore(prefs, regionRepo, admin: adminRepo));
+  final carbon = await boot.guard('탄소 계수', CarbonFactors.load, fallback: () => const CarbonFactors(factors: {}, pine: null));
   final freeLimits = FreeLimits(prefs);
   final feedback = FeedbackStore(prefs);
   NotificationService.instance.copy = ReminderCopy(tips, prefs);
@@ -87,6 +92,8 @@ Future<void> _boot() async {
   // 2) Firebase 는 시작만 시키고 기다리지 않는다. 준비되면 저장소들이 알아서 붙는다.
   final firebase = FirebaseSession.begin();
   final auth = await AuthStore.load(SessionAuthService(firebase), demoLinked: kDemoMode);
+  // 거주 지역: 고르면 users/{uid}.region 에 올리고, 기기에 없으면 서버 값을 받아온다.
+  region.onRemoteSave = (data) => auth.service.mergeUserDoc({'region': data.isEmpty ? FieldValue.delete() : data});
   final premium = PremiumStore(PurchasesService.instance, prefs: prefs);
   final household = HouseholdStore(HouseholdRepository());
   schedule.attachHousehold(household);
@@ -100,6 +107,9 @@ Future<void> _boot() async {
     premium.attachUser(firebase.uid);
     household.attachUser(firebase.uid);
     feedback.attachUser(firebase.uid);
+    if (!region.isSet) {
+      auth.service.readUserDoc().then((doc) => region.adoptRemote((doc?['region'] as Map?)?.cast<String, dynamic>())).catchError((_) {});
+    }
   }
 
   attachAll();
@@ -128,6 +138,7 @@ Future<void> _boot() async {
     freeLimits: freeLimits,
     boot: boot,
     feedback: feedback,
+    carbon: carbon,
   ));
 
   // 4) 알림·위젯 같은 플랫폼 플러그인은 첫 프레임 뒤에. 실패하면 배너에만 남긴다.
@@ -135,6 +146,8 @@ Future<void> _boot() async {
   unawaited(boot.run('홈 위젯', WidgetService.init, timeout: const Duration(seconds: 10)));
   // 알림 팁 문구를 바꿔 준다 (같은 팁 2주 내 반복 안 함). 실패해도 조용히.
   unawaited(schedule.refreshReminders().catchError((_) {}));
+  // 매월 1일 09:00 지난달 리포트 알림.
+  unawaited(NotificationService.instance.scheduleMonthlyReport().catchError((_) {}));
   WidgetsBinding.instance.addPostFrameCallback((_) => BootReport.mark('첫 프레임 그림'));
 }
 
@@ -186,6 +199,7 @@ class RecycleApp extends StatelessWidget {
     required this.freeLimits,
     required this.boot,
     required this.feedback,
+    required this.carbon,
   });
 
   final SettingsStore settings;
@@ -201,6 +215,7 @@ class RecycleApp extends StatelessWidget {
   final FreeLimits freeLimits;
   final BootReport boot;
   final FeedbackStore feedback;
+  final CarbonFactors carbon;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +233,7 @@ class RecycleApp extends StatelessWidget {
       freeLimits: freeLimits,
       boot: boot,
       feedback: feedback,
+      carbon: carbon,
       child: MaterialApp(
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,

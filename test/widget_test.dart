@@ -4,6 +4,7 @@ import 'package:recycle_ai/app_services.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
 import 'package:recycle_ai/features/feedback/feedback_store.dart';
+import 'package:recycle_ai/features/report/carbon_factors.dart';
 import 'package:recycle_ai/core/boot_report.dart';
 import 'package:recycle_ai/core/firebase_session.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
@@ -46,6 +47,7 @@ void main() {
         freeLimits: FreeLimits(await SharedPreferences.getInstance()),
         boot: BootReport(),
       feedback: FeedbackStore(await SharedPreferences.getInstance()),
+      carbon: const CarbonFactors(factors: {}, pine: null),
         child: MaterialApp(theme: AppTheme.light(), home: const GuideScreen()),
       ),
     );
