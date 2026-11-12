@@ -10,9 +10,12 @@ import 'tip_model.dart';
 
 /// 품목명 + 분류 뱃지 + 단계 목록 + 주의 박스.
 class TipCard extends StatelessWidget {
-  const TipCard({super.key, required this.tip});
+  const TipCard({super.key, required this.tip, this.showRegionGuidance = true});
 
   final Tip tip;
+
+  /// 결과 화면처럼 바로 위에 지역 기준 박스를 이미 보여준 곳에서는 끈다 (같은 화면에 두 번 나오지 않게).
+  final bool showRegionGuidance;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,7 @@ class TipCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (tip.isRegionVariant) ...[
+          if (tip.isRegionVariant && showRegionGuidance) ...[
             RegionGuidance(tip: tip, compact: true),
             const SizedBox(height: AppSpacing.md),
           ],

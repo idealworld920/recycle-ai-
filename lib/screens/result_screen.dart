@@ -155,7 +155,7 @@ class _ResultScreenState extends State<ResultScreen> {
           Text('품목 팁', style: t.titleMedium),
           const SizedBox(height: AppSpacing.md),
           if (tip != null)
-            TipCard(tip: tip)
+            TipCard(tip: tip, showRegionGuidance: false)
           else
             OutlinedButton.icon(
               onPressed: () => context.pushPage(TipsScreen(initialQuery: result.itemName, showBackButton: true)),
