@@ -3,7 +3,7 @@
 //   dart run tool/validate_data.dart
 //
 // - tips.json: regionNotes 의 코드가 regions.json 에 있어야 하고, note 가 있으면 sourceUrl(https)·verifiedAt(YYYY-MM-DD) 필수, 빈 note 금지
-// - regions.json: 시/도 2자리, 시/군/구 5자리 코드, 중복 금지, wasteGuideUrl 은 https
+// - regions.json: 시/도 2자리, 시/군/구 5자리 코드, 중복 금지, wasteGuideUrl 은 http(s) 절대 주소 (외부 브라우저로 연다)
 // - carbon_factors.json: 계수마다 source{org,doc,url,year} 필수, unit 은 kgCO2e/item | kgCO2e/kg, kg 단위면 typicalWeightKg 와 weightSource 함께
 // 실패하면 종료 코드 1.
 import 'dart:convert';
@@ -40,7 +40,7 @@ void main() {
       if (!RegExp(r'^\d{5}$').hasMatch(c) || !c.startsWith(sc)) fail('regions: 시/군/구 코드 형식 오류 $c (${g['name']})');
       if (!codes.add(c)) fail('regions: 시/군/구 코드 중복 $c');
       final url = g['wasteGuideUrl'];
-      if (url != null && !(url as String).startsWith('https://')) fail('regions: $c wasteGuideUrl 은 https 여야 해요');
+      if (url != null && !(url as String).startsWith('https://') && !url.startsWith('http://')) fail('regions: $c wasteGuideUrl 은 http(s) 절대 주소여야 해요');
     }
   }
   stdout.writeln('regions.json: 시/도 ${sidoCodes.length}, 시/군/구 ${codes.length}');
