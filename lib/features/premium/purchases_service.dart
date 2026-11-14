@@ -1,11 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 import 'purchase_errors.dart';
 
-/// RevenueCat 설정값. 키는 공개 키라 코드에 둬도 되지만, 빌드마다 바꾸기 쉽게 dart-define 으로 받는다.
+/// 프리미엄 설정값.
+///
+/// 1.1.0 에는 구독(결제)이 없다. RevenueCat(purchases_flutter)은 1.4.0 에서 다시 붙인다 — README "구독 (RevenueCat) 설정" 참고.
+/// 그동안 프리미엄은 `PREMIUM_DEBUG` 또는 검토자 코드(`REVIEW_CODE`)로만 열린다.
 class PremiumConfig {
   PremiumConfig._();
 
@@ -24,103 +24,32 @@ class PremiumConfig {
   static const monthlyProductId = 'resai_premium_monthly';
   static const yearlyProductId = 'resai_premium_yearly';
 
+  /// 이 버전에 예정된 구독 출시 안내 문구.
+  static const comingSoon = '프리미엄 구독은 다음 업데이트에서 열려요. 지금은 모든 기능을 무료 한도 안에서 쓸 수 있어요.';
+
   static String get apiKey => defaultTargetPlatform == TargetPlatform.iOS ? iosKey : androidKey;
-  static bool get hasKey => !kIsWeb && apiKey.isNotEmpty;
+
+  /// 결제 SDK 가 빠져 있어 항상 false. (키가 있어도 켜지지 않는다)
+  static bool get hasKey => false;
 }
 
-/// purchases_flutter 래퍼. 키가 없거나 웹이면 "사용 불가" 모드로 조용히 동작한다.
+/// 결제 서비스 자리. 1.1.0 에서는 아무것도 하지 않는다.
+///
+/// 1.4.0 에서 purchases_flutter 를 다시 넣을 때 이 클래스를 SDK 래퍼로 되돌린다
+/// (git 기록의 "Strip purchases_flutter" 이전 버전 참고).
 class PurchasesService {
   PurchasesService._();
 
   static final PurchasesService instance = PurchasesService._();
 
-  bool _configured = false;
-  String? _appUserId;
-  final _controller = StreamController<CustomerInfo>.broadcast();
+  bool get available => false;
+  bool get configured => false;
 
-  bool get available => PremiumConfig.hasKey;
-  bool get configured => _configured;
-  Stream<CustomerInfo> get customerInfoStream => _controller.stream;
+  Future<void> configure(String appUserId) async {}
 
-  /// 익명 uid 를 appUserID 로 쓴다. 구글 연결로 uid 가 바뀌면 [logIn] 으로 alias.
-  Future<void> configure(String appUserId) async {
-    if (!available || _configured) return;
-    try {
-      await Purchases.setLogLevel(kReleaseMode ? LogLevel.warn : LogLevel.debug);
-      await Purchases.configure(PurchasesConfiguration(PremiumConfig.apiKey)..appUserID = appUserId);
-      Purchases.addCustomerInfoUpdateListener(_controller.add);
-      _appUserId = appUserId;
-      _configured = true;
-    } catch (e) {
-      debugPrint('RevenueCat 설정 실패: $e');
-    }
-  }
+  Future<void> logIn(String appUserId) async {}
 
-  Future<void> logIn(String appUserId) async {
-    if (!_configured || appUserId == _appUserId) return;
-    try {
-      final r = await Purchases.logIn(appUserId);
-      _appUserId = appUserId;
-      _controller.add(r.customerInfo);
-    } catch (e) {
-      debugPrint('RevenueCat logIn 실패: $e');
-    }
-  }
+  Future<PurchaseOutcome> purchase() async => const PurchaseFailed(PremiumConfig.comingSoon);
 
-  Future<CustomerInfo?> customerInfo() async {
-    if (!_configured) return null;
-    try {
-      return await Purchases.getCustomerInfo();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<Offering?> currentOffering() async {
-    if (!_configured) return null;
-    try {
-      return (await Purchases.getOfferings()).current;
-    } catch (e) {
-      debugPrint('offerings 실패: $e');
-      return null;
-    }
-  }
-
-  Future<PurchaseOutcome> purchase(Package package) async {
-    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요. 곧 준비할게요.');
-    try {
-      final r = await Purchases.purchase(PurchaseParams.package(package));
-      _controller.add(r.customerInfo);
-      return const PurchaseSuccess();
-    } catch (e) {
-      return PurchaseErrors.outcomeOf(e);
-    }
-  }
-
-  /// Play 의 특정 옵션(기본 요금제 = 바로 결제, 오퍼 = 무료 체험)을 골라서 산다.
-  Future<PurchaseOutcome> purchaseOption(SubscriptionOption option) async {
-    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요. 곧 준비할게요.');
-    try {
-      final r = await Purchases.purchase(PurchaseParams.subscriptionOption(option));
-      _controller.add(r.customerInfo);
-      return const PurchaseSuccess();
-    } catch (e) {
-      return PurchaseErrors.outcomeOf(e);
-    }
-  }
-
-  Future<PurchaseOutcome> restore() async {
-    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요.');
-    try {
-      final info = await Purchases.restorePurchases();
-      _controller.add(info);
-      return info.entitlements.active.containsKey(PremiumConfig.entitlementId)
-          ? const PurchaseSuccess()
-          : const PurchaseFailed('복원할 구독이 없어요. 같은 Google 계정으로 로그인돼 있는지 확인해 주세요.');
-    } catch (e) {
-      return PurchaseErrors.outcomeOf(e);
-    }
-  }
-
-  static bool hasPremium(CustomerInfo? info) => info?.entitlements.active.containsKey(PremiumConfig.entitlementId) ?? false;
+  Future<PurchaseOutcome> restore() async => const PurchaseFailed(PremiumConfig.comingSoon);
 }

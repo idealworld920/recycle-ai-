@@ -119,6 +119,9 @@ Play Integrity 는 실제 기기에서만 성공해요(에뮬레이터·루팅 �
 `google_analytics_adid_collection_enabled=false` 메타데이터로 수집도 끈다. 빌드 뒤
 `build/app/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml` 에 AD_ID 가 없어야 한다.
 Play Console 앱 콘텐츠 → 광고 ID 에서는 "아니요(광고 ID 사용 안 함)" 로 선언한다.
+같은 방식으로 `BIND_GET_INSTALL_REFERRER_SERVICE`(Analytics 설치 리퍼러), `USE_BIOMETRIC` · `USE_FINGERPRINT`(firebase_auth 가 끌어오는
+androidx.biometric)도 빼 두었다. 1.1.0 의 병합 매니페스트 권한은 INTERNET · POST_NOTIFICATIONS · RECEIVE_BOOT_COMPLETED · ACCESS_NETWORK_STATE ·
+WAKE_LOCK · VIBRATE · FOREGROUND_SERVICE(_SHORT_SERVICE, 알림/워크매니저) · READ_GSERVICES(reCAPTCHA, firebase_auth) 뿐이다.
 
 ## 법적 문서와 Play Console 데이터 안전
 
@@ -177,6 +180,14 @@ Play Console 앱 콘텐츠 → 광고 ID 에서는 "아니요(광고 ID 사용 �
 문제가 생기면: `clientConfigurationError` / `DEVELOPER_ERROR` 는 거의 항상 지문 누락이거나 google-services.json 이 옛날 파일인 경우예요.
 
 ## 구독 (RevenueCat) 설정
+
+> **1.1.0 에는 구독이 없다.** Play Console 권한 목록을 줄이려고 `purchases_flutter` 를 pubspec 에서 뺐고,
+> `lib/features/premium/` 는 "다음 업데이트에서 열려요" 안내 + 검토자 코드(`REVIEW_CODE`)·`PREMIUM_DEBUG` 만 남긴 가벼운 구현이다.
+> 페이월·설정의 프리미엄 카드는 그대로 있고, 결제 버튼과 구매 복원만 없다.
+> **1.4.0 에서 되돌리기**: `purchases_flutter: ^10.16.0` 을 pubspec 에 다시 넣고, git 기록에서 "Strip purchases_flutter" 커밋 **직전** 버전의
+> `purchases_service.dart` · `premium_store.dart` · `purchase_errors.dart` · `paywall_screen.dart` · `test/premium_test.dart` 를 복원한다.
+> 아래 RevenueCat 설정(상품·웹훅·키)은 그때 그대로 쓴다. 매니페스트의 `tools:node="remove"` 중 BILLING 은 건드린 적이 없으니 그대로 둬도 된다.
+
 
 앱은 `purchases_flutter`(RevenueCat)로 결제·영수증 검증·복원을 처리해요. 구독 상태의 진실은 RevenueCat SDK 이고,
 Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅만 갱신해요 (클라이언트는 규칙상 못 씀).

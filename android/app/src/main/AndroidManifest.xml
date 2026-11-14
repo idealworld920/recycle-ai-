@@ -7,6 +7,10 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
     <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove"/>
     <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove"/>
+    <!-- 설치 리퍼러(Analytics 캠페인 측정)와 생체인증(firebase_auth 가 끌어오는 androidx.biometric)은 쓰지 않는다 -->
+    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove"/>
     <!-- 카메라는 시스템 카메라 앱을 호출하므로 CAMERA 권한이 필요 없고, 카메라 없는 기기도 설치되게 선택 기능으로 표시 -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application

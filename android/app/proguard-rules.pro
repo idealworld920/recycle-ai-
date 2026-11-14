@@ -56,7 +56,7 @@
 -dontwarn es.antonborri.home_widget.**
 -dontwarn dev.fluttercommunity.workmanager.**
 
-# RevenueCat / Play Billing
+# RevenueCat / Play Billing (1.1.0 에는 purchases_flutter 가 없어 적용되지 않지만, 1.4.0 에 다시 넣을 때 그대로 쓴다)
 -keep class com.revenuecat.** { *; }
 -keep class com.android.billingclient.** { *; }
 -dontwarn com.revenuecat.**
