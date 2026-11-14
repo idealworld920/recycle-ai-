@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +18,8 @@ import 'features/auth/auth_store.dart';
 import 'features/feedback/feedback_store.dart';
 import 'core/theme/app_theme.dart';
 import 'features/history/history_store.dart';
+import 'features/calendar/calendar_event.dart';
+import 'features/calendar/event_store.dart';
 import 'features/household/household_repository.dart';
 import 'features/household/household_store.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -102,6 +106,8 @@ Future<void> _boot() async {
   final household = HouseholdStore(HouseholdRepository(), prefs: prefs);
   schedule.attachHousehold(household);
   premium.attachHousehold(household);
+  final events = EventStore(prefs, specialDays: await _loadSpecialDays());
+  events.attachHousehold(household);
   String? attachedUid;
   void attachAll() {
     if (!firebase.ready || firebase.uid == attachedUid) return;
@@ -111,6 +117,7 @@ Future<void> _boot() async {
     collection.attachUser(firebase.uid);
     premium.attachUser(firebase.uid);
     household.attachUser(firebase.uid);
+    events.attachUser(firebase.uid, displayName: auth.displayName);
     feedback.attachUser(firebase.uid);
     // 온보딩 동의가 로그인 전에 끝났으면 지금 올린다.
     if (settings.consentRemotePending) {
@@ -144,6 +151,7 @@ Future<void> _boot() async {
     auth: auth,
     premium: premium,
     household: household,
+    events: events,
     freeLimits: freeLimits,
     boot: boot,
     feedback: feedback,
@@ -157,6 +165,7 @@ Future<void> _boot() async {
   unawaited(schedule.refreshReminders().catchError((_) {}));
   // 매월 1일 09:00 지난달 리포트 알림.
   unawaited(NotificationService.instance.scheduleMonthlyReport().catchError((_) {}));
+  unawaited(events.rescheduleAll().catchError((_) {}));
   WidgetsBinding.instance.addPostFrameCallback((_) => BootReport.mark('첫 프레임 그림'));
 }
 
@@ -205,6 +214,7 @@ class RecycleApp extends StatefulWidget {
     required this.auth,
     required this.premium,
     required this.household,
+    required this.events,
     required this.freeLimits,
     required this.boot,
     required this.feedback,
@@ -221,6 +231,7 @@ class RecycleApp extends StatefulWidget {
   final AuthStore auth;
   final PremiumStore premium;
   final HouseholdStore household;
+  final EventStore events;
   final FreeLimits freeLimits;
   final BootReport boot;
   final FeedbackStore feedback;
@@ -249,6 +260,7 @@ class _RecycleAppState extends State<RecycleApp> {
       auth: widget.auth,
       premium: widget.premium,
       household: widget.household,
+      events: widget.events,
       freeLimits: widget.freeLimits,
       boot: widget.boot,
       feedback: widget.feedback,
@@ -272,5 +284,15 @@ class _RecycleAppState extends State<RecycleApp> {
         ),
       ),
     );
+  }
+}
+
+/// assets/data/special_days.json → 출처 URL 이 있는 항목만.
+Future<List<SpecialDay>> _loadSpecialDays() async {
+  try {
+    final raw = jsonDecode(await rootBundle.loadString('assets/data/special_days.json')) as Map<String, dynamic>;
+    return ((raw['items'] as List?) ?? const []).whereType<Map>().map((m) => SpecialDay.fromJson(m.cast<String, dynamic>())).whereType<SpecialDay>().toList(growable: false);
+  } catch (_) {
+    return const [];
   }
 }

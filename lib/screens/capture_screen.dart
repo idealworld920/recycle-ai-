@@ -9,7 +9,9 @@ import '../core/mascot.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../features/classify/classify_flow.dart';
+import '../features/classify/multi/multi_classify_screen.dart';
 import '../features/onboarding/intro_animation.dart';
+import '../features/premium/premium_gate.dart';
 import '../widgets/scanning_overlay.dart';
 
 /// 온보딩 직후 바로 뜨는 카메라 화면. 뒤로가기 → 홈.
@@ -31,6 +33,7 @@ class CaptureScreen extends StatefulWidget {
 class _CaptureScreenState extends State<CaptureScreen> {
   bool _hint = false;
   bool _busy = false;
+  bool _multi = false;
   DateTime? _busySince;
   Timer? _hintTimer;
 
@@ -60,8 +63,70 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (mounted && _hint) setState(() => _hint = false);
   }
 
+  /// "여러 장" 토글: 가족 플랜만. 무료는 잠금 아이콘 → 안내.
+  Future<void> _toggleMulti(bool on) async {
+    if (!on) {
+      setState(() => _multi = false);
+      return;
+    }
+    final services = AppServices.of(context);
+    if (!services.premium.isPremium) {
+      await ensurePremium(context, reason: '여러 장 분류는 가족 플랜에서 열려요', source: PaywallSource.featureTap);
+      if (!mounted || !services.premium.isPremium) return;
+    }
+    setState(() => _multi = true);
+  }
+
+  /// 여러 장: 갤러리는 한 번에 최대 10장, 카메라는 한 장씩 찍고 "한 장 더?"를 묻는다.
+  Future<void> _pickMulti(ImageSource source) async {
+    if (_busy) return;
+    final picker = ImagePicker();
+    final services = AppServices.of(context);
+    final used = services.freeLimits.classifyCountToday();
+    final allowance = MultiClassifyScreen.allowance(premium: services.premium.isPremium, usedToday: used);
+    if (allowance <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('오늘은 더 분류할 수 없어요. 내일 다시 시도해 주세요.')));
+      return;
+    }
+    List<XFile> files = [];
+    try {
+      if (source == ImageSource.gallery) {
+        files = await picker.pickMultiImage(maxWidth: 1024, maxHeight: 1024, imageQuality: 80, limit: MultiClassifyScreen.maxPhotos);
+      } else {
+        while (files.length < MultiClassifyScreen.maxPhotos) {
+          final x = await picker.pickImage(source: ImageSource.camera, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
+          if (x == null) break;
+          files.add(x);
+          if (!mounted) return;
+          final more = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text('${files.length}장 찍었어요'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('분류 시작')),
+                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('한 장 더')),
+              ],
+            ),
+          );
+          if (more != true) break;
+        }
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('사진을 가져오지 못했어요. 카메라와 사진 권한을 확인해 주세요.')));
+      return;
+    }
+    if (files.isEmpty || !mounted) return;
+    _hideHint();
+    if (files.length > allowance) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('오늘 $allowance장까지 가능해요. 앞의 $allowance장만 분류할게요.')));
+      files = files.take(allowance).toList();
+    }
+    await context.pushPage(MultiClassifyScreen(photos: files));
+  }
+
   Future<void> _pick(ImageSource source) async {
     if (_busy) return;
+    if (_multi) return _pickMulti(source);
     await ClassifyFlow.run(
       context,
       source,
@@ -117,6 +182,25 @@ class _CaptureScreenState extends State<CaptureScreen> {
                   Text('물건이 잘 보이게 찍으면 더 정확해요. 사진은 저장하지 않아요.',
                       style: t.bodyMedium?.copyWith(color: c.textSecondary), textAlign: TextAlign.center),
                   const Spacer(),
+                  ListenableBuilder(
+                    listenable: AppServices.of(context).premium,
+                    builder: (context, _) {
+                      final premium = AppServices.of(context).premium.isPremium;
+                      return SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _multi,
+                        onChanged: _busy ? null : _toggleMulti,
+                        title: Row(
+                          children: [
+                            Text('여러 장 (최대 ${MultiClassifyScreen.maxPhotos}장)', style: t.bodyMedium),
+                            if (!premium) ...[const SizedBox(width: AppSpacing.xs), Icon(Symbols.lock_rounded, size: 16, color: c.textSecondary)],
+                          ],
+                        ),
+                        subtitle: Text(premium ? '한 번에 여러 장을 차례로 분류해요.' : '가족 플랜에서 열려요.', style: t.bodySmall),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
                     onPressed: _busy ? null : () => _pick(ImageSource.camera),

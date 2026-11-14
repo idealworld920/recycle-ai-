@@ -149,6 +149,28 @@ class NotificationService {
     return t;
   }
 
+  /// 캘린더 일정 알림 (전날 20:00, 1회). id 는 CalendarEvent.notificationId (1000~).
+  Future<void> scheduleEvent({required int id, required String title, required String body, required DateTime at}) async {
+    if (kIsWeb) return;
+    await init();
+    final when = tz.TZDateTime.from(at, tz.local);
+    if (!when.isAfter(tz.TZDateTime.now(tz.local))) return;
+    await _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: when,
+      notificationDetails: _details(body, await _mascotIcon()),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  Future<void> cancelEvent(int id) async {
+    if (kIsWeb) return;
+    await init();
+    await _plugin.cancel(id: id);
+  }
+
   static const monthlyReportId = 200;
 
   /// 매월 1일 09:00 "지난달 리포트" 알림. 앱을 켤 때마다 다시 잡아도 같은 id 라 중복되지 않는다.

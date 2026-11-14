@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app_services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/recycle_result.dart';
 import '../../screens/result_screen.dart';
 import '../../services/gemini_classifier.dart';
 import '../legal/permission_primer.dart';
@@ -55,27 +57,15 @@ class ClassifyFlow {
     // 사진 선택 → 결과 표시까지 재서 3초 목표를 지키는지 본다.
     final startedAt = DateTime.now();
     onBusy(startedAt);
-    final classifier = GeminiClassifier();
     try {
       final bytes = await picked.readAsBytes();
       final mime = picked.mimeType ?? GeminiClassifier.mimeTypeFor(picked.name);
-      final result = await classifier.classifyBytes(bytes, mimeType: mime, regionName: services.region.admin?.displayName);
-      // 모델 응답 뒤의 저장 작업(기록·무료 횟수·도감)은 서로 독립이라 한꺼번에.
-      final tip = services.tips.findForItem(result.itemName);
-      final results = await Future.wait<Object?>([
-        services.history.addResult(result, imageBytes: bytes),
-        if (!services.premium.isPremium) services.freeLimits.incrementClassify(),
-        if (tip != null) services.collection.collect(tip, itemName: result.itemName) else Future.value(false),
-      ]);
-      String? toast;
-      if (results.last == true) {
-        toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
-      }
+      final one = await classifyOne(services, bytes, mime);
       if (!context.mounted) return;
       final elapsed = DateTime.now().difference(startedAt);
       debugPrint('[classify] ${elapsed.inMilliseconds}ms (목표 3000ms)');
       HapticFeedback.mediumImpact();
-      await context.pushPage(ResultScreen(result: result, imageBytes: bytes, isNew: true, toast: toast, elapsed: elapsed));
+      await context.pushPage(ResultScreen(result: one.result, imageBytes: bytes, isNew: true, toast: one.toast, elapsed: elapsed));
     } on ClassifyException catch (e) {
       showError(e.message);
     } catch (e) {
@@ -84,4 +74,27 @@ class ClassifyFlow {
       onBusy(null);
     }
   }
+
+  /// 한 장 분류 + 저장(기록·무료 횟수·도감). 화면 이동은 하지 않는다. 여러 장 분류도 이걸 쓴다.
+  static Future<ClassifiedOne> classifyOne(AppServices services, Uint8List bytes, String mimeType) async {
+    final result = await GeminiClassifier().classifyBytes(bytes, mimeType: mimeType, regionName: services.region.admin?.displayName);
+    // 모델 응답 뒤의 저장 작업(기록·무료 횟수·도감)은 서로 독립이라 한꺼번에.
+    final tip = services.tips.findForItem(result.itemName);
+    final results = await Future.wait<Object?>([
+      services.history.addResult(result, imageBytes: bytes),
+      if (!services.premium.isPremium) services.freeLimits.incrementClassify(),
+      if (tip != null) services.collection.collect(tip, itemName: result.itemName) else Future.value(false),
+    ]);
+    String? toast;
+    if (results.last == true) {
+      toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
+    }
+    return ClassifiedOne(result, toast);
+  }
+}
+
+class ClassifiedOne {
+  const ClassifiedOne(this.result, this.toast);
+  final RecycleResult result;
+  final String? toast;
 }

@@ -6,6 +6,7 @@ import 'features/tips/tips_repository.dart';
 import 'features/auth/auth_store.dart';
 import 'features/feedback/feedback_store.dart';
 import 'features/report/carbon_factors.dart';
+import 'features/calendar/event_store.dart';
 import 'features/household/household_store.dart';
 import 'features/premium/free_limits.dart';
 import 'features/premium/premium_store.dart';
@@ -29,6 +30,7 @@ class AppServices extends InheritedWidget {
     required this.auth,
     required this.premium,
     required this.household,
+    required this.events,
     required this.freeLimits,
     required this.boot,
     required this.feedback,
@@ -46,6 +48,7 @@ class AppServices extends InheritedWidget {
   final AuthStore auth;
   final PremiumStore premium;
   final HouseholdStore household;
+  final EventStore events;
   final FreeLimits freeLimits;
 
   /// 시작 단계에서 실패한 것들. 홈 배너가 보여준다.
@@ -70,5 +73,5 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection || region != oldWidget.region || auth != oldWidget.auth || premium != oldWidget.premium || household != oldWidget.household;
+      settings != oldWidget.settings || history != oldWidget.history || tips != oldWidget.tips || firebase != oldWidget.firebase || schedule != oldWidget.schedule || collection != oldWidget.collection || region != oldWidget.region || auth != oldWidget.auth || premium != oldWidget.premium || household != oldWidget.household || events != oldWidget.events;
 }

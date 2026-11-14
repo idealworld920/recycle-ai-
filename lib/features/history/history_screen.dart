@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../screens/result_screen.dart';
 import '../../widgets/category_badge.dart';
 import '../auth/auth_store.dart';
+import '../calendar/calendar_screen.dart';
 import '../auth/link_banner.dart';
 import '../auth/link_flows.dart';
 import '../auth/locked_overlay.dart';
@@ -20,15 +21,50 @@ import '../stats/streak_row.dart';
 import 'history_record.dart';
 import 'history_store.dart';
 
-/// 분류 기록 탭. 상단 이번 달 요약, 아래 날짜별 목록.
-class HistoryScreen extends StatelessWidget {
+/// 분류 기록 탭. 상단 세그먼트 [기록 | 캘린더]. 기록: 이번 달 요약 + 날짜별 목록. 캘린더: 월간 뷰.
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.onGoHome});
 
   final VoidCallback? onGoHome;
 
   @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  bool _calendar = false;
+
+  VoidCallback? get onGoHome => widget.onGoHome;
+
+  Widget _segment(BuildContext context) => SegmentedButton<bool>(
+        segments: const [
+          ButtonSegment(value: false, label: Text('기록'), icon: Icon(Symbols.history_rounded, size: 18)),
+          ButtonSegment(value: true, label: Text('캘린더'), icon: Icon(Symbols.calendar_month_rounded, size: 18)),
+        ],
+        selected: {_calendar},
+        showSelectedIcon: false,
+        onSelectionChanged: (s) => setState(() => _calendar = s.first),
+      );
+
+  @override
   Widget build(BuildContext context) {
     final services = AppServices.of(context);
+    if (_calendar) {
+      return Scaffold(
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
+            children: [
+              Row(children: [Expanded(child: Text('캘린더', style: context.text.headlineSmall))]),
+              const SizedBox(height: AppSpacing.md),
+              _segment(context),
+              const SizedBox(height: AppSpacing.base),
+              const CalendarView(),
+            ],
+          ),
+        ),
+      );
+    }
     final history = services.history;
     final schedule = services.schedule;
     final auth = services.auth;
@@ -42,7 +78,15 @@ class HistoryScreen extends StatelessWidget {
           listenable: Listenable.merge([history, schedule, auth]),
           builder: (context, _) {
             final items = history.items;
-            if (items.isEmpty) return _EmptyState(onGoHome: onGoHome);
+            if (items.isEmpty) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
+                children: [
+                  _segment(context),
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.5, child: _EmptyState(onGoHome: onGoHome)),
+                ],
+              );
+            }
 
             final now = DateTime.now();
             final anonymous = auth.isAnonymous;
@@ -67,6 +111,8 @@ class HistoryScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.md),
+                _segment(context),
                 const SizedBox(height: AppSpacing.base),
                 if (anonymous && settings.daysSinceInstall >= 30)
                   const LinkBanner(

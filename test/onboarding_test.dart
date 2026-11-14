@@ -10,6 +10,7 @@ import 'package:recycle_ai/features/auth/auth_store.dart';
 import 'package:recycle_ai/features/feedback/feedback_store.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/household/household_repository.dart';
+import 'package:recycle_ai/features/calendar/event_store.dart';
 import 'package:recycle_ai/features/household/household_store.dart';
 import 'package:recycle_ai/features/onboarding/intro_animation.dart';
 import 'package:recycle_ai/features/onboarding/onboarding_screen.dart';
@@ -49,6 +50,7 @@ void main() {
         auth: await AuthStore.load(OfflineAuthService()),
         premium: PremiumStore(PurchasesService.instance),
         household: HouseholdStore(HouseholdRepository()),
+        events: EventStore(await SharedPreferences.getInstance()),
         freeLimits: FreeLimits(await SharedPreferences.getInstance()),
         boot: BootReport(),
         feedback: FeedbackStore(await SharedPreferences.getInstance()),

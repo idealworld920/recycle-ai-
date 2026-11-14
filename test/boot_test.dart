@@ -14,6 +14,7 @@ import 'package:recycle_ai/features/feedback/feedback_store.dart';
 import 'package:recycle_ai/features/report/carbon_factors.dart';
 import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/household/household_repository.dart';
+import 'package:recycle_ai/features/calendar/event_store.dart';
 import 'package:recycle_ai/features/household/household_store.dart';
 import 'package:recycle_ai/features/places/region.dart';
 import 'package:recycle_ai/features/places/region_store.dart';
@@ -68,6 +69,7 @@ void main() {
       auth: await AuthStore.load(OfflineAuthService()),
       premium: PremiumStore(PurchasesService.instance),
       household: HouseholdStore(HouseholdRepository()),
+      events: EventStore(await SharedPreferences.getInstance()),
       freeLimits: FreeLimits(await SharedPreferences.getInstance()),
       boot: boot,
       feedback: FeedbackStore(await SharedPreferences.getInstance()),

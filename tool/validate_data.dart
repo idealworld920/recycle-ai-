@@ -28,6 +28,7 @@ bool validSource(dynamic s, String where) {
 }
 
 void main() {
+  _validateSpecialDays();
   final regions = jsonDecode(File('assets/data/regions.json').readAsStringSync()) as Map<String, dynamic>;
   final codes = <String>{};
   final sidoCodes = <String>{};
@@ -104,4 +105,26 @@ void main() {
     exit(1);
   }
   stdout.writeln('OK');
+}
+
+/// special_days.json: 모든 항목에 date(YYYY-MM-DD)·title·sourceUrl(https) 필수. 없으면 실패.
+void _validateSpecialDays() {
+  final f = File('assets/data/special_days.json');
+  if (!f.existsSync()) return;
+  final raw = jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
+  final items = (raw['items'] as List?) ?? const [];
+  var n = 0;
+  for (final it in items) {
+    if (it is! Map) {
+      fail('special_days: 항목은 객체여야 해요');
+      continue;
+    }
+    final date = it['date']?.toString() ?? '';
+    final url = it['sourceUrl']?.toString() ?? '';
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) fail('special_days: $date 날짜 형식이 아니에요');
+    if ((it['title']?.toString() ?? '').isEmpty) fail('special_days: $date title 없음');
+    if (!url.startsWith('https://')) fail('special_days: $date sourceUrl(https) 없음 — 출처 없는 일정은 넣지 않아요');
+    n++;
+  }
+  stdout.writeln('special_days.json: 전국 일정 $n개');
 }
