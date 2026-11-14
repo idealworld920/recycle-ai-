@@ -1,7 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- 광고 ID 는 쓰지 않는다. firebase_analytics 가 병합해 넣는 AD_ID 권한을 제거하고 수집도 끈다 (Play Console 광고 ID 선언) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove"/>
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove"/>
     <!-- 카메라는 시스템 카메라 앱을 호출하므로 CAMERA 권한이 필요 없고, 카메라 없는 기기도 설치되게 선택 기능으로 표시 -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
@@ -53,6 +58,8 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/pickup_widget_medium_info"/>
         </receiver>
+
+        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false"/>
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

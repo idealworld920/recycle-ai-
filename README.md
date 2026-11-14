@@ -112,6 +112,14 @@ AI 호출마다 App Check 토큰이 붙어요. 토큰을 못 받으면 `[firebas
 
 Play Integrity 는 실제 기기에서만 성공해요(에뮬레이터·루팅 기기는 실패). 스토어 밖에서 설치한 APK 도 서명 SHA-256 만 등록돼 있으면 돼요.
 
+### 광고 ID (Play Console "광고 ID 선언")
+
+앱은 광고 ID 를 쓰지 않는다. firebase_analytics 가 병합해 넣는 `com.google.android.gms.permission.AD_ID` 와 Privacy Sandbox 권한
+(`ACCESS_ADSERVICES_AD_ID`, `ACCESS_ADSERVICES_ATTRIBUTION`)을 `AndroidManifest.xml` 에서 `tools:node="remove"` 로 빼고,
+`google_analytics_adid_collection_enabled=false` 메타데이터로 수집도 끈다. 빌드 뒤
+`build/app/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml` 에 AD_ID 가 없어야 한다.
+Play Console 앱 콘텐츠 → 광고 ID 에서는 "아니요(광고 ID 사용 안 함)" 로 선언한다.
+
 ## 법적 문서와 Play Console 데이터 안전
 
 - 개인정보처리방침: https://idealworld920.github.io/recycle-ai-/privacy.html (`web/privacy.html`)
