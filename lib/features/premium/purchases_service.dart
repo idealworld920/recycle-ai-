@@ -1,55 +1,136 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import 'purchase_errors.dart';
 
-/// 프리미엄 설정값.
-///
-/// 1.1.0 에는 구독(결제)이 없다. RevenueCat(purchases_flutter)은 1.4.0 에서 다시 붙인다 — README "구독 (RevenueCat) 설정" 참고.
-/// 그동안 프리미엄은 `PREMIUM_DEBUG` 또는 검토자 코드(`REVIEW_CODE`)로만 열린다.
+/// 가족 플랜(RevenueCat) 설정값. 사용자에게 보이는 이름은 항상 "가족 플랜".
 class PremiumConfig {
   PremiumConfig._();
 
   static const androidKey = String.fromEnvironment('REVENUECAT_ANDROID_KEY');
   static const iosKey = String.fromEnvironment('REVENUECAT_IOS_KEY');
 
-  /// 개발 중 결제 없이 프리미엄 화면을 보려면 `--dart-define=PREMIUM_DEBUG=true`.
+  /// 개발 중 결제 없이 가족 플랜 화면을 보려면 `--dart-define=PREMIUM_DEBUG=true`.
   static const debugPremium = bool.fromEnvironment('PREMIUM_DEBUG');
 
   /// Play 검토자용. `--dart-define=REVIEW_CODE=...` 로 넣은 코드를 설정 → 앱 정보 7번 탭 → 입력하면
-  /// 결제 없이 30일 동안 프리미엄이 열린다. 비어 있으면 기능 자체가 꺼진다. 코드는 저장소에 두지 않는다.
+  /// 결제 없이 30일 동안 열린다. 비어 있으면 기능 자체가 꺼진다. 코드는 저장소에 두지 않는다.
   static const reviewCode = String.fromEnvironment('REVIEW_CODE');
   static const reviewDays = 30;
 
+  static const planName = '가족 플랜';
   static const entitlementId = 'premium';
-  static const monthlyProductId = 'resai_premium_monthly';
-  static const yearlyProductId = 'resai_premium_yearly';
+  static const monthlyProductId = 'resai_family_monthly';
+  static const yearlyProductId = 'resai_family_yearly';
+  static const monthlyPriceFallback = '2,900원';
+  static const yearlyPriceFallback = '19,900원';
+  static const trialDays = 7;
 
-  /// 이 버전에 예정된 구독 출시 안내 문구.
-  static const comingSoon = '프리미엄 구독은 다음 업데이트에서 열려요. 지금은 모든 기능을 무료 한도 안에서 쓸 수 있어요.';
+  /// Play 구독 관리 딥링크.
+  static String manageUrl(String? productId) =>
+      'https://play.google.com/store/account/subscriptions?package=com.idealworld.recycle_ai${productId == null ? '' : '&sku=$productId'}';
 
   static String get apiKey => defaultTargetPlatform == TargetPlatform.iOS ? iosKey : androidKey;
-
-  /// 결제 SDK 가 빠져 있어 항상 false. (키가 있어도 켜지지 않는다)
-  static bool get hasKey => false;
+  static bool get hasKey => !kIsWeb && apiKey.isNotEmpty;
 }
 
-/// 결제 서비스 자리. 1.1.0 에서는 아무것도 하지 않는다.
-///
-/// 1.4.0 에서 purchases_flutter 를 다시 넣을 때 이 클래스를 SDK 래퍼로 되돌린다
-/// (git 기록의 "Strip purchases_flutter" 이전 버전 참고).
+/// purchases_flutter 래퍼. 키가 없거나 웹이면 "사용 불가" 모드로 조용히 동작한다.
 class PurchasesService {
   PurchasesService._();
 
   static final PurchasesService instance = PurchasesService._();
 
-  bool get available => false;
-  bool get configured => false;
+  bool _configured = false;
+  String? _appUserId;
+  final _controller = StreamController<CustomerInfo>.broadcast();
 
-  Future<void> configure(String appUserId) async {}
+  bool get available => PremiumConfig.hasKey;
+  bool get configured => _configured;
+  Stream<CustomerInfo> get customerInfoStream => _controller.stream;
 
-  Future<void> logIn(String appUserId) async {}
+  /// 익명 uid 를 appUserID 로 쓴다. 구글 연결로 uid 가 바뀌면 [logIn] 으로 alias.
+  Future<void> configure(String appUserId) async {
+    if (!available || _configured) return;
+    try {
+      await Purchases.setLogLevel(kReleaseMode ? LogLevel.warn : LogLevel.debug);
+      await Purchases.configure(PurchasesConfiguration(PremiumConfig.apiKey)..appUserID = appUserId);
+      Purchases.addCustomerInfoUpdateListener(_controller.add);
+      _appUserId = appUserId;
+      _configured = true;
+    } catch (e) {
+      debugPrint('RevenueCat 설정 실패: $e');
+    }
+  }
 
-  Future<PurchaseOutcome> purchase() async => const PurchaseFailed(PremiumConfig.comingSoon);
+  Future<void> logIn(String appUserId) async {
+    if (!_configured || appUserId == _appUserId) return;
+    try {
+      final r = await Purchases.logIn(appUserId);
+      _appUserId = appUserId;
+      _controller.add(r.customerInfo);
+    } catch (e) {
+      debugPrint('RevenueCat logIn 실패: $e');
+    }
+  }
 
-  Future<PurchaseOutcome> restore() async => const PurchaseFailed(PremiumConfig.comingSoon);
+  Future<CustomerInfo?> customerInfo() async {
+    if (!_configured) return null;
+    try {
+      return await Purchases.getCustomerInfo();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Offering?> currentOffering() async {
+    if (!_configured) return null;
+    try {
+      return (await Purchases.getOfferings()).current;
+    } catch (e) {
+      debugPrint('offerings 실패: $e');
+      return null;
+    }
+  }
+
+  Future<PurchaseOutcome> purchase(Package package) async {
+    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요. 잠시 후 다시 시도해 주세요.');
+    try {
+      final r = await Purchases.purchase(PurchaseParams.package(package));
+      _controller.add(r.customerInfo);
+      return const PurchaseSuccess();
+    } catch (e) {
+      return PurchaseErrors.outcomeOf(e);
+    }
+  }
+
+  /// Play 의 특정 옵션(기본 요금제 = 바로 결제, 오퍼 = 무료 체험)을 골라서 산다.
+  Future<PurchaseOutcome> purchaseOption(SubscriptionOption option) async {
+    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요. 잠시 후 다시 시도해 주세요.');
+    try {
+      final r = await Purchases.purchase(PurchaseParams.subscriptionOption(option));
+      _controller.add(r.customerInfo);
+      return const PurchaseSuccess();
+    } catch (e) {
+      return PurchaseErrors.outcomeOf(e);
+    }
+  }
+
+  Future<PurchaseOutcome> restore() async {
+    if (!_configured) return const PurchaseFailed('결제 설정이 아직 안 됐어요.');
+    try {
+      final info = await Purchases.restorePurchases();
+      _controller.add(info);
+      return hasPremium(info)
+          ? const PurchaseSuccess()
+          : const PurchaseFailed('복원할 구독이 없어요. 같은 Google 계정으로 로그인돼 있는지 확인해 주세요.');
+    } catch (e) {
+      return PurchaseErrors.outcomeOf(e);
+    }
+  }
+
+  static bool hasPremium(CustomerInfo? info) => info?.entitlements.active.containsKey(PremiumConfig.entitlementId) ?? false;
+  static String? expiresAt(CustomerInfo? info) => info?.entitlements.active[PremiumConfig.entitlementId]?.expirationDate;
+  static String? productId(CustomerInfo? info) => info?.entitlements.active[PremiumConfig.entitlementId]?.productIdentifier;
 }

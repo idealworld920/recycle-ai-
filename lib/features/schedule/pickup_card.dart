@@ -6,6 +6,7 @@ import '../../app_services.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
+import '../premium/premium_gate.dart';
 import '../stats/streak_row.dart';
 import '../household/household_model.dart';
 import 'pickup_schedule.dart';
@@ -104,9 +105,13 @@ class _TodayCard extends StatelessWidget {
           Text(allDone ? '잘하셨어요. 내일도 알려드릴게요.' : '모아둔 거 한 번에 내놓고, 버렸으면 눌러주세요.', style: t.bodySmall),
           const SizedBox(height: AppSpacing.base),
           for (var i = 0; i < types.length; i++) ...[
-            _CheckRow(type: types[i], checked: store.isChecked(types[i]), member: store.memberCheckins[types[i]], onCheck: () {
+            _CheckRow(type: types[i], checked: store.isChecked(types[i]), member: store.memberCheckins[types[i]], onCheck: () async {
               HapticFeedback.mediumImpact();
-              store.checkIn(types[i]);
+              await store.checkIn(types[i]);
+              // 3주 연속 달성 순간: 가족 플랜을 한 번 권한다 (조건이 맞을 때만).
+              if (context.mounted && store.streak(DateTime.now()).weeks >= 3 && !AppServices.of(context).premium.isPremium) {
+                await maybeShowPaywall(context, source: PaywallSource.streak3, reason: '3주 연속 체크! 가족과 같이 하면 더 꾸준해져요.');
+              }
             }),
             if (i != types.length - 1) const SizedBox(height: AppSpacing.sm),
           ],

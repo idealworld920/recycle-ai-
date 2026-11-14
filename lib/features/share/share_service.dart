@@ -5,8 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app_services.dart';
+import '../paywall/paywall_trigger.dart';
+import '../premium/premium_gate.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/recycle_result.dart';
 import 'share_card.dart';
@@ -51,6 +54,11 @@ class ShareService {
       if (r.status == ShareResultStatus.dismissed) return false;
       // 공유 횟수 누적 (실패해도 조용히)
       unawaitedCount(services);
+      // 3번째 공유: 가족 플랜을 한 번 권한다 (조건이 맞을 때만).
+      final third = await PaywallTrigger(await SharedPreferences.getInstance()).countShare();
+      if (third && context.mounted && !services.premium.isPremium) {
+        await maybeShowPaywall(context, source: PaywallSource.share3, reason: '공유해 주셔서 고마워요. 가족과 같이 쓰면 더 편해요.');
+      }
       return true;
     } catch (e) {
       debugPrint('공유 실패: $e');

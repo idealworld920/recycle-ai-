@@ -99,13 +99,11 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!premium && count >= FreeLimits.chatPerDay) {
         _replacePending(ChatMessage(
           role: ChatRole.ai,
-          text: premiumStore.available
-              ? '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.'
-              : '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요.',
+          text: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요. 가족 플랜은 무제한이에요.',
         ));
         setState(() => _remaining = 0);
         if (mounted) {
-          final ok = await ensurePremium(context, reason: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요.');
+          final ok = await ensurePremium(context, reason: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요.', source: PaywallSource.limitHit);
           if (ok && mounted) _send(text);
         }
         return;
@@ -175,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Expanded(child: Text('물어보기', style: text.headlineSmall)),
                   if (AppServices.of(context).premium.isPremium)
-                    Text('프리미엄 · 무제한', style: text.bodySmall)
+                    Text('가족 플랜 · 무제한', style: text.bodySmall)
                   else if (_remaining != null)
                     Text('오늘 남은 질문 $_remaining/${FreeLimits.chatPerDay}', style: text.bodySmall),
                 ],

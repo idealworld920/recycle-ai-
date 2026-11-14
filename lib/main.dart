@@ -101,6 +101,7 @@ Future<void> _boot() async {
   final premium = PremiumStore(PurchasesService.instance, prefs: prefs);
   final household = HouseholdStore(HouseholdRepository(), prefs: prefs);
   schedule.attachHousehold(household);
+  premium.attachHousehold(household);
   String? attachedUid;
   void attachAll() {
     if (!firebase.ready || firebase.uid == attachedUid) return;

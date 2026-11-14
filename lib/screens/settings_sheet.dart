@@ -10,8 +10,9 @@ import '../features/legal/data_deletion.dart';
 import '../features/legal/legal_links.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/legal/legal_webview_screen.dart';
-import '../features/premium/paywall_screen.dart';
+import '../features/paywall/family_plan_sheet.dart';
 import '../features/premium/premium_gate.dart';
+import '../features/premium/premium_store.dart';
 import '../features/premium/purchases_service.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
@@ -40,43 +41,41 @@ Future<void> showSettingsSheet(BuildContext context) {
           children: [
             const AccountSection(),
             const SizedBox(height: AppSpacing.xl),
-            Text('프리미엄', style: t.titleSmall),
+            Text('가족 플랜', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             ListenableBuilder(
-              listenable: AppServices.of(context).premium,
+              listenable: services.premium,
               builder: (ctx2, _) {
-                final p = AppServices.of(context).premium;
+                final p = services.premium;
                 return AppCard(
-                  onTap: p.isPremium
-                      ? null
-                      : () {
-                          Navigator.pop(ctx);
-                          if (p.available) {
-                            context.pushPage(const PaywallScreen());
-                          } else {
-                            showPremiumSoonSheet(context);
-                          }
-                        },
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    if (p.isPremium) {
+                      showFamilyPlanSheet(context);
+                    } else {
+                      maybeShowPaywall(context, source: PaywallSource.settings);
+                    }
+                  },
                   padding: const EdgeInsets.all(AppSpacing.base),
                   child: Row(
                     children: [
-                      Icon(Symbols.workspace_premium_rounded, color: p.isPremium ? c.primary : c.textPrimary, fill: p.isPremium ? 1 : 0),
+                      Icon(Symbols.family_restroom_rounded, color: p.isPremium ? c.primary : c.textPrimary, fill: p.isPremium ? 1 : 0),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(p.isPremium ? '프리미엄 사용 중' : 'ReSAI 프리미엄', style: t.titleSmall),
+                            Text(p.isPremium ? '가족 플랜 사용 중' : '가족 플랜', style: t.titleSmall),
                             Text(
                               p.isPremium
-                                  ? '분류·질문 무제한, 가족 공유'
-                                  : (p.available ? '7일 무료 체험 · 월 2,900원' : '곧 출시 · 분류·질문 무제한, 가족 공유'),
+                                  ? (p.source == PremiumSource.family ? '집 방장의 구독 · 관리' : '상태·갱신일·구독 관리')
+                                  : '7일 무료 체험 · 월 2,900원 · 연 19,900원',
                               style: t.bodySmall,
                             ),
                           ],
                         ),
                       ),
-                      if (!p.isPremium) Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                      Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                     ],
                   ),
                 );
@@ -264,7 +263,7 @@ class _LinkRow extends StatelessWidget {
 }
 
 
-/// 앱 정보를 7번 탭하면 검토자 코드 입력창. Play 검토자가 결제 없이 프리미엄을 확인하는 용도.
+/// 앱 정보를 7번 탭하면 검토자 코드 입력창. Play 검토자가 결제 없이 가족 플랜엄을 확인하는 용도.
 class _AppInfo extends StatefulWidget {
   const _AppInfo({required this.child});
 
@@ -303,7 +302,7 @@ class _AppInfoState extends State<_AppInfo> {
     final ok = await premium.tryReviewCode(code);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok ? '검토 모드: 프리미엄이 ${PremiumConfig.reviewDays}일 동안 열렸어요.' : '코드가 맞지 않아요.'),
+      content: Text(ok ? '검토 모드: 가족 플랜이 ${PremiumConfig.reviewDays}일 동안 열렸어요.' : '코드가 맞지 않아요.'),
     ));
   }
 

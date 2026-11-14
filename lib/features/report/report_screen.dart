@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app_services.dart';
+import '../premium/premium_gate.dart';
 import '../../core/analytics.dart';
 import '../../core/mascot.dart';
 import '../../core/theme/app_sheet.dart';
@@ -267,6 +268,23 @@ class _ReportScreenState extends State<ReportScreen> {
             label: Text(_sharing ? '만드는 중…' : '리포트 공유하기'),
           ),
           const SizedBox(height: AppSpacing.lg),
+
+          // 가족 플랜 권유 (무료 사용자만, 탭했을 때만 페이월)
+          if (!services.premium.isPremium) ...[
+            AppCard(
+              soft: true,
+              onTap: () => maybeShowPaywall(context, source: PaywallSource.reportBottom, userInitiated: true, reason: '가족과 같이 보면 리포트가 더 풍성해져요'),
+              child: Row(
+                children: [
+                  Icon(Symbols.family_restroom_rounded, color: c.primary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(child: Text('가족 플랜: 지난달 비교·연속 기록·여러 장 분류까지', style: t.bodyMedium)),
+                  Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
 
           // ⑨ 고정 문구
           Text(ReportScreen.disclaimer, style: t.bodySmall?.copyWith(color: c.textSecondary)),

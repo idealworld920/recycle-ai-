@@ -26,7 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('결제가 안 열린 빌드에선 페이월 대신 "곧 출시" 안내를 띄우고 false 를 돌려준다', (tester) async {
+  testWidgets('설치 72시간 안에는 페이월 대신 잠금 안내를 띄우고 false 를 돌려준다', (tester) async {
     final tips = TipsRepository.fromJsonString('{"items":[]}');
     bool? result;
     await tester.pumpWidget(AppServices(
@@ -57,7 +57,7 @@ void main() {
     await tester.tap(find.text('GO'));
     await tester.pumpAndSettle();
     expect(find.text('오늘 무료 분류를 다 썼어요'), findsOneWidget);
-    expect(find.textContaining('곧 출시'), findsOneWidget);
+    expect(find.textContaining('가족 플랜은 설정'), findsOneWidget);
     expect(find.text('7일 무료로 시작'), findsNothing);
     await tester.tap(find.text('알겠어요'));
     await tester.pumpAndSettle();

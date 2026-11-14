@@ -35,7 +35,7 @@ class ClassifyFlow {
       return;
     }
     if (!services.premium.isPremium && services.freeLimits.classifyExhausted) {
-      final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.');
+      final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 가족 플랜은 무제한이에요.', source: PaywallSource.limitHit);
       if (!ok) return;
     }
     if (!context.mounted) return;
