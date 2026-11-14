@@ -120,14 +120,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         const OnboardingValuePage(
                           mock: ResultMock(),
                           mascot: Mascot.wink,
+                          bubble: '사진만 찍으면 내가 알려주겠뿅!',
                           title: '찍으면 알려줘요',
                           subtitle: '쓰레기 사진 한 장이면 어디에 버릴지, 뭘 떼야 하는지 바로 알 수 있어요',
                         ),
                         const OnboardingValuePage(
                           mock: RoutineMock(),
                           mascot: Mascot.happy,
+                          bubble: '수거일은 내가 전날 미리 알려주뿅~',
                           title: '수거일도 챙겨드려요',
                           subtitle: '전날 저녁에 알려주고, 홈 화면 위젯으로 D-day까지 보여드려요',
+                          caption: '가족이랑 같이 쓰면 누가 버렸는지도 알 수 있어요',
                         ),
                         if (!widget.replay) ConsentPage(controller: _consent),
                       ],

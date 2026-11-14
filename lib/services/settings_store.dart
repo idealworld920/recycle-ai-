@@ -10,6 +10,10 @@ class SettingsStore extends ChangeNotifier {
   static const _legacyOnboardedPref = 'onboarded_v1';
   static const firstCameraHintPref = 'firstCameraHintShown';
   static const _consentPendingPref = 'consent_remote_pending';
+  static const _lastOpenedPref = 'last_opened_at';
+  static const _prevOpenedPref = 'prev_opened_at';
+  static const _guideDismissedPref = 'guide_dismissed';
+  static const _firstClassifyPref = 'firstClassifyDone';
   static const _installedAtPref = 'installed_at_v1';
   static const _consentPrefix = 'consent_';
   static const _primerPrefix = 'primer_shown_';
@@ -69,6 +73,47 @@ class SettingsStore extends ChangeNotifier {
   // ---- 권한 사전 안내 ----
   bool primerShown(String kind) => _prefs.getBool('$_primerPrefix$kind') ?? false;
   Future<void> markPrimerShown(String kind) => _prefs.setBool('$_primerPrefix$kind', true);
+
+  // ---- 리뿅이 ----
+  /// 앱을 켤 때 한 번. 직전 실행 시각은 [previousOpenedAt] 으로 남겨 "3일 미접속 복귀" 판단에 쓴다.
+  Future<void> markOpened() async {
+    final last = _prefs.getInt(_lastOpenedPref);
+    if (last != null) await _prefs.setInt(_prevOpenedPref, last);
+    await _prefs.setInt(_lastOpenedPref, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  DateTime? get previousOpenedAt {
+    final ms = _prefs.getInt(_prevOpenedPref);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// 7일 가이드에서 닫은 항목.
+  Set<String> get guideDismissed => (_prefs.getStringList(_guideDismissedPref) ?? const []).toSet();
+
+  Future<void> dismissGuide(String key, {Future<void> Function(Map<String, dynamic>)? remote}) async {
+    final next = {...guideDismissed, key};
+    await _prefs.setStringList(_guideDismissedPref, next.toList());
+    notifyListeners();
+    if (remote != null) {
+      try {
+        await remote({
+          'guide': {'day': daysSinceInstall, 'dismissed': next.toList()},
+        });
+      } catch (_) {}
+    }
+  }
+
+  /// 첫 분류 성공 축하는 1회.
+  bool get firstClassifyDone => _prefs.getBool(_firstClassifyPref) ?? false;
+
+  Future<void> markFirstClassifyDone({Future<void> Function(Map<String, dynamic>)? remote}) async {
+    await _prefs.setBool(_firstClassifyPref, true);
+    if (remote != null) {
+      try {
+        await remote({'firstClassifyDone': true});
+      } catch (_) {}
+    }
+  }
 
   // ---- 설치일 ----
   DateTime get installedAt => DateTime.tryParse(_prefs.getString(_installedAtPref) ?? '') ?? DateTime.now();

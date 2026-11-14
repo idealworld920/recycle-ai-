@@ -128,9 +128,9 @@ class NotificationService {
     if (_mascotIconPath != null) return _mascotIconPath;
     try {
       final dir = await getApplicationSupportDirectory();
-      final file = File('${dir.path}/mascot_happy.png');
+      final file = File('${dir.path}/mascot_wink.png');
       if (!await file.exists()) {
-        final data = await rootBundle.load(Mascot.happy.png);
+        final data = await rootBundle.load(Mascot.wink.png);
         await file.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
       }
       return _mascotIconPath = file.path;

@@ -79,8 +79,8 @@ class _HomeShellState extends State<HomeShell> {
           destinations: const [
             NavigationDestination(icon: Icon(Symbols.home_rounded), selectedIcon: Icon(Symbols.home_rounded, fill: 1), label: '홈'),
             NavigationDestination(
-              icon: Icon(Symbols.chat_bubble_rounded),
-              selectedIcon: Icon(Symbols.chat_bubble_rounded, fill: 1),
+              icon: _AskTabIcon(selected: false),
+              selectedIcon: _AskTabIcon(selected: true),
               label: '물어보기',
             ),
             NavigationDestination(
@@ -95,6 +95,32 @@ class _HomeShellState extends State<HomeShell> {
             ),
             NavigationDestination(icon: Icon(Symbols.history_rounded), selectedIcon: Icon(Symbols.history_rounded, fill: 1), label: '기록'),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 물어보기 탭 아이콘: 리뿅이 그림(원본 색 유지). 비선택 55% 투명, 선택 100% + 1.1배. 에셋이 없으면 말풍선 아이콘.
+class _AskTabIcon extends StatelessWidget {
+  const _AskTabIcon({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = selected ? 'assets/branding/mascot/tab_ask_selected.png' : 'assets/branding/mascot/tab_ask_default.png';
+    return Opacity(
+      opacity: selected ? 1 : 0.55,
+      child: Transform.scale(
+        scale: selected ? 1.1 : 1,
+        child: Image.asset(
+          path,
+          width: 28,
+          height: 28,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, _, _) => Icon(Symbols.chat_bubble_rounded, fill: selected ? 1 : 0),
         ),
       ),
     );

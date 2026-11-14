@@ -21,6 +21,7 @@ import 'features/history/history_store.dart';
 import 'features/calendar/calendar_event.dart';
 import 'features/calendar/event_store.dart';
 import 'features/household/household_repository.dart';
+import 'features/mascot/ribbong_lines.dart';
 import 'features/household/household_store.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/premium/free_limits.dart';
@@ -107,6 +108,8 @@ Future<void> _boot() async {
   schedule.attachHousehold(household);
   premium.attachHousehold(household);
   final events = EventStore(prefs, specialDays: await _loadSpecialDays());
+  RibbongLines.current = await RibbongLines.load();
+  unawaited(settings.markOpened());
   events.attachHousehold(household);
   String? attachedUid;
   void attachAll() {

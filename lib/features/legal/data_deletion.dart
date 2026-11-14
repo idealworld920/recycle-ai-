@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
+import '../../core/mascot.dart';
 import '../../core/theme/app_sheet.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,7 +21,7 @@ Future<void> showDeleteDataSheet(BuildContext context) {
         controller: controller,
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
         children: [
-          Icon(Symbols.delete_forever_rounded, size: 32, color: c.error),
+          Row(children: [const MascotImage(Mascot.crying, size: 56), const SizedBox(width: AppSpacing.sm), Icon(Symbols.delete_forever_rounded, size: 24, color: c.error)]),
           const SizedBox(height: AppSpacing.md),
           Text('정말 모두 지울까요?', style: t.headlineSmall),
           const SizedBox(height: AppSpacing.sm),

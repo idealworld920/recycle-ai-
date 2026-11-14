@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
+import '../../core/mascot.dart';
 import '../../core/theme/app_sheet.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -165,7 +166,10 @@ class _SigunguList extends StatelessWidget {
     final c = context.colors;
     final t = context.text;
     if (items.isEmpty) {
-      return Padding(padding: const EdgeInsets.all(AppSpacing.lg), child: Text(emptyText ?? '', style: t.bodySmall));
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: emptyText == null ? const SizedBox.shrink() : MascotEmpty(mascot: Mascot.confused, size: 56, text: '그런 동네는 못 찾았뿅… 시·군·구 이름으로 다시 찾아보뿅!'),
+      );
     }
     return ListView.separated(
       controller: controller,

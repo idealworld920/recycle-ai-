@@ -11,6 +11,8 @@ import '../features/auth/auth_store.dart';
 import '../features/classify/classify_flow.dart';
 import '../features/auth/link_banner.dart';
 import '../features/history/history_record.dart';
+import '../features/mascot/home_ribbong.dart';
+import '../features/mascot/ribbong_lines.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/stats/stats_calculator.dart';
 import '../features/schedule/app_actions.dart';
@@ -138,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : const SizedBox.shrink(),
                 ),
+                HomeRibbong(lines: RibbongLines.current),
+                const SizedBox(height: AppSpacing.xl),
                 Text('오늘은 뭘 버릴까요?', style: t.headlineSmall),
                 const SizedBox(height: AppSpacing.lg),
                 const PickupCard(),

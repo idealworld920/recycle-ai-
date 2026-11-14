@@ -8,7 +8,10 @@ import '../app_services.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_theme.dart';
 import '../data/recycling_guide.dart';
+import '../core/mascot.dart';
 import '../features/feedback/feedback_sheet.dart';
+import '../features/mascot/first_classify_overlay.dart';
+import '../features/onboarding/intro_animation.dart';
 import '../features/places/region_guidance.dart';
 import '../features/share/share_service.dart';
 import '../features/tips/tip_card.dart';
@@ -59,11 +62,16 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
     final toast = widget.toast;
-    if (toast != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 2)));
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (toast != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 2)));
+      // 첫 분류 성공 1회: 축하 오버레이.
+      final services = AppServices.of(context);
+      if (widget.isNew && !services.settings.firstClassifyDone) {
+        await services.settings.markFirstClassifyDone(remote: services.auth.service.mergeUserDoc);
+        if (mounted) await showFirstClassifyOverlay(context);
+      }
+    });
   }
 
   @override
@@ -114,6 +122,16 @@ class _ResultScreenState extends State<ResultScreen> {
               child: Icon(cat.icon, size: 48, color: c.textPrimary),
             ),
           const SizedBox(height: AppSpacing.xl),
+
+          // 리뿅이 한마디 (정보는 아래 카드에 건조하게)
+          Row(
+            children: [
+              MascotImage(result.confidencePercent < 60 ? Mascot.confused : Mascot.wink, size: 56),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(child: SpeechBubble(text: result.confidencePercent < 60 ? '으엥… 다시 볼게뿅' : '이건 내가 알지뿅~!', tail: BubbleTail.left)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.base),
 
           // 1~4. 품목명 → 뱃지 → 왜? → 배출 단계 (온보딩 목업과 같은 위젯)
           ResultCard(result: result, userAnswer: showOverride ? override : null, slow: slow),

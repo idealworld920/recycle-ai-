@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
+import '../../core/mascot.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../screens/result_screen.dart';
@@ -276,7 +277,6 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.text;
-    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl),
       child: Column(
@@ -284,17 +284,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Text('분류 기록', style: t.headlineSmall),
           const Spacer(),
-          Center(
-            child: Column(
-              children: [
-                Icon(Symbols.inbox_rounded, size: 44, color: c.textSecondary),
-                const SizedBox(height: AppSpacing.base),
-                Text('아직 기록이 없어요', style: t.titleSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text('사진으로 분류하면 여기에 자동으로 쌓여요.', style: t.bodySmall),
-              ],
-            ),
-          ),
+          const MascotEmpty(mascot: Mascot.idle, text: '아직 기록이 없뿅. 사진으로 분류하면 여기에 쌓이뿅!'),
           const Spacer(),
           FilledButton(onPressed: onGoHome, child: const Text('분류하러 가기')),
         ],

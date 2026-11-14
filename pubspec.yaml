@@ -82,11 +82,7 @@ flutter:
 
   assets:
     - assets/fonts/LICENSE.txt
-    - assets/data/tips.json
-    - assets/data/bulky_waste_links.json
-    - assets/data/regions.json
-    - assets/data/carbon_factors.json
-    - assets/data/special_days.json
+    - assets/data/
     - assets/branding/logo_192.png
     - assets/branding/app_icon_128.png
     - assets/branding/mascot/

@@ -8,15 +8,20 @@ import '../../models/recycle_category.dart';
 import '../../models/recycle_result.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/result_card.dart';
+import 'intro_animation.dart';
 
-/// 온보딩 1·2페이지 공통 틀: 위 60% 목업(+ 리뿅이 96px 겹침), 아래 제목 24/Bold + 부제 15/Regular.
+/// 온보딩 1·2페이지 공통 틀: 위에 리뿅이 GIF 160px + 말풍선(뿅체), 가운데 목업(작게, 터치 비활성), 아래 제목/부제(작게).
 class OnboardingValuePage extends StatelessWidget {
-  const OnboardingValuePage({super.key, required this.mock, required this.mascot, required this.title, required this.subtitle});
+  const OnboardingValuePage({super.key, required this.mock, required this.mascot, required this.bubble, required this.title, required this.subtitle, this.caption});
 
   final Widget mock;
   final Mascot mascot;
+  final String bubble;
   final String title;
   final String subtitle;
+
+  /// 2페이지 하단 캡션 (버튼 없음).
+  final String? caption;
 
   @override
   Widget build(BuildContext context) {
@@ -25,53 +30,47 @@ class OnboardingValuePage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: AppSpacing.sm),
+        Center(child: MascotImage(mascot, size: 160)),
+        const SizedBox(height: AppSpacing.sm),
+        Center(child: SpeechBubble(text: bubble)),
+        const SizedBox(height: AppSpacing.base),
         Expanded(
-          flex: 6,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: LayoutBuilder(
               builder: (context, box) {
-                final w = box.maxWidth.clamp(0.0, 340.0);
-                return Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    // 살짝 뒤로 기울여 깊이감. 터치는 막는다.
-                    IgnorePointer(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.0012)
-                            ..rotateX(0.14),
-                          child: SizedBox(width: w, child: mock),
-                        ),
-                      ),
+                final w = box.maxWidth.clamp(0.0, 300.0);
+                return IgnorePointer(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topCenter,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.0012)
+                        ..rotateX(0.14),
+                      child: SizedBox(width: w, child: mock),
                     ),
-                    Positioned(
-                      left: (box.maxWidth - w) / 2 - 36,
-                      top: -4,
-                      child: MascotImage(mascot, size: 96),
-                    ),
-                  ],
+                  ),
                 );
               },
             ),
           ),
         ),
-        Expanded(
-          flex: 4,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: t.headlineSmall),
-                const SizedBox(height: AppSpacing.md),
-                Text(subtitle, style: t.bodyMedium?.copyWith(color: c.textSecondary)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.base, AppSpacing.xl, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: t.titleMedium),
+              const SizedBox(height: AppSpacing.xs),
+              Text(subtitle, style: t.bodySmall?.copyWith(color: c.textSecondary)),
+              if (caption != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(caption!, style: t.bodySmall?.copyWith(color: c.primary)),
               ],
-            ),
+            ],
           ),
         ),
       ],

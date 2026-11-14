@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
+import '../../core/mascot.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_chip.dart';
@@ -82,17 +83,9 @@ class _TipsScreenState extends State<TipsScreen> {
         ),
         const SizedBox(height: AppSpacing.base),
         if (results.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xxl * 2),
-            child: Column(
-              children: [
-                Icon(Symbols.search_off_rounded, size: 40, color: c.textSecondary),
-                const SizedBox(height: AppSpacing.sm),
-                Text('찾는 품목이 없어요', style: t.titleSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text('다른 이름으로 검색하거나 사진으로 판별해 보세요.', style: t.bodySmall),
-              ],
-            ),
+          const Padding(
+            padding: EdgeInsets.only(top: AppSpacing.xxl * 2),
+            child: MascotEmpty(mascot: Mascot.confused, text: '그 이름은 못 찾았뿅… 다른 이름으로 찾거나 사진으로 찍어보뿅!'),
           )
         else ...[
           Text('${results.length}개', style: t.bodySmall),
