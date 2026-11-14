@@ -181,12 +181,7 @@ WAKE_LOCK · VIBRATE · FOREGROUND_SERVICE(_SHORT_SERVICE, 알림/워크매니�
 
 ## 구독 (RevenueCat) 설정
 
-> **1.1.0 에는 구독이 없다.** Play Console 권한 목록을 줄이려고 `purchases_flutter` 를 pubspec 에서 뺐고,
-> `lib/features/premium/` 는 "다음 업데이트에서 열려요" 안내 + 검토자 코드(`REVIEW_CODE`)·`PREMIUM_DEBUG` 만 남긴 가벼운 구현이다.
-> 페이월·설정의 프리미엄 카드는 그대로 있고, 결제 버튼과 구매 복원만 없다.
-> **1.4.0 에서 되돌리기**: `purchases_flutter: ^10.16.0` 을 pubspec 에 다시 넣고, git 기록에서 "Strip purchases_flutter" 커밋 **직전** 버전의
-> `purchases_service.dart` · `premium_store.dart` · `purchase_errors.dart` · `paywall_screen.dart` · `test/premium_test.dart` 를 복원한다.
-> 아래 RevenueCat 설정(상품·웹훅·키)은 그때 그대로 쓴다. 매니페스트의 `tools:node="remove"` 중 BILLING 은 건드린 적이 없으니 그대로 둬도 된다.
+> **1.2.0 부터 구독 = "가족 플랜"** (사용자 노출 명칭은 항상 가족 플랜, "프리미엄" 금지). 아래 설정 순서대로 하면 된다.
 
 
 앱은 `purchases_flutter`(RevenueCat)로 결제·영수증 검증·복원을 처리해요. 구독 상태의 진실은 RevenueCat SDK 이고,
@@ -369,6 +364,68 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - GIF 배경: 올려주신 원본은 완전 흰색이 아니라(#FBFBFB) 흰 화면에서 네모가 비쳐, `python3 tool/gif_keyout.py r_intro r_wink` 로 모서리에서 이어진 배경만 투명 처리했다 (얼굴의 흰 눈·입은 유지).
 - 테스트 `test/onboarding_test.dart`: 최초 실행 전체 / 모두 동의 / 건너뛰기 / 필수 미체크 비활성 / 뒤로가기 / 인트로 탭 / 다시 보기 / 애니메이션 줄이기.
 - 캡처용 데모: `--dart-define=DEMO=true --dart-define=DEMO_ONBOARDING=true` 면 데모 시드가 온보딩을 건너뛰지 않는다.
+
+## v1.2 대규모 업데이트 (feature/v1.2 → main)
+
+원칙: `isPremium` 은 RevenueCat 실제 entitlement(또는 집 방장의 entitlement 가 웹훅으로 적어 준 `households/{id}.premiumUntil`)에만 연결된다. 임시 true 는 없다.
+리뿅이 말풍선만 뿅뿅체, 정보 텍스트·설정·약관·결제 화면은 표준 존댓말. 설정·약관·결제 화면엔 리뿅이가 나오지 않는다(페이월 상단만 예외, 스펙).
+
+### A. 가족 공유 (`lib/features/household/`, `functions/index.js`)
+- `households/{id}`: `{ name, ownerUid, memberUids:[uid], members:[{uid,nickname,color,joinedAt}], inviteCode, inviteCodeExpiresAt, schedule, premiumUntil, createdAt }`
+- 초대 코드 6자리(0/O/1/I 제외, 대소문자 무시, 24시간, 방장 재발급), 최대 6명, 닉네임 기본 = 구글 이름 앞 2글자, 색 6종 자동.
+- **참여·나가기·내보내기·방장 위임은 Cloud Function(callable)** `joinHousehold` / `leaveHousehold` / `removeHouseholdMember` / `transferHouseholdOwner` 가 검증 후 처리한다. 규칙은 멤버의 `schedule` 수정과 방장의 이름·초대 코드 재발급만 허용한다. 마지막 멤버가 나가면 집(하위 컬렉션 포함) 삭제, 방장이 나가면 가장 먼저 들어온 멤버에게 위임.
+- 수거일은 집 단위, 알림은 각자 폰에서 각자 시각. 참여 시 개인 수거일이 있으면 "집 설정으로 바꿀까요?"(아니오 = `household_follow_schedule=false`, 내 설정 유지).
+- 홈 카드 "{닉네임}가 오늘 {종류} 버렸어요 · 시각", 같은 날 같은 종류 중복 체크 방지.
+- 초대 공유: share_plus `ReSAI 우리 집에 초대할게! 코드: XXXXXX https://idealworld920.github.io/recycle-ai-`
+
+### B. 가족 플랜 (`lib/features/premium/`, `lib/features/paywall/`)
+- 상품 `resai_family_monthly` 월 2,900원 / `resai_family_yearly` 연 19,900원, 7일 무료 체험, entitlement `premium`.
+- 혜택: 분류·질문 무제한, 가족 공유(집 만들기), 캘린더 일정+알림, 여러 장 분류. 무료: 분류 10회/일, 질문 5회/일, 팁, 수거일 3종, 기록, 리포트 기본, 코드로 집 참여.
+- 집 방장이 구독하면 웹훅이 `households/{id}.premiumUntil` 을 적고 멤버 전원이 그 값으로 열린다. 만료 시 전원 무료, 데이터 유지. 멤버 개인 구독은 본인만.
+- 페이월 진입(`PaywallTrigger`): `reportBottom`/`streak3`/`share3` 자동 노출은 평생 1회, `limitHit` 하루 1회, `featureTap`(집 만들기·일정 추가·여러 장)은 누를 때. 설치 72시간 안·첫 제한 도달 전·온보딩 중엔 안 띄운다. 기록: 기기 prefs + `users/{uid}.paywallShown.{source}`.
+- 설정 → 가족 플랜 관리: 상태(내 구독/집 방장 구독/검토 모드)·갱신일·Play 구독 관리 딥링크·구매 복원.
+
+### C. 캘린더 + 여러 장 (`lib/features/calendar/`, `lib/features/classify/multi/`)
+- 기록 탭 [기록 | 캘린더]. 수거일 3종 색 점, 체크한 날 ✓, 오늘 강조, 스와이프 월 이동. 날짜 탭 → 그날 항목 + [일정 추가](가족 플랜).
+- 일정: 제목·종류(대형폐기물 신고/폐건전지·폐형광등/기타)·날짜·전날 20:00 알림. 집 공유 중이면 `households/{id}/events`, 아니면 `users/{uid}/events` (+ 기기 복사본).
+- `assets/data/special_days.json`: 전국 공통 일정만, **sourceUrl(https) 없는 항목은 넣지 않는다**. `tool/validate_data.dart` 가 검사한다. 현재 비어 있음(아래 "비워 둔 항목").
+- 여러 장: 카메라 화면 "여러 장" 토글(가족 플랜, 무료는 잠금 아이콘) → 갤러리 최대 10장 또는 카메라 연속 촬영 → "n/10 분류 중" + 리뿅이 thinking → 결과 리스트 → 탭하면 개별 결과. 실패 장 [다시 시도], 공유는 개별 결과에서만.
+
+### D. 리뿅이 (`lib/features/mascot/`, `lib/core/mascot.dart`)
+- 홈 상단 `r_idle.gif` 72px + 말풍선. 대사는 `assets/data/ribbong_lines.json`(형식: 문자열 배열 / `{"lines":[{"text","when"}]}` / `{"morning":[…]}`; `when` 은 `pickupToday|pickupTomorrow|returnAfter3Days|classified10|morning|day|evening|night|random`). 파일에 없는 조건은 내장 문장을 쓴다.
+- 우선순위: 수거일 당일 > 전날 > 3일 미접속 복귀 > 당일 분류 10개↑ > 시간대 > 랜덤. 탭 → happy 계열(happy·cheer·laugh 랜덤)/wink/thinking, 5연타 "간지럽뿅!!".
+- 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 가족 플랜 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
+- 에셋이 없으면: GIF → 같은 표정 PNG → 대체 표정(confused→thinking, crying→idle) 순으로 폴백하고, 탭 아이콘은 Material 아이콘으로. 새 GIF 를 넣은 뒤 `python3 tool/mascot_frames.py` 로 `_static.png` 를 만든다.
+
+### 내가 할 설정 순서 (Play Console · RevenueCat · Firebase)
+1. **Play Console → 수익 창출 → 구독**: `resai_family_monthly`(월 2,900원), `resai_family_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). 기존 `resai_premium_*` 은 비활성화.
+2. **RevenueCat**: Products 에 위 두 상품 → Entitlement `premium` 에 연결 → Offering `default` 에 `$rc_monthly`/`$rc_annual` 패키지. Public SDK key 를 `dart_defines.json` 의 `REVENUECAT_ANDROID_KEY` 에.
+3. **RevenueCat → Integrations → Webhooks**: URL `https://asia-northeast3-<project>.cloudfunctions.net/revenuecatWebhook`, Authorization `Bearer <시크릿>`.
+4. **Firebase**:
+   ```bash
+   firebase functions:secrets:set REVENUECAT_WEBHOOK_SECRET
+   cd functions && npm install && cd ..
+   firebase deploy --only functions            # revenuecatWebhook + joinHousehold/leaveHousehold/removeHouseholdMember/transferHouseholdOwner
+   firebase deploy --only firestore:rules      # households(members/events/checkins), feedback, regionNoteReports 규칙
+   ```
+   에뮬레이터: `firebase emulators:start --only functions,firestore` 후 앱에서 `FirebaseFunctions.instanceFor(region: 'asia-northeast3').useFunctionsEmulator('10.0.2.2', 5001)`.
+5. **Play Console → 앱 콘텐츠 → 콘텐츠 등급**: 인앱 구매가 생겼으니 설문을 다시 제출한다("디지털 구매 제공" 예). 광고 ID 선언은 그대로 "아니요".
+6. 빌드: `flutter build appbundle --release --dart-define-from-file=dart_defines.json`.
+
+### 테스트 체크리스트 (라이선스 테스터)
+- [ ] 월간 7일 체험 시작 → 설정 "가족 플랜 사용 중", 갱신일 표시
+- [ ] 앱 삭제 후 재설치 → 구매 복원
+- [ ] 체험 종료(테스트 트랙은 5분) → 자동 갱신 → 만료 → 무료로 돌아가고 기록 유지
+- [ ] 해지 → 만료일까지 유지
+- [ ] 방장 구독 → 멤버 기기에서 `가족 플랜 사용 중(집 방장의 구독)` 전파 (웹훅 → premiumUntil)
+- [ ] 방장 위임 → 새 방장 구독 기준으로 바뀜
+- [ ] 초대 코드 만료(24h)·정원(6명)·중복 참여 거부 메시지
+- [ ] 페이월 진입 조건: 설치 72시간 안엔 잠금 안내만, 그 뒤 limitHit 하루 1회, reportBottom/streak3/share3 평생 1회
+
+### 확인 못 해서 비워 둔 항목
+- `assets/data/special_days.json` 항목: 공식 출처 URL 을 이 환경에서 열어 확인하지 못해 비워 둠(자원순환의 날 9/6 등은 환경부 페이지 확인 후 추가).
+- 리뿅이 새 에셋(`r_idle.gif`, `r_confused.gif`, `r_crying.gif`, `tab_ask_*.png`, `ribbong_lines.json`)은 이 브랜치에 아직 없다. 들어오면 `tool/mascot_frames.py` 로 정지 PNG 생성.
+- RevenueCat 실제 결제·웹훅 전파는 라이선스 테스터 기기에서만 확인 가능.
 
 ## 구조
 
