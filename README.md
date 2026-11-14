@@ -426,7 +426,7 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 테스트 `test/delete_records_test.dart`(도감 유지/제거, 뱃지 회수, 선택 모드·헤더·전체 선택·삭제 시트·스낵바·뒤로가기), `test/history_store_test.dart`(removeMany·clear).
 
 ### 내가 할 설정 순서 (Play Console · RevenueCat · Firebase)
-1. **Play Console → 수익 창출 → 구독**: `resai_premium_monthly`(월 2,900원), `resai_premium_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). 기존 `resai_premium_*` 은 비활성화.
+1. **Play Console → 수익 창출 → 구독**: `resai_premium_monthly`(월 2,900원), `resai_premium_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). (이전 가족 플랜 상품 ID 를 만들었었다면 비활성화.)
 2. **RevenueCat**: Products 에 위 두 상품 → Entitlement `premium` 에 연결 → Offering `default` 에 `$rc_monthly`/`$rc_annual` 패키지. Public SDK key 를 `dart_defines.json` 의 `REVENUECAT_ANDROID_KEY` 에.
 3. **RevenueCat → Integrations → Webhooks**: URL `https://asia-northeast3-<project>.cloudfunctions.net/revenuecatWebhook`, Authorization `Bearer <시크릿>`.
 4. **Firebase**:
