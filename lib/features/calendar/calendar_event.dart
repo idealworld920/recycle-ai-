@@ -15,7 +15,7 @@ enum EventKind {
   static EventKind fromKey(String? k) => EventKind.values.where((e) => e.key == k).firstOrNull ?? EventKind.other;
 }
 
-/// 캘린더 사용자 일정 (가족 플랜). 집 공유 중이면 households/{id}/events, 아니면 users/{uid}/events.
+/// 캘린더 사용자 일정 (프리미엄). 집 공유 중이면 households/{id}/events, 아니면 users/{uid}/events.
 class CalendarEvent {
   const CalendarEvent({
     required this.id,

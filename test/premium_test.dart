@@ -16,12 +16,12 @@ void main() {
     expect(PurchaseErrors.messageFor(PurchasesErrorCode.unknownError), contains('실패'));
   });
 
-  test('가족 플랜 상품·명칭', () {
-    expect(PremiumConfig.planName, '가족 플랜');
-    expect(PremiumConfig.monthlyProductId, 'resai_family_monthly');
-    expect(PremiumConfig.yearlyProductId, 'resai_family_yearly');
+  test('프리미엄 상품·명칭', () {
+    expect(PremiumConfig.planName, 'ReSAI 프리미엄');
+    expect(PremiumConfig.monthlyProductId, 'resai_premium_monthly');
+    expect(PremiumConfig.yearlyProductId, 'resai_premium_yearly');
     expect(PremiumConfig.entitlementId, 'premium');
-    expect(PremiumConfig.manageUrl('resai_family_yearly'), contains('sku=resai_family_yearly'));
+    expect(PremiumConfig.manageUrl('resai_premium_yearly'), contains('sku=resai_premium_yearly'));
   });
 
   test('키 없는 빌드: 결제 불가, isPremium 은 임시 true 없이 false', () async {
@@ -34,13 +34,13 @@ void main() {
     expect(r, isA<PurchaseFailed>());
   });
 
-  test('집에 속하면 방장 구독(premiumUntil)으로 가족 플랜이 열린다', () async {
+  test('집에 속하면 방장 구독(premiumUntil)으로 프리미엄이 열린다', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final household = HouseholdStore(HouseholdRepository(), prefs: prefs);
     final store = PremiumStore(PurchasesService.instance, prefs: prefs)..attachHousehold(household);
     expect(store.isPremium, isFalse); // 집 없음
-    // 집 스토어가 가족 플랜 활성 상태를 보고하면 source 가 family 가 된다 (스트림 없이 getter 로 확인).
+    // 집 스토어가 프리미엄 활성 상태를 보고하면 source 가 family 가 된다 (스트림 없이 getter 로 확인).
     expect(household.familyPlanActive, isFalse);
     expect(store.source, PremiumSource.none);
   });

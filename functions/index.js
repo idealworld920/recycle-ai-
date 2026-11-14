@@ -49,7 +49,7 @@ exports.revenuecatWebhook = onRequest({ region: REGION, secrets: [webhookSecret]
       },
     }, { merge: true });
   }
-  // 방장이 구독한 집: 멤버 전원이 premiumUntil 로 가족 플랜을 판단한다.
+  // 방장이 구독한 집: 멤버 전원이 premiumUntil 로 프리미엄을 판단한다.
   for (const uid of ids) {
     const homes = await db.collection("households").where("ownerUid", "==", uid).get();
     homes.forEach((h) => batch.set(h.ref, {
@@ -135,7 +135,7 @@ async function removeFromHousehold(ref, uid, { byOwner }) {
         memberUids: admin.firestore.FieldValue.arrayRemove(uid),
       };
       if (data.ownerUid === uid) {
-        // 방장이 나가면 가장 먼저 들어온 멤버에게 위임. 가족 플랜은 새 방장 기준으로 다시 계산되므로 비운다.
+        // 방장이 나가면 가장 먼저 들어온 멤버에게 위임. 프리미엄은 새 방장 기준으로 다시 계산되므로 비운다.
         const next = [...members].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
         update.ownerUid = next.uid;
         update.premiumUntil = null;
@@ -180,7 +180,7 @@ exports.transferHouseholdOwner = onCall({ region: REGION }, async (request) => {
   const h = await householdOf(uid);
   if (!h || h.data.ownerUid !== uid) throw new HttpsError("permission-denied", "방장만 할 수 있어요.");
   if (!memberList(h.data).some((m) => m.uid === target)) throw new HttpsError("not-found", "그 멤버는 이 집에 없어요.");
-  // 새 방장의 구독으로 가족 플랜을 다시 계산한다 (웹훅이 다음 이벤트에서 채움). 그 전까지는 새 방장의 users.premium 을 본다.
+  // 새 방장의 구독으로 프리미엄을 다시 계산한다 (웹훅이 다음 이벤트에서 채움). 그 전까지는 새 방장의 users.premium 을 본다.
   const owner = await db.collection("users").doc(target).get();
   const p = owner.exists ? owner.data().premium : null;
   const premiumUntil = p && p.active && p.expiresAt ? p.expiresAt : null;

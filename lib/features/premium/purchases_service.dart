@@ -5,14 +5,14 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 import 'purchase_errors.dart';
 
-/// 가족 플랜(RevenueCat) 설정값. 사용자에게 보이는 이름은 항상 "가족 플랜".
+/// ReSAI 프리미엄(RevenueCat) 설정값. 사용자 노출 명칭은 "ReSAI 프리미엄"/"프리미엄".
 class PremiumConfig {
   PremiumConfig._();
 
   static const androidKey = String.fromEnvironment('REVENUECAT_ANDROID_KEY');
   static const iosKey = String.fromEnvironment('REVENUECAT_IOS_KEY');
 
-  /// 개발 중 결제 없이 가족 플랜 화면을 보려면 `--dart-define=PREMIUM_DEBUG=true`.
+  /// 개발 중 결제 없이 프리미엄 화면을 보려면 `--dart-define=PREMIUM_DEBUG=true`.
   static const debugPremium = bool.fromEnvironment('PREMIUM_DEBUG');
 
   /// Play 검토자용. `--dart-define=REVIEW_CODE=...` 로 넣은 코드를 설정 → 앱 정보 7번 탭 → 입력하면
@@ -20,10 +20,10 @@ class PremiumConfig {
   static const reviewCode = String.fromEnvironment('REVIEW_CODE');
   static const reviewDays = 30;
 
-  static const planName = '가족 플랜';
+  static const planName = 'ReSAI 프리미엄';
   static const entitlementId = 'premium';
-  static const monthlyProductId = 'resai_family_monthly';
-  static const yearlyProductId = 'resai_family_yearly';
+  static const monthlyProductId = 'resai_premium_monthly';
+  static const yearlyProductId = 'resai_premium_yearly';
   static const monthlyPriceFallback = '2,900원';
   static const yearlyPriceFallback = '19,900원';
   static const trialDays = 7;

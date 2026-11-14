@@ -10,9 +10,9 @@ import '../paywall/paywall_screen.dart';
 import '../paywall/paywall_trigger.dart';
 
 /// 페이월을 띄운 계기. users/{uid}.paywallShown 에 1회씩 기록한다.
-enum PaywallSource { reportBottom, streak3, share3, limitHit, featureTap, settings }
+enum PaywallSource { reportBottom, streak3, share3, limitHit, featureTap, guide7, settings }
 
-/// 가족 플랜이면 true. 아니면 (조건이 맞을 때) 페이월을 띄우고 결제 결과를 돌려준다.
+/// 프리미엄이면 true. 아니면 (조건이 맞을 때) 페이월을 띄우고 결제 결과를 돌려준다.
 ///
 /// 설치 72시간 안·온보딩 중·첫 제한 전처럼 페이월을 띄우지 않는 때는 짧은 잠금 안내만 보여준다.
 Future<bool> ensurePremium(BuildContext context, {String? reason, String? unavailableMessage, PaywallSource source = PaywallSource.featureTap}) async {
@@ -57,11 +57,11 @@ Future<void> showLockedPlanSheet(BuildContext context, {String? reason, String? 
             children: [
               Icon(Symbols.lock_rounded, color: c.primary),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Text(reason ?? '가족 플랜에서 열려요', style: t.titleMedium)),
+              Expanded(child: Text(reason ?? '프리미엄에서 열려요', style: t.titleMedium)),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(message ?? '무료 횟수는 매일 자정에 다시 채워져요. 가족 플랜은 설정 → 가족 플랜에서 언제든 시작할 수 있어요.', style: t.bodyMedium),
+          Text(message ?? '무료 횟수는 매일 자정에 다시 채워져요. 프리미엄은 설정 → 프리미엄에서 언제든 시작할 수 있어요.', style: t.bodyMedium),
           const SizedBox(height: AppSpacing.lg),
           FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('알겠어요')),
         ],

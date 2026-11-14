@@ -63,7 +63,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (mounted && _hint) setState(() => _hint = false);
   }
 
-  /// "여러 장" 토글: 가족 플랜만. 무료는 잠금 아이콘 → 안내.
+  /// "여러 장" 토글: 프리미엄만. 무료는 잠금 아이콘 → 안내.
   Future<void> _toggleMulti(bool on) async {
     if (!on) {
       setState(() => _multi = false);
@@ -71,7 +71,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
     final services = AppServices.of(context);
     if (!services.premium.isPremium) {
-      await ensurePremium(context, reason: '여러 장 분류는 가족 플랜에서 열려요', source: PaywallSource.featureTap);
+      await ensurePremium(context, reason: '여러 장 분류는 프리미엄에서 열려요', source: PaywallSource.featureTap);
       if (!mounted || !services.premium.isPremium) return;
     }
     setState(() => _multi = true);
@@ -83,7 +83,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final picker = ImagePicker();
     final services = AppServices.of(context);
     final used = services.freeLimits.classifyCountToday();
-    final allowance = MultiClassifyScreen.allowance(premium: services.premium.isPremium, usedToday: used);
+    final allowance = MultiClassifyScreen.allowance(premium: services.premium.isPremium || services.settings.inFreeGrace, usedToday: used);
     if (allowance <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('오늘은 더 분류할 수 없어요. 내일 다시 시도해 주세요.')));
       return;
@@ -196,7 +196,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                             if (!premium) ...[const SizedBox(width: AppSpacing.xs), Icon(Symbols.lock_rounded, size: 16, color: c.textSecondary)],
                           ],
                         ),
-                        subtitle: Text(premium ? '한 번에 여러 장을 차례로 분류해요.' : '가족 플랜에서 열려요.', style: t.bodySmall),
+                        subtitle: Text(premium ? '한 번에 여러 장을 차례로 분류해요.' : '프리미엄에서 열려요.', style: t.bodySmall),
                       );
                     },
                   ),

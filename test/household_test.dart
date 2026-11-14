@@ -40,7 +40,7 @@ void main() {
       'premiumUntil': DateTime(2026, 12, 1).millisecondsSinceEpoch,
     };
 
-    test('파싱·방장·정원·만료·가족 플랜', () {
+    test('파싱·방장·정원·만료·프리미엄', () {
       final h = Household.fromJson('h1', json);
       expect(h.members.length, 2);
       expect(h.memberUids, ['a', 'b']);
@@ -54,7 +54,7 @@ void main() {
       expect(h.member('b')!.nickname, '민수');
     });
 
-    test('premiumUntil 없으면 가족 플랜 아님, 코드 없으면 만료 취급', () {
+    test('premiumUntil 없으면 프리미엄 아님, 코드 없으면 만료 취급', () {
       final h = Household.fromJson('h', {'ownerUid': 'a', 'members': []});
       expect(h.premiumActiveAt(DateTime.now()), isFalse);
       expect(h.inviteExpiredAt(DateTime.now()), isTrue);

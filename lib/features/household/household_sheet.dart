@@ -57,7 +57,7 @@ class _HouseholdBody extends StatelessWidget {
                 label: const Text('집 만들기'),
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text('가족 플랜 전용 · 최대 ${Household.maxMembers}명', style: t.bodySmall, textAlign: TextAlign.center),
+              Text('프리미엄 전용 · 최대 ${Household.maxMembers}명', style: t.bodySmall, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.md),
               OutlinedButton.icon(
                 onPressed: store.busy ? null : () => _join(context),
@@ -113,7 +113,7 @@ class _HouseholdBody extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text('멤버 ${h.members.length}/${Household.maxMembers}', style: t.titleSmall)),
-                if (store.familyPlanActive) Text('가족 플랜 적용 중', style: t.bodySmall?.copyWith(color: c.primary)),
+                if (store.familyPlanActive) Text('프리미엄 적용 중', style: t.bodySmall?.copyWith(color: c.primary)),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -163,7 +163,7 @@ class _HouseholdBody extends StatelessWidget {
     final services = AppServices.of(context);
     if (services.auth.isAnonymous && !await requireLinkForFamily(context)) return;
     if (!context.mounted) return;
-    if (!await ensurePremium(context, reason: '집 만들기는 가족 플랜에서 열려요', source: PaywallSource.featureTap)) return;
+    if (!await ensurePremium(context, reason: '집 만들기는 프리미엄에서 열려요', source: PaywallSource.featureTap)) return;
     if (!context.mounted) return;
     final nickname = await _askNickname(context, HouseholdMember.defaultNickname(services.auth.displayName));
     if (nickname == null || !context.mounted) return;
@@ -279,7 +279,7 @@ class _HouseholdBody extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${m.nickname} 님에게 방장을 넘길까요?'),
-        content: const Text('가족 플랜은 방장의 구독으로 열려요. 방장이 바뀌면 새 방장의 구독 상태를 따라요.'),
+        content: const Text('프리미엄은 방장의 구독으로 열려요. 방장이 바뀌면 새 방장의 구독 상태를 따라요.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('위임')),

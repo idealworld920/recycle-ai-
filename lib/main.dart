@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_services.dart';
 import 'core/boot_report.dart';
 import 'core/firebase_session.dart';
-import 'core/splash_gate.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/auth_store.dart';
 import 'features/feedback/feedback_store.dart';
@@ -22,6 +21,9 @@ import 'features/calendar/calendar_event.dart';
 import 'features/calendar/event_store.dart';
 import 'features/household/household_repository.dart';
 import 'features/mascot/ribbong_lines.dart';
+import 'features/splash/splash_message_source.dart';
+import 'features/splash/splash_plan.dart';
+import 'features/splash/splash_screen.dart';
 import 'features/household/household_store.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/premium/free_limits.dart';
@@ -109,7 +111,11 @@ Future<void> _boot() async {
   premium.attachHousehold(household);
   final events = EventStore(prefs, specialDays: await _loadSpecialDays());
   RibbongLines.current = await RibbongLines.load();
+  final lastOpenedAt = settings.lastOpenedAt;
   unawaited(settings.markOpened());
+  // 스플래시 공지: 지난번 fetch 값을 즉시 활성화해 읽고(기다림 짧음), 이번 fetch 는 다음 실행용으로 백그라운드.
+  final splashMessage = await SplashMessageSource.readCached().timeout(const Duration(milliseconds: 400), onTimeout: () => null);
+  unawaited(SplashMessageSource.prefetch());
   events.attachHousehold(household);
   String? attachedUid;
   void attachAll() {
@@ -155,6 +161,8 @@ Future<void> _boot() async {
     premium: premium,
     household: household,
     events: events,
+    lastOpenedAt: lastOpenedAt,
+    splashMessage: splashMessage,
     freeLimits: freeLimits,
     boot: boot,
     feedback: feedback,
@@ -218,6 +226,8 @@ class RecycleApp extends StatefulWidget {
     required this.premium,
     required this.household,
     required this.events,
+    this.lastOpenedAt,
+    this.splashMessage,
     required this.freeLimits,
     required this.boot,
     required this.feedback,
@@ -235,6 +245,8 @@ class RecycleApp extends StatefulWidget {
   final PremiumStore premium;
   final HouseholdStore household;
   final EventStore events;
+  final DateTime? lastOpenedAt;
+  final SplashMessage? splashMessage;
   final FreeLimits freeLimits;
   final BootReport boot;
   final FeedbackStore feedback;
@@ -245,8 +257,25 @@ class RecycleApp extends StatefulWidget {
 }
 
 class _RecycleAppState extends State<RecycleApp> {
-  /// 이번 실행에서 온보딩을 보여줬으면, 끝난 뒤 스플래시 없이 바로 홈으로.
-  bool _showedOnboarding = false;
+  /// 시작 흐름: 스플래시 → (최초 실행이면) 온보딩 → 홈. 스플래시는 Firebase 를 기다리되 전체 3초 상한.
+  _Phase _phase = _Phase.splash;
+  SplashPlan? _plan;
+
+  SplashPlan _planFor(BuildContext context) => _plan ??= SplashPlan.decide(
+        onboarded: widget.settings.onboarded,
+        lastOpenedAt: widget.lastOpenedAt,
+        now: DateTime.now(),
+        message: widget.splashMessage,
+        seen: widget.settings.seenSplashIds,
+        reduceMotion: MediaQuery.maybeDisableAnimationsOf(context) ?? false,
+      );
+
+  void _onSplashDone(SplashPlan plan) {
+    if (plan.messageId != null) {
+      unawaited(widget.settings.markSplashSeen(plan.messageId!, remote: widget.auth.service.mergeUserDoc));
+    }
+    setState(() => _phase = widget.settings.onboarded ? _Phase.home : _Phase.onboarding);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -273,16 +302,16 @@ class _RecycleAppState extends State<RecycleApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         // 온보딩은 Firebase(익명 로그인)를 기다리지 않는다. 끝나면 홈 위에 카메라 화면을 바로 띄운다.
-        home: ListenableBuilder(
-          listenable: settings,
-          builder: (context, _) {
-            if (!settings.onboarded) {
-              _showedOnboarding = true;
-              // 동의 저장(onboardingDone)은 온보딩 안에서 끝난다. 여기서는 카메라 화면만 예약.
-              return OnboardingScreen(onDone: () => AppActions.instance.fire(AppActions.openCapture));
-            }
-            if (_showedOnboarding) return const HomeShell();
-            return SplashGate(until: firebase.settled, child: const HomeShell());
+        home: Builder(
+          builder: (context) => switch (_phase) {
+            _Phase.splash => SplashScreen(plan: _planFor(context), ready: firebase.settled, onDone: _onSplashDone),
+            _Phase.onboarding => OnboardingScreen(
+                onDone: () {
+                  AppActions.instance.fire(AppActions.openCapture);
+                  setState(() => _phase = _Phase.home);
+                },
+              ),
+            _Phase.home => const HomeShell(),
           },
         ),
       ),
@@ -299,3 +328,5 @@ Future<List<SpecialDay>> _loadSpecialDays() async {
     return const [];
   }
 }
+
+enum _Phase { splash, onboarding, home }

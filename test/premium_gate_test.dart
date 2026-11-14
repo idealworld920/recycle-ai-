@@ -59,7 +59,7 @@ void main() {
     await tester.tap(find.text('GO'));
     await tester.pumpAndSettle();
     expect(find.text('오늘 무료 분류를 다 썼어요'), findsOneWidget);
-    expect(find.textContaining('가족 플랜은 설정'), findsOneWidget);
+    expect(find.textContaining('프리미엄은 설정'), findsOneWidget);
     expect(find.text('7일 무료로 시작'), findsNothing);
     await tester.tap(find.text('알겠어요'));
     await tester.pumpAndSettle();

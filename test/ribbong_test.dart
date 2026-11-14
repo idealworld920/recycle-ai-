@@ -52,12 +52,17 @@ void main() {
       expect(at(3, sched: true), isNull);
       expect(at(4), GuideStep.region);
       expect(at(5, region: true), isNull);
-      expect(at(6), GuideStep.familyPlan);
+      expect(at(6), GuideStep.premium);
       expect(at(7, premium: true), isNull);
-      expect(at(7, dismissed: {'familyPlan'}), isNull);
+      expect(at(7, dismissed: {'premium'}), isNull);
+      expect(at(2, dismissed: {'schedule'}), isNull); // X 누른 뒤 재진입: 같은 가이드는 다시 안 뜬다
+      expect(at(4, dismissed: {'schedule'}), GuideStep.region); // 다음 단계는 뜬다
       expect(at(8), isNull);
-      expect(GuideStep.familyPlan.hasDetail, isTrue);
-      expect(GuideStep.schedule.hasDetail, isFalse);
+      expect(GuideStep.premium.actionLabel, '자세히');
+      expect(GuideStep.schedule.actionLabel, '설정하기');
+      expect(GuideStep.schedule.line, '수거일 알려주면 전날에 챙겨주겠뿅!');
+      expect(GuideStep.region.line, '우리 동네 어디뿅? 동네 기준으로 알려주겠뿅!');
+      expect(GuideStep.premium.line, '프리미엄 써보면 더 편하뿅!');
     });
   });
 
@@ -81,6 +86,7 @@ void main() {
       await s.dismissGuide('schedule', remote: (m) async => sent = m);
       expect(s.guideDismissed, {'schedule'});
       expect((sent!['guide'] as Map)['dismissed'], ['schedule']);
+      expect((sent!['guide'] as Map)['installedAt'], isA<String>());
       expect(s.firstClassifyDone, isFalse);
       await s.markFirstClassifyDone();
       expect(s.firstClassifyDone, isTrue);

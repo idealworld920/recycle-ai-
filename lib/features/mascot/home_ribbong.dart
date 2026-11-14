@@ -10,11 +10,13 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../onboarding/intro_animation.dart';
 import '../premium/premium_gate.dart';
+import '../places/region_picker_sheet.dart';
 import '../schedule/pickup_schedule.dart';
+import '../schedule/schedule_settings_sheet.dart';
 import 'guide_steps.dart';
 import 'ribbong_lines.dart';
 
-/// 홈 상단 상주 리뿅이(72px) + 말풍선. 탭하면 반응, 5연타면 "간지럽뿅!!". 도감 뱃지·가족 플랜 왕관.
+/// 홈 상단 상주 리뿅이(72px) + 말풍선. 탭하면 반응, 5연타면 "간지럽뿅!!". 도감 뱃지·프리미엄 왕관.
 class HomeRibbong extends StatefulWidget {
   const HomeRibbong({super.key, required this.lines});
 
@@ -71,6 +73,21 @@ class _HomeRibbongState extends State<HomeRibbong> {
         });
       }
     });
+  }
+
+  /// 가이드 버튼: 수거일 → 설정 시트, 지역 → 지역 선택, 프리미엄 → 페이월(paywallShown.guide7). 누르면 가이드는 닫힌다.
+  Future<void> _guideAction(BuildContext context, GuideStep guide) async {
+    final services = AppServices.of(context);
+    await services.settings.dismissGuide(guide.key, remote: services.auth.service.mergeUserDoc);
+    if (!context.mounted) return;
+    switch (guide) {
+      case GuideStep.schedule:
+        await showScheduleSettingsSheet(context);
+      case GuideStep.region:
+        await showRegionPickerSheet(context);
+      case GuideStep.premium:
+        await maybeShowPaywall(context, source: PaywallSource.guide7, userInitiated: true, reason: '프리미엄 써보면 더 편해요');
+    }
   }
 
   @override
@@ -142,19 +159,19 @@ class _HomeRibbongState extends State<HomeRibbong> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (guide.hasDetail)
-                            TextButton(
-                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), minimumSize: const Size(0, 28), textStyle: t.bodySmall),
-                              onPressed: () async {
-                                await services.settings.dismissGuide(guide.key, remote: services.auth.service.mergeUserDoc);
-                                if (context.mounted) await maybeShowPaywall(context, source: PaywallSource.featureTap, userInitiated: true, reason: '가족이랑 같이 쓰면 누가 버렸는지도 보여요');
-                              },
-                              child: const Text('자세히'),
-                            ),
                           TextButton(
-                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), minimumSize: const Size(0, 28), foregroundColor: c.textSecondary, textStyle: t.bodySmall),
+                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm), minimumSize: const Size(0, 28), textStyle: t.bodySmall),
+                            onPressed: () => _guideAction(context, guide),
+                            child: Text(guide.actionLabel),
+                          ),
+                          IconButton(
+                            iconSize: 16,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            tooltip: '닫기',
+                            color: c.textSecondary,
                             onPressed: () => services.settings.dismissGuide(guide.key, remote: services.auth.service.mergeUserDoc),
-                            child: const Text('닫기'),
+                            icon: const Icon(Symbols.close_rounded),
                           ),
                         ],
                       ),

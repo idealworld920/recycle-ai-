@@ -108,7 +108,7 @@ class _TodayCard extends StatelessWidget {
             _CheckRow(type: types[i], checked: store.isChecked(types[i]), member: store.memberCheckins[types[i]], onCheck: () async {
               HapticFeedback.mediumImpact();
               await store.checkIn(types[i]);
-              // 3주 연속 달성 순간: 가족 플랜을 한 번 권한다 (조건이 맞을 때만).
+              // 3주 연속 달성 순간: 프리미엄을 한 번 권한다 (조건이 맞을 때만).
               if (context.mounted && store.streak(DateTime.now()).weeks >= 3 && !AppServices.of(context).premium.isPremium) {
                 await maybeShowPaywall(context, source: PaywallSource.streak3, reason: '3주 연속 체크! 가족과 같이 하면 더 꾸준해져요.');
               }

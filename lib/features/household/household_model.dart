@@ -29,7 +29,7 @@ class Household {
   final DateTime? inviteCodeExpiresAt;
   final PickupSchedule? schedule;
 
-  /// 방장 구독으로 열린 가족 플랜 만료 시각 (RevenueCat 웹훅 → Cloud Function 만 쓴다).
+  /// 방장 구독으로 열린 프리미엄 만료 시각 (RevenueCat 웹훅 → Cloud Function 만 쓴다).
   final DateTime? premiumUntil;
 
   List<String> get memberUids => members.map((m) => m.uid).toList(growable: false);
@@ -39,7 +39,7 @@ class Household {
 
   bool inviteExpiredAt(DateTime now) => inviteCodeExpiresAt == null || !now.isBefore(inviteCodeExpiresAt!);
 
-  /// 가족 플랜이 지금 살아 있는가 (멤버 전원에게 적용).
+  /// 프리미엄이 지금 살아 있는가 (멤버 전원에게 적용).
   bool premiumActiveAt(DateTime now) => premiumUntil != null && now.isBefore(premiumUntil!);
 
   factory Household.fromJson(String id, Map<String, dynamic> j) {

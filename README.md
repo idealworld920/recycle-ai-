@@ -82,7 +82,7 @@ APK 로 직접 설치해 보려면 `flutter build apk --release` → `build/app/
 디버그는 되는데 릴리스(내부 테스트)만 흰 화면에 멈추면 거의 R8(코드 축소) 아니면 시작 단계가 막힌 거예요. 지금 구조는:
 
 - `main()` 은 기기 안 저장소만 열고 **바로 그린다**. Firebase 초기화·App Check·익명 로그인·Firestore 첫 읽기는 백그라운드.
-- 앱 안 스플래시(`SplashGate`)는 Firebase 가 정리되거나 **최대 3초**까지만 기다리고 무조건 홈으로.
+- 앱 안 스플래시(`lib/features/splash/`)는 리뿅이 인트로를 재생하고 Firebase 가 정리되거나 **최대 3초**까지만 기다리고 무조건 다음 화면으로.
 - 단계마다 타임아웃(초기화 10초, 로그인 15초, Firestore 8초)이 있고, 실패 이유는 홈 상단 **작은 배너**에 뜬다 ("다시 연결" 버튼 포함).
 - 알림·홈 위젯 플러그인 초기화는 첫 프레임 뒤에, 실패해도 배너에만 남긴다.
 - R8 규칙은 `android/app/proguard-rules.pro` (Firebase·Play services·flutter_local_notifications+GSON·home_widget·workmanager keep, missing class 는 `-dontwarn`).
@@ -181,7 +181,7 @@ WAKE_LOCK · VIBRATE · FOREGROUND_SERVICE(_SHORT_SERVICE, 알림/워크매니�
 
 ## 구독 (RevenueCat) 설정
 
-> **1.2.0 부터 구독 = "가족 플랜"** (사용자 노출 명칭은 항상 가족 플랜, "프리미엄" 금지). 아래 설정 순서대로 하면 된다.
+> **1.2.0 부터 구독 = "프리미엄"** (사용자 노출 명칭은 항상 프리미엄, "프리미엄" 금지). 아래 설정 순서대로 하면 된다.
 
 
 앱은 `purchases_flutter`(RevenueCat)로 결제·영수증 검증·복원을 처리해요. 구독 상태의 진실은 RevenueCat SDK 이고,
@@ -346,18 +346,38 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - Firestore 규칙이 바뀌었다 (`feedback` type `region`, `regionNoteReports`). **`firebase deploy --only firestore:rules`** 필요.
 - 새 패키지: `firebase_analytics` 하나.
 
+## 스플래시 (`lib/features/splash/`)
+
+기존 정적 스플래시(`SplashGate`)는 삭제. 흰 배경, 가운데 240px 리뿅이. Firebase 초기화·익명 로그인은 `FirebaseSession` 이, Remote Config 는 `SplashMessageSource` 가 병렬로 돈다. 흐름은 `SplashPlan.decide()` 가 고른다 (`splash_plan.dart`, 순수 함수라 테스트가 쉽다):
+
+| 상황 | 재생 | 다음 |
+|---|---|---|
+| 최초 실행(`onboardingDone` 아님) | `r_intro.gif` 2.6초 | 온보딩 1페이지 |
+| 평소 | `r_intro_short.gif` 0.8초 (없으면 `r_intro_static.png`) | 홈 |
+| 3일 이상 안 열었다(`lastOpenAt`) | `r_intro.gif` + "오랜만이뿅!" | 홈 |
+| Remote Config `splash_message` 가 기간 안이고 `users/{uid}.seenSplash` 에 없는 id | `r_intro.gif` + 그 문구, 끝나면 id 저장 | 홈 |
+| 애니메이션 줄이기 | `r_intro_static.png` 0.3초 (문구는 유지) | 위와 같음 |
+
+- 아무 데나 탭 → 즉시 다음 화면. 애니메이션은 끝났는데 초기화가 덜 됐으면 `r_thinking.gif` + "잠깐만뿅…" 으로 기다리되 **전체 3초 상한**.
+- Remote Config 키 `splash_message` 값은 JSON `{"id":"nov2026","text":"…뿅!","startAt":"2026-11-01T00:00:00Z","endAt":"2026-11-30T23:59:59Z"}`. 지난 실행에서 fetch 해 둔 값을 `activate()` 로 바로 읽고(400ms 넘으면 공지 없이 진행), 이번 fetch 는 다음 실행용. 같은 id 는 1회만.
+- 말풍선은 `SpeechBubble`(흰 배경, 1px `#EDEDED`, radius 16, 꼬리 위 가운데, 15/Regular `#111111`).
+- 테스트 `test/splash_test.dart`: 최초 실행 / 평소 0.8초 / 3일 복귀 / 공지 1회·본 뒤 평소·기간 밖 / 탭 스킵 / 초기화 지연 thinking / 3초 상한 / 애니메이션 줄이기.
+
 ## 온보딩 (최초 실행 1회)
 
-`lib/features/onboarding/` — `onboarding_screen.dart`(흐름) · `intro_animation.dart`(인트로·말풍선) · `pages.dart`(1·2페이지 목업) · `consent_sheet.dart`(동의).
-완료 여부는 shared_preferences `onboardingDone`. Firebase 익명 로그인은 백그라운드에서 따로 돌고 온보딩을 막지 않는다 (온보딩일 때는 SplashGate 를 거치지 않는다).
+`lib/features/onboarding/` — `onboarding_screen.dart`(흐름) · `intro_animation.dart`(말풍선) · `pages.dart`(1·2페이지 목업) · `consent_sheet.dart`(동의).
+완료 여부는 shared_preferences `onboardingDone`. 인트로 단계는 없다(스플래시가 맡는다). 권한·로그인·지역·수거일은 온보딩에서 묻지 않는다. 페이지 점 3개, 전환 200ms.
 
-0. **인트로**: 흰 배경, `r_intro.gif` 240px 를 2초 타이머로 1회만 재생(끝나면 마지막 프레임 PNG 로 고정), 1.6초에 "리뿅이 등장했뿅!" 말풍선 400ms 페이드인, 2.6초에 1페이지로 200ms 슬라이드. 아무 데나 탭하면 즉시. 다시 보기에서도 인트로부터.
-1. **찍으면 알려줘요**: 실제 `ResultCard`(`lib/widgets/result_card.dart`, 결과 화면과 같은 위젯)를 "컵라면 용기 / 일반 쓰레기 / 기름이 밴 용기는 재활용이 어려워요" 샘플로 그린 목업 + `r_wink.gif` 96px. 우상단 [건너뛰기] → 동의 페이지.
-2. **수거일도 챙겨드려요**: 수거일 카드 두 상태(D-1 · 오늘 버리는 날) + 홈 위젯 미리보기 목업 + `r_happy.gif`.
-3. **시작하기 전에**: 모두 동의 / [필수] 이용약관 · 개인정보처리방침(인앱 웹뷰 [보기]) / [선택] 수거일·리포트 알림. 필수 2개 전엔 [시작하기] 비활성. 뒤로가기는 2페이지로.
-   저장: 기기 `consent_*` + `users/{uid}.consent = {terms, privacy, marketing, version: "2026-11"}`. 익명 로그인이 아직이면 `consent_remote_pending` 으로 두고 `attachAll` 이 로그인 뒤 올린다. **알림 권한은 여기서 묻지 않는다** (수거일 저장 시점에).
-4. **완료 → 카메라 화면** (`lib/screens/capture_screen.dart`): 홈 위에 떠서 바로 시스템 카메라를 열고, 상단에 "뭐든 가져와뿅! 리뿅이가 알려주겠뿅!" + `r_wink` 48px 를 첫 1회만(`firstCameraHintShown`) 5초 또는 사진 선택까지. 뒤로가기 → 홈.
+1. **찍으면 바로 알려줘요**: 상단 40% 에 `r_wink.gif` 160px + "뭐든 가져와뿅! 리뿅이가 알려주겠뿅!", 가운데 실제 `ResultCard` 목업 85%(터치 비활성), 아래 제목 20/SemiBold + 부제 13 `#6B6B6B`. 우상단 [건너뛰기] → 3페이지.
+2. **수거일도 알려드려요**: `r_happy.gif` 160px + "매주 수거일도 챙겨주겠뿅!", 수거일 카드 + 홈 위젯 미리보기 목업, 캡션 12 `#B5B5B5` "가족이랑 같이 쓰면 누가 버렸는지도 알 수 있어요".
+3. **시작하기 전에**: `r_idle_static.png` 64px, 모두 동의 / [필수] 이용약관 · 개인정보처리방침(인앱 웹뷰 [보기]) / [선택] 알림. 필수 2개 전엔 검정 56 [시작하기] 비활성. 뒤로가기는 2페이지로. 리뿅이 말풍선 없음.
+   저장: 기기 `consent_*` + `users/{uid}.consent = {terms, privacy, marketing, version: "2026-11"}`. 익명 로그인이 아직이면 `consent_remote_pending` 으로 두고 `attachAll` 이 로그인 뒤 올린다.
+4. **완료 → 카메라 화면** (`lib/screens/capture_screen.dart`): 바로 시스템 카메라를 열고, 상단에 "뭐든 가져와뿅! 리뿅이가 알려주겠뿅!" + `r_wink` 48px 를 첫 1회만(`firstCameraHintShown`) 5초 또는 사진 선택까지.
    사진 선택→분류→결과는 `lib/features/classify/classify_flow.dart` 로 빼서 홈과 카메라 화면이 같이 쓴다.
+- 설정 → **온보딩 다시 보기**: 스플래시 풀 버전 → 1 → 2 → 홈. 동의·첫 분류 연출은 다시 하지 않는다.
+- 첫 분류 성공 1회(`first_classify_overlay.dart`): 검정 40% 오버레이, `r_happy` 200px + "첫 분류 성공이뿅!! 도감에 1번째 친구 등록했뿅!", 0.8초 색종이(파랑·흰·연파랑, CustomPainter), 탭 또는 2초 후 닫힘, `firstClassifyDone=true`. 애니메이션 줄이기면 토스트 한 줄.
+- 7일 가이드(`guide_steps.dart`, `users/{uid}.guide = {installedAt, dismissed:[]}`, 홈 말풍선이 대사보다 우선, 하루 하나): 2~3일차 수거일 없음 → "수거일 알려주면 전날에 챙겨주겠뿅!" [설정하기] · 4~5일차 지역 없음 → "우리 동네 어디뿅? 동네 기준으로 알려주겠뿅!" [설정하기] · 6~7일차 프리미엄 아님 → "프리미엄 써보면 더 편하뿅!" [자세히] → 페이월(`paywallShown.guide7`). X → `dismissed` 에 추가. 이미 설정했으면 건너뛰고 8일차부터 평소 대사.
+- 테스트 `test/onboarding_test.dart`, `test/first_classify_test.dart`, `test/ribbong_test.dart`(2·4·6일차, X 후 재진입).
 
 - 설정 → 약관 카드의 **온보딩 다시 보기**: 동의는 다시 묻지 않고 0→1→2 보고 홈으로.
 - 시스템 "애니메이션 줄이기": 인트로는 마지막 프레임 정지 이미지 1초 뒤 넘어가고, 페이지 리뿅이는 `_static.png`.
@@ -378,27 +398,27 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 홈 카드 "{닉네임}가 오늘 {종류} 버렸어요 · 시각", 같은 날 같은 종류 중복 체크 방지.
 - 초대 공유: share_plus `ReSAI 우리 집에 초대할게! 코드: XXXXXX https://idealworld920.github.io/recycle-ai-`
 
-### B. 가족 플랜 (`lib/features/premium/`, `lib/features/paywall/`)
-- 상품 `resai_family_monthly` 월 2,900원 / `resai_family_yearly` 연 19,900원, 7일 무료 체험, entitlement `premium`.
+### B. 프리미엄 (`lib/features/premium/`, `lib/features/paywall/`)
+- 상품 `resai_premium_monthly` 월 2,900원 / `resai_premium_yearly` 연 19,900원, 7일 무료 체험, entitlement `premium`.
 - 혜택: 분류·질문 무제한, 가족 공유(집 만들기), 캘린더 일정+알림, 여러 장 분류. 무료: 분류 10회/일, 질문 5회/일, 팁, 수거일 3종, 기록, 리포트 기본, 코드로 집 참여.
 - 집 방장이 구독하면 웹훅이 `households/{id}.premiumUntil` 을 적고 멤버 전원이 그 값으로 열린다. 만료 시 전원 무료, 데이터 유지. 멤버 개인 구독은 본인만.
 - 페이월 진입(`PaywallTrigger`): `reportBottom`/`streak3`/`share3` 자동 노출은 평생 1회, `limitHit` 하루 1회, `featureTap`(집 만들기·일정 추가·여러 장)은 누를 때. 설치 72시간 안·첫 제한 도달 전·온보딩 중엔 안 띄운다. 기록: 기기 prefs + `users/{uid}.paywallShown.{source}`.
-- 설정 → 가족 플랜 관리: 상태(내 구독/집 방장 구독/검토 모드)·갱신일·Play 구독 관리 딥링크·구매 복원.
+- 설정 → 프리미엄 관리: 상태(내 구독/집 방장 구독/검토 모드)·갱신일·Play 구독 관리 딥링크·구매 복원.
 
 ### C. 캘린더 + 여러 장 (`lib/features/calendar/`, `lib/features/classify/multi/`)
-- 기록 탭 [기록 | 캘린더]. 수거일 3종 색 점, 체크한 날 ✓, 오늘 강조, 스와이프 월 이동. 날짜 탭 → 그날 항목 + [일정 추가](가족 플랜).
+- 기록 탭 [기록 | 캘린더]. 수거일 3종 색 점, 체크한 날 ✓, 오늘 강조, 스와이프 월 이동. 날짜 탭 → 그날 항목 + [일정 추가](프리미엄).
 - 일정: 제목·종류(대형폐기물 신고/폐건전지·폐형광등/기타)·날짜·전날 20:00 알림. 집 공유 중이면 `households/{id}/events`, 아니면 `users/{uid}/events` (+ 기기 복사본).
 - `assets/data/special_days.json`: 전국 공통 일정만, **sourceUrl(https) 없는 항목은 넣지 않는다**. `tool/validate_data.dart` 가 검사한다. 현재 비어 있음(아래 "비워 둔 항목").
-- 여러 장: 카메라 화면 "여러 장" 토글(가족 플랜, 무료는 잠금 아이콘) → 갤러리 최대 10장 또는 카메라 연속 촬영 → "n/10 분류 중" + 리뿅이 thinking → 결과 리스트 → 탭하면 개별 결과. 실패 장 [다시 시도], 공유는 개별 결과에서만.
+- 여러 장: 카메라 화면 "여러 장" 토글(프리미엄, 무료는 잠금 아이콘) → 갤러리 최대 10장 또는 카메라 연속 촬영 → "n/10 분류 중" + 리뿅이 thinking → 결과 리스트 → 탭하면 개별 결과. 실패 장 [다시 시도], 공유는 개별 결과에서만.
 
 ### D. 리뿅이 (`lib/features/mascot/`, `lib/core/mascot.dart`)
 - 홈 상단 `r_idle.gif` 72px + 말풍선. 대사는 `assets/data/ribbong_lines.json`(형식: 문자열 배열 / `{"lines":[{"text","when"}]}` / `{"morning":[…]}`; `when` 은 `pickupToday|pickupTomorrow|returnAfter3Days|classified10|morning|day|evening|night|random`). 파일에 없는 조건은 내장 문장을 쓴다.
 - 우선순위: 수거일 당일 > 전날 > 3일 미접속 복귀 > 당일 분류 10개↑ > 시간대 > 랜덤. 탭 → happy 계열(happy·cheer·laugh 랜덤)/wink/thinking, 5연타 "간지럽뿅!!".
-- 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 가족 플랜 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
+- 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 프리미엄 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
 - 에셋이 없으면: GIF → 같은 표정 PNG → 대체 표정(confused→thinking, crying→idle) 순으로 폴백하고, 탭 아이콘은 Material 아이콘으로. 새 GIF 를 넣은 뒤 `python3 tool/mascot_frames.py` 로 `_static.png` 를 만든다.
 
 ### 내가 할 설정 순서 (Play Console · RevenueCat · Firebase)
-1. **Play Console → 수익 창출 → 구독**: `resai_family_monthly`(월 2,900원), `resai_family_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). 기존 `resai_premium_*` 은 비활성화.
+1. **Play Console → 수익 창출 → 구독**: `resai_premium_monthly`(월 2,900원), `resai_premium_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). 기존 `resai_premium_*` 은 비활성화.
 2. **RevenueCat**: Products 에 위 두 상품 → Entitlement `premium` 에 연결 → Offering `default` 에 `$rc_monthly`/`$rc_annual` 패키지. Public SDK key 를 `dart_defines.json` 의 `REVENUECAT_ANDROID_KEY` 에.
 3. **RevenueCat → Integrations → Webhooks**: URL `https://asia-northeast3-<project>.cloudfunctions.net/revenuecatWebhook`, Authorization `Bearer <시크릿>`.
 4. **Firebase**:
@@ -413,11 +433,11 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 6. 빌드: `flutter build appbundle --release --dart-define-from-file=dart_defines.json`.
 
 ### 테스트 체크리스트 (라이선스 테스터)
-- [ ] 월간 7일 체험 시작 → 설정 "가족 플랜 사용 중", 갱신일 표시
+- [ ] 월간 7일 체험 시작 → 설정 "프리미엄 사용 중", 갱신일 표시
 - [ ] 앱 삭제 후 재설치 → 구매 복원
 - [ ] 체험 종료(테스트 트랙은 5분) → 자동 갱신 → 만료 → 무료로 돌아가고 기록 유지
 - [ ] 해지 → 만료일까지 유지
-- [ ] 방장 구독 → 멤버 기기에서 `가족 플랜 사용 중(집 방장의 구독)` 전파 (웹훅 → premiumUntil)
+- [ ] 방장 구독 → 멤버 기기에서 `프리미엄 사용 중(집 방장의 구독)` 전파 (웹훅 → premiumUntil)
 - [ ] 방장 위임 → 새 방장 구독 기준으로 바뀜
 - [ ] 초대 코드 만료(24h)·정원(6명)·중복 참여 거부 메시지
 - [ ] 페이월 진입 조건: 설치 72시간 안엔 잠금 안내만, 그 뒤 limitHit 하루 1회, reportBottom/streak3/share3 평생 1회

@@ -2,7 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../chat/usage_repository.dart';
 
-/// 무료 사용자의 하루 한도. 가족 플랜이면 무제한.
+/// 무료 사용자의 하루 한도. 프리미엄이면 무제한.
 class FreeLimits {
   FreeLimits(this._prefs);
 

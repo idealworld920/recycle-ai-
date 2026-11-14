@@ -241,7 +241,7 @@ class _Legend extends StatelessWidget {
   }
 }
 
-/// 선택한 날의 항목: 수거일·체크·기록·일정·전국 일정 + [일정 추가](가족 플랜).
+/// 선택한 날의 항목: 수거일·체크·기록·일정·전국 일정 + [일정 추가](프리미엄).
 class _DayPanel extends StatelessWidget {
   const _DayPanel({required this.day});
 
@@ -293,7 +293,7 @@ class _DayPanel extends StatelessWidget {
           ],
           if (!premium) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text('일정 추가와 알림은 가족 플랜에서 열려요. 수거일 표시는 무료예요.', style: t.bodySmall),
+            Text('일정 추가와 알림은 프리미엄에서 열려요. 수거일 표시는 무료예요.', style: t.bodySmall),
           ],
         ],
       ),
@@ -329,7 +329,7 @@ class _DayPanel extends StatelessWidget {
   static Future<void> _addEvent(BuildContext context, DateTime day) async {
     final services = AppServices.of(context);
     if (!services.premium.isPremium) {
-      await ensurePremium(context, reason: '일정 추가는 가족 플랜에서 열려요', source: PaywallSource.featureTap);
+      await ensurePremium(context, reason: '일정 추가는 프리미엄에서 열려요', source: PaywallSource.featureTap);
       return;
     }
     if (!context.mounted) return;

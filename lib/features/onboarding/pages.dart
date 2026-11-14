@@ -30,26 +30,42 @@ class OnboardingValuePage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: AppSpacing.sm),
-        Center(child: MascotImage(mascot, size: 160)),
-        const SizedBox(height: AppSpacing.sm),
-        Center(child: SpeechBubble(text: bubble)),
-        const SizedBox(height: AppSpacing.base),
+        // 상단 40%: 리뿅이 160 + 말풍선
         Expanded(
+          flex: 4,
+          child: Center(
+            // 짧은 화면에서는 리뿅이·말풍선을 같이 줄여서 넘치지 않게.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MascotImage(mascot, size: 160),
+                    const SizedBox(height: AppSpacing.sm),
+                    SpeechBubble(text: bubble),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 중단: 목업 85%, 터치 비활성
+        Expanded(
+          flex: 4,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: LayoutBuilder(
               builder: (context, box) {
-                final w = box.maxWidth.clamp(0.0, 300.0);
+                final w = box.maxWidth.clamp(0.0, 320.0);
                 return IgnorePointer(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.topCenter,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.0012)
-                        ..rotateX(0.14),
+                    child: Transform.scale(
+                      scale: 0.85,
+                      alignment: Alignment.topCenter,
                       child: SizedBox(width: w, child: mock),
                     ),
                   ),
@@ -58,17 +74,18 @@ class OnboardingValuePage extends StatelessWidget {
             ),
           ),
         ),
+        // 하단: 제목 20/SemiBold, 부제 13, 캡션 12
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.base, AppSpacing.xl, 0),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: t.titleMedium),
+              Text(title, style: t.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w600)),
               const SizedBox(height: AppSpacing.xs),
               Text(subtitle, style: t.bodySmall?.copyWith(color: c.textSecondary)),
               if (caption != null) ...[
                 const SizedBox(height: AppSpacing.sm),
-                Text(caption!, style: t.bodySmall?.copyWith(color: c.primary)),
+                Text(caption!, style: t.bodySmall?.copyWith(fontSize: 12, color: c.textDisabled)),
               ],
             ],
           ),

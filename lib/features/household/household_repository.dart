@@ -57,7 +57,7 @@ class HouseholdRepository {
   FirebaseFirestore get _db => firestore ?? FirebaseFirestore.instance;
   CollectionReference<Map<String, dynamic>> get _households => _db.collection('households');
 
-  /// 집 만들기 (가족 플랜 전용 — 게이트는 화면에서). 초대 코드는 24시간짜리로 바로 발급.
+  /// 집 만들기 (프리미엄 전용 — 게이트는 화면에서). 초대 코드는 24시간짜리로 바로 발급.
   Future<Household> create({required String uid, required String nickname, String name = '우리 집'}) async {
     final now = DateTime.now();
     final me = HouseholdMember(uid: uid, nickname: nickname, color: 0, joinedAt: now);

@@ -93,13 +93,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final premiumStore = AppServices.of(context).premium;
-      final premium = premiumStore.isPremium;
+      final premium = premiumStore.isPremium || AppServices.of(context).settings.inFreeGrace;
       // 화면에 들어올 때 읽어 둔 남은 횟수를 쓰고, 없을 때만 서버에 묻는다. 매번 왕복하면 답이 느려진다.
       final count = _remaining != null ? FreeLimits.chatPerDay - _remaining! : await usage.todayCount();
       if (!premium && count >= FreeLimits.chatPerDay) {
         _replacePending(ChatMessage(
           role: ChatRole.ai,
-          text: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요. 가족 플랜은 무제한이에요.',
+          text: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요. 프리미엄은 무제한이에요.',
         ));
         setState(() => _remaining = 0);
         if (mounted) {
@@ -173,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Expanded(child: Text('물어보기', style: text.headlineSmall)),
                   if (AppServices.of(context).premium.isPremium)
-                    Text('가족 플랜 · 무제한', style: text.bodySmall)
+                    Text('프리미엄 · 무제한', style: text.bodySmall)
                   else if (_remaining != null)
                     Text('오늘 남은 질문 $_remaining/${FreeLimits.chatPerDay}', style: text.bodySmall),
                 ],

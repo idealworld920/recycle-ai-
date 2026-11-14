@@ -82,6 +82,24 @@ class SettingsStore extends ChangeNotifier {
     await _prefs.setInt(_lastOpenedPref, DateTime.now().millisecondsSinceEpoch);
   }
 
+  /// 마지막으로 앱을 켠 시각 (이번 실행에서 [markOpened] 하기 전 값 = 직전 실행).
+  DateTime? get lastOpenedAt {
+    final ms = _prefs.getInt(_lastOpenedPref);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// 스플래시 공지(Remote Config splash_message)에서 이미 본 id.
+  static const _seenSplashPref = 'seen_splash_ids';
+  Set<String> get seenSplashIds => (_prefs.getStringList(_seenSplashPref) ?? const []).toSet();
+  Future<void> markSplashSeen(String id, {Future<void> Function(Map<String, dynamic>)? remote}) async {
+    await _prefs.setStringList(_seenSplashPref, {...seenSplashIds, id}.toList());
+    if (remote != null) {
+      try {
+        await remote({'seenSplash': {id: DateTime.now().toIso8601String()}});
+      } catch (_) {}
+    }
+  }
+
   DateTime? get previousOpenedAt {
     final ms = _prefs.getInt(_prevOpenedPref);
     return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
@@ -97,7 +115,7 @@ class SettingsStore extends ChangeNotifier {
     if (remote != null) {
       try {
         await remote({
-          'guide': {'day': daysSinceInstall, 'dismissed': next.toList()},
+          'guide': {'installedAt': installedAt.toIso8601String(), 'dismissed': next.toList()},
         });
       } catch (_) {}
     }
@@ -118,6 +136,10 @@ class SettingsStore extends ChangeNotifier {
   // ---- 설치일 ----
   DateTime get installedAt => DateTime.tryParse(_prefs.getString(_installedAtPref) ?? '') ?? DateTime.now();
   int get daysSinceInstall => DateTime.now().difference(installedAt).inDays;
+
+  /// 설치 후 72시간은 무료 한도(분류 10회·질문 5회)를 적용하지 않는다.
+  static const freeGrace = Duration(hours: 72);
+  bool get inFreeGrace => DateTime.now().difference(installedAt) < freeGrace;
 
   /// 내 데이터 삭제 시: 온보딩·동의·안내 플래그를 지워 처음 상태로.
   Future<void> resetAll() async {

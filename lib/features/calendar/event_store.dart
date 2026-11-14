@@ -119,7 +119,7 @@ class EventStore extends ChangeNotifier {
 
   static String newId() => DateTime.now().microsecondsSinceEpoch.toRadixString(36);
 
-  /// 일정 추가 (가족 플랜 게이트는 화면에서).
+  /// 일정 추가 (프리미엄 게이트는 화면에서).
   Future<CalendarEvent> add({required String title, required EventKind kind, required DateTime date, bool remind = true}) async {
     final e = CalendarEvent(
       id: newId(),

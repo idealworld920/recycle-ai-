@@ -11,11 +11,11 @@ import '../premium/premium_store.dart';
 import '../premium/purchase_errors.dart';
 import '../premium/purchases_service.dart';
 
-/// 설정 → 가족 플랜 관리. 상태·갱신일·Play 구독 관리·구매 복원. (리뿅이 없음)
-Future<void> showFamilyPlanSheet(BuildContext context) {
+/// 설정 → 프리미엄 관리. 상태·갱신일·Play 구독 관리·구매 복원. (리뿅이 없음)
+Future<void> showPremiumSheet(BuildContext context) {
   return showAppSheet(
     context,
-    title: '가족 플랜 관리',
+    title: '프리미엄 관리',
     initialSize: 0.5,
     builder: (ctx, controller) {
       final services = AppServices.of(ctx);

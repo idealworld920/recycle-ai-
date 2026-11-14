@@ -54,7 +54,7 @@ class ShareService {
       if (r.status == ShareResultStatus.dismissed) return false;
       // 공유 횟수 누적 (실패해도 조용히)
       unawaitedCount(services);
-      // 3번째 공유: 가족 플랜을 한 번 권한다 (조건이 맞을 때만).
+      // 3번째 공유: 프리미엄을 한 번 권한다 (조건이 맞을 때만).
       final third = await PaywallTrigger(await SharedPreferences.getInstance()).countShare();
       if (third && context.mounted && !services.premium.isPremium) {
         await maybeShowPaywall(context, source: PaywallSource.share3, reason: '공유해 주셔서 고마워요. 가족과 같이 쓰면 더 편해요.');

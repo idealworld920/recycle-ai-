@@ -269,7 +269,7 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // 가족 플랜 권유 (무료 사용자만, 탭했을 때만 페이월)
+          // 프리미엄 권유 (무료 사용자만, 탭했을 때만 페이월)
           if (!services.premium.isPremium) ...[
             AppCard(
               soft: true,
@@ -278,7 +278,7 @@ class _ReportScreenState extends State<ReportScreen> {
                 children: [
                   Icon(Symbols.family_restroom_rounded, color: c.primary),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text('가족 플랜: 지난달 비교·연속 기록·여러 장 분류까지', style: t.bodyMedium)),
+                  Expanded(child: Text('프리미엄: 지난달 비교·연속 기록·여러 장 분류까지', style: t.bodyMedium)),
                   Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                 ],
               ),

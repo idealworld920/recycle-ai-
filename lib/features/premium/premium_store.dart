@@ -8,10 +8,10 @@ import '../household/household_store.dart';
 import 'purchase_errors.dart';
 import 'purchases_service.dart';
 
-/// 가족 플랜이 열리는 세 경로. 표시용.
+/// 프리미엄이 열리는 세 경로. 표시용.
 enum PremiumSource { none, own, family, review, debug }
 
-/// 가족 플랜 상태.
+/// 프리미엄 상태.
 ///
 /// 내 구독의 진실은 RevenueCat SDK(entitlement "premium"). 집 멤버는 방장 구독이 웹훅으로 적어 준
 /// households/{id}.premiumUntil 로 판단한다. Firestore users/{uid}.premium 은 웹훅만 쓴다. 임시 true 는 없다.
@@ -59,7 +59,7 @@ class PremiumStore extends ChangeNotifier {
     return null;
   }
 
-  /// 검토자 코드로 열린 임시 가족 플랜.
+  /// 검토자 코드로 열린 임시 프리미엄.
   bool get reviewActive => _reviewUntil > DateTime.now().millisecondsSinceEpoch;
 
   /// 설정 → 앱 정보에서 입력한 코드. 맞으면 [PremiumConfig.reviewDays] 동안 열린다.

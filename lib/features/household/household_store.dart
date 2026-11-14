@@ -7,7 +7,7 @@ import '../schedule/pickup_schedule.dart';
 import 'household_model.dart';
 import 'household_repository.dart';
 
-/// 현재 사용자의 집. 수거일·체크인·가족 플랜을 집 단위로 공유한다.
+/// 현재 사용자의 집. 수거일·체크인·프리미엄을 집 단위로 공유한다.
 class HouseholdStore extends ChangeNotifier {
   // ignore: prefer_initializing_formals
   HouseholdStore(this._repo, {SharedPreferences? prefs}) : _prefs = prefs {
@@ -38,7 +38,7 @@ class HouseholdStore extends ChangeNotifier {
   bool get isOwner => _household?.isOwner(_uid) ?? false;
   bool get followSchedule => _followSchedule;
 
-  /// 방장 구독으로 열린 가족 플랜 (멤버 전원).
+  /// 방장 구독으로 열린 프리미엄 (멤버 전원).
   bool get familyPlanActive => _household?.premiumActiveAt(DateTime.now()) ?? false;
   DateTime? get familyPlanUntil => _household?.premiumUntil;
 

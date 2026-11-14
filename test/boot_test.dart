@@ -6,7 +6,6 @@ import 'package:recycle_ai/app_services.dart';
 import 'package:recycle_ai/core/boot_banner.dart';
 import 'package:recycle_ai/core/boot_report.dart';
 import 'package:recycle_ai/core/firebase_session.dart';
-import 'package:recycle_ai/core/splash_gate.dart';
 import 'package:recycle_ai/core/theme/app_theme.dart';
 import 'package:recycle_ai/features/auth/auth_service.dart';
 import 'package:recycle_ai/features/auth/auth_store.dart';
@@ -29,29 +28,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
-
-  testWidgets('스플래시는 Firebase 가 끝나지 않아도 최대 대기 후 홈으로 넘어간다', (tester) async {
-    final never = Completer<void>();
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light(),
-      home: SplashGate(until: never.future, maxWait: const Duration(milliseconds: 300), child: const Text('HOME')),
-    ));
-    expect(find.text('HOME'), findsNothing);
-    expect(find.text('ReSAI'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('HOME'), findsOneWidget);
-  });
-
-  testWidgets('스플래시는 Firebase 가 먼저 끝나면 바로 넘어간다', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light(),
-      home: SplashGate(until: Future.value(), maxWait: const Duration(seconds: 30), child: const Text('HOME')),
-    ));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('HOME'), findsOneWidget);
-  });
 
   testWidgets('시작 단계 실패는 홈 배너에 이유와 함께 보이고 닫을 수 있다', (tester) async {
     final boot = BootReport();

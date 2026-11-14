@@ -1,4 +1,4 @@
-"""리뿅이 GIF 의 (완전 흰색이 아닌) 배경을 투명하게 만든다.
+"""리뿅이 GIF 의 배경(흰색·연회색·검정)을 투명하게 만든다.
 
 python3 tool/gif_keyout.py r_intro r_wink
 네 모서리에서 이어진 밝은 영역만 투명 처리하므로 얼굴(흰 눈·입)은 남는다.
@@ -16,7 +16,9 @@ def keyout(frame: Image.Image) -> Image.Image:
     rgb = frame.convert('RGB')
     w, h = rgb.size
     for xy in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
-        if min(rgb.getpixel(xy)) > 200:
+        px0 = rgb.getpixel(xy)
+        # 밝은(흰·연회색) 배경이나 검정 배경 둘 다. 얼굴의 흰 눈·검은 눈매는 파란 몸통 안에 갇혀 있어 안 닿는다.
+        if min(px0) > 200 or max(px0) < 40:
             ImageDraw.floodfill(rgb, xy, KEY, thresh=48)
     out = rgb.convert('RGBA')
     px = out.load()

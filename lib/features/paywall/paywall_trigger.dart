@@ -38,6 +38,7 @@ class PaywallTrigger {
     final last = lastShown(source);
     switch (source) {
       case PaywallSource.featureTap:
+      case PaywallSource.guide7:
         return true;
       case PaywallSource.limitHit:
         return last == null || !_sameDay(last, _now());

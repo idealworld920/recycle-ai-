@@ -53,7 +53,7 @@ void main() {
   });
 
   group('여러 장 분류', () {
-    test('허용 장수: 가족 플랜 10장, 무료는 남은 한도', () {
+    test('허용 장수: 프리미엄 10장, 무료는 남은 한도', () {
       expect(MultiClassifyScreen.allowance(premium: true, usedToday: 9), 10);
       expect(MultiClassifyScreen.allowance(premium: false, usedToday: 0), 10);
       expect(MultiClassifyScreen.allowance(premium: false, usedToday: 7), 3);

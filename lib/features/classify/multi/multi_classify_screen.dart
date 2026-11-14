@@ -14,7 +14,7 @@ import '../../../widgets/category_badge.dart';
 import '../../premium/free_limits.dart';
 import '../classify_flow.dart';
 
-/// 여러 장 순차 분류 (가족 플랜). 최대 [maxPhotos]장, "n/10 분류 중" + 리뿅이 thinking.
+/// 여러 장 순차 분류 (프리미엄). 최대 [maxPhotos]장, "n/10 분류 중" + 리뿅이 thinking.
 /// 결과는 리스트(썸네일·품목·뱃지)로, 탭하면 개별 결과 화면. 실패한 장은 [다시 시도]. 공유는 개별 결과에서만.
 class MultiClassifyScreen extends StatefulWidget {
   const MultiClassifyScreen({super.key, required this.photos});
@@ -23,7 +23,7 @@ class MultiClassifyScreen extends StatefulWidget {
 
   static const maxPhotos = 10;
 
-  /// 오늘 더 분류할 수 있는 장수. 가족 플랜이면 [maxPhotos], 무료면 남은 한도.
+  /// 오늘 더 분류할 수 있는 장수. 프리미엄이면 [maxPhotos], 무료면 남은 한도.
   static int allowance({required bool premium, required int usedToday}) =>
       premium ? maxPhotos : (FreeLimits.classifyPerDay - usedToday).clamp(0, maxPhotos);
 
@@ -66,7 +66,7 @@ class _MultiClassifyScreenState extends State<MultiClassifyScreen> {
 
   Future<void> _runOne(_MultiItem it) async {
     final services = AppServices.of(context);
-    if (!services.premium.isPremium && services.freeLimits.classifyExhausted) {
+    if (!services.premium.isPremium && !services.settings.inFreeGrace && services.freeLimits.classifyExhausted) {
       setState(() => it.error = '오늘 ${FreeLimits.classifyPerDay}장까지 가능해요. 내일 다시 시도해 주세요.');
       return;
     }

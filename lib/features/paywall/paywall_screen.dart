@@ -13,7 +13,7 @@ import '../premium/premium_store.dart';
 import '../premium/purchase_errors.dart';
 import '../premium/purchases_service.dart';
 
-/// 가족 플랜 페이월. 결제가 끝나면 true 를 돌려준다. 취소는 조용히 닫는다.
+/// 프리미엄 페이월. 결제가 끝나면 true 를 돌려준다. 취소는 조용히 닫는다.
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key, this.reason});
 
@@ -21,10 +21,10 @@ class PaywallScreen extends StatefulWidget {
   final String? reason;
 
   static const benefits = [
-    (Symbols.photo_camera_rounded, '사진 분류와 AI 질문 무제한'),
-    (Symbols.family_restroom_rounded, '가족 공유: 수거일·버렸어요 함께, 최대 6명'),
-    (Symbols.calendar_month_rounded, '캘린더 일정 추가와 전날 알림'),
-    (Symbols.photo_library_rounded, '여러 장 한 번에 분류 (최대 10장)'),
+    (Symbols.photo_camera_rounded, '사진 분류 무제한'),
+    (Symbols.chat_bubble_rounded, 'AI 질문 무제한'),
+    (Symbols.family_restroom_rounded, '가족·룸메와 수거일 공유'),
+    (Symbols.calendar_month_rounded, '캘린더 일정 + 여러 장 분류'),
   ];
 
   @override
@@ -68,7 +68,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
-        _toast(PremiumStore.trialOption(pkg) != null ? '가족 플랜이 시작됐어요. 7일 동안 무료예요.' : '가족 플랜이 시작됐어요.');
+        _toast(PremiumStore.trialOption(pkg) != null ? 'ReSAI 프리미엄이 시작됐어요. 7일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
         Navigator.pop(context, true);
       case PurchaseCancelled():
         break; // 조용히
@@ -115,7 +115,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
             children: [
               const Center(child: MascotImage(Mascot.happy, size: 112)),
               const SizedBox(height: AppSpacing.base),
-              Text('우리 집 분리수거, 같이 해요', style: t.headlineSmall, textAlign: TextAlign.center),
+              Text('ReSAI 프리미엄', style: t.headlineSmall, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.xs),
+              Text('분리수거, 더 편하게', style: t.bodyMedium?.copyWith(color: c.textSecondary), textAlign: TextAlign.center),
               if (widget.reason != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Text(widget.reason!, style: t.bodySmall, textAlign: TextAlign.center),
@@ -158,7 +160,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56), backgroundColor: c.ink, foregroundColor: c.onInk),
                 onPressed: store.busy ? null : _buy,
-                child: Text(store.busy ? '처리하는 중…' : (trial ? '${PremiumConfig.trialDays}일 무료로 시작' : '가족 플랜 시작 · $price')),
+                child: Text(store.busy ? '처리하는 중…' : (trial ? '${PremiumConfig.trialDays}일 무료로 시작' : '구독 시작 · $price')),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(

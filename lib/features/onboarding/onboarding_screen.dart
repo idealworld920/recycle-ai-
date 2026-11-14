@@ -5,12 +5,13 @@ import '../../core/mascot.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import 'consent_sheet.dart';
-import 'intro_animation.dart';
+import '../splash/splash_plan.dart';
+import '../splash/splash_screen.dart';
 import 'pages.dart';
 
-/// 최초 실행 온보딩: 인트로(리뿅이 등장) → 핵심 가치 → 루틴 → 동의.
+/// 최초 실행 온보딩: 핵심 가치 → 루틴 → 동의. (인트로 애니메이션은 스플래시가 맡는다)
 ///
-/// [replay] 면 설정의 "온보딩 다시 보기": 동의는 묻지 않고 0→1→2 를 본 뒤 [onDone].
+/// [replay] 면 설정의 "온보딩 다시 보기": 스플래시 풀 버전 → 1 → 2 를 본 뒤 [onDone]. 동의는 묻지 않는다.
 /// Firebase 익명 로그인은 백그라운드에서 따로 돌고, 이 화면은 그걸 기다리지 않는다.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onDone, this.replay = false});
@@ -28,7 +29,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   final _controller = PageController();
   final _consent = ConsentController();
   late final AnimationController _introSlide = AnimationController(vsync: this, duration: OnboardingScreen.pageDuration);
-  bool _intro = true;
+  late bool _intro = widget.replay;
   int _page = 0;
 
   int get _pageCount => widget.replay ? 2 : 3;
@@ -120,15 +121,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         const OnboardingValuePage(
                           mock: ResultMock(),
                           mascot: Mascot.wink,
-                          bubble: '사진만 찍으면 내가 알려주겠뿅!',
-                          title: '찍으면 알려줘요',
+                          bubble: '뭐든 가져와뿅! 리뿅이가 알려주겠뿅!',
+                          title: '찍으면 바로 알려줘요',
                           subtitle: '쓰레기 사진 한 장이면 어디에 버릴지, 뭘 떼야 하는지 바로 알 수 있어요',
                         ),
                         const OnboardingValuePage(
                           mock: RoutineMock(),
                           mascot: Mascot.happy,
-                          bubble: '수거일은 내가 전날 미리 알려주뿅~',
-                          title: '수거일도 챙겨드려요',
+                          bubble: '매주 수거일도 챙겨주겠뿅!',
+                          title: '수거일도 알려드려요',
                           subtitle: '전날 저녁에 알려주고, 홈 화면 위젯으로 D-day까지 보여드려요',
                           caption: '가족이랑 같이 쓰면 누가 버렸는지도 알 수 있어요',
                         ),
@@ -164,7 +165,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
             if (_intro)
               SlideTransition(
                 position: Tween<Offset>(begin: Offset.zero, end: const Offset(-1, 0)).animate(CurvedAnimation(parent: _introSlide, curve: Curves.easeOut)),
-                child: OnboardingIntro(onFinished: _leaveIntro, reduceMotion: _reduceMotion),
+                child: SplashScreen(plan: const SplashPlan(SplashKind.firstRun), ready: Future.value(), onDone: (_) => _leaveIntro()),
               ),
           ],
         ),

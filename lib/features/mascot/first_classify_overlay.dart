@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -6,13 +7,20 @@ import '../../core/mascot.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 
-/// 첫 분류 성공 1회: happy + 말풍선 + 0.8초 색종이. 탭하면 닫힌다. 3초 넘게 막지 않는다.
+/// 첫 분류 성공 1회: 검정 40% 오버레이 + happy 200px + 말풍선 + 0.8초 색종이(파랑·흰·연파랑). 탭 또는 2초 후 닫힌다.
+/// "애니메이션 줄이기" 면 색종이 없이 토스트 한 줄.
+const firstClassifyLine = '첫 분류 성공이뿅!! 도감에 1번째 친구 등록했뿅!';
+
 Future<void> showFirstClassifyOverlay(BuildContext context) {
+  if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(firstClassifyLine), duration: Duration(seconds: 2)));
+    return Future.value();
+  }
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierLabel: '닫기',
-    barrierColor: Colors.black54,
+    barrierColor: Colors.black.withValues(alpha: 0.4),
     transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (ctx, _, _) => _FirstClassifyBody(onClose: () => Navigator.of(ctx).pop()),
   );
@@ -30,15 +38,20 @@ class _FirstClassifyBodyState extends State<_FirstClassifyBody> with SingleTicke
   late final AnimationController _confetti = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
   late final List<_Piece> _pieces = List.generate(28, (i) => _Piece.random(Random(i)));
 
+  Timer? _autoClose;
+
   @override
   void initState() {
     super.initState();
-    final reduce = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
-    if (!reduce) _confetti.forward();
+    _confetti.forward();
+    _autoClose = Timer(const Duration(seconds: 2), () {
+      if (mounted) widget.onClose();
+    });
   }
 
   @override
   void dispose() {
+    _autoClose?.cancel();
     _confetti.dispose();
     super.dispose();
   }
@@ -57,7 +70,7 @@ class _FirstClassifyBodyState extends State<_FirstClassifyBody> with SingleTicke
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _confetti,
-                builder: (_, _) => CustomPaint(painter: _ConfettiPainter(_pieces, _confetti.value, [c.primary, c.food, c.special, c.warningText])),
+                builder: (_, _) => CustomPaint(painter: _ConfettiPainter(_pieces, _confetti.value, [c.primary, c.onInk, c.primarySoft])),
               ),
             ),
             Center(
@@ -66,12 +79,12 @@ class _FirstClassifyBodyState extends State<_FirstClassifyBody> with SingleTicke
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const MascotImage(Mascot.happy, size: 160),
+                    const MascotImage(Mascot.happy, size: 200),
                     const SizedBox(height: AppSpacing.base),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.base),
                       decoration: BoxDecoration(color: c.background, borderRadius: BorderRadius.circular(AppRadius.card)),
-                      child: Text('첫 분류 성공이뿅!! 도감에 1번째 친구 등록했뿅!', style: t.titleSmall, textAlign: TextAlign.center),
+                      child: Text(firstClassifyLine, style: t.titleSmall, textAlign: TextAlign.center),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text('탭하면 닫혀요', style: t.bodySmall?.copyWith(color: c.onInk)),
