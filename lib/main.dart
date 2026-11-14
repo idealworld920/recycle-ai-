@@ -99,7 +99,7 @@ Future<void> _boot() async {
   // 거주 지역: 고르면 users/{uid}.region 에 올리고, 기기에 없으면 서버 값을 받아온다.
   region.onRemoteSave = (data) => auth.service.mergeUserDoc({'region': data.isEmpty ? FieldValue.delete() : data});
   final premium = PremiumStore(PurchasesService.instance, prefs: prefs);
-  final household = HouseholdStore(HouseholdRepository());
+  final household = HouseholdStore(HouseholdRepository(), prefs: prefs);
   schedule.attachHousehold(household);
   String? attachedUid;
   void attachAll() {

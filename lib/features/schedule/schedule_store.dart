@@ -76,6 +76,11 @@ class ScheduleStore extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    if (!h.followSchedule) {
+      // 참여할 때 "내 설정 유지"를 고른 사람: 집 수거일을 기기에 덮어쓰지 않는다.
+      notifyListeners();
+      return;
+    }
     final json = remote.toJson().toString();
     if (json != _appliedHouseholdScheduleJson) {
       _appliedHouseholdScheduleJson = json;

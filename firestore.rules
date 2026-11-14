@@ -29,50 +29,38 @@ service cloud.firestore {
       }
     }
 
-    // 초대 코드 → 집 id. 로그인한 사람이면 코드로 조회할 수 있다.
-    match /invites/{code} {
-      allow get: if signedIn();
-      allow list: if false;
-      allow create: if signedIn() && request.resource.data.householdId is string;
-      allow update, delete: if signedIn()
-        && get(/databases/$(database)/documents/households/$(resource.data.householdId)).data.ownerUid == request.auth.uid;
-    }
-
-    // 가족 공유 집. 멤버만 읽고 쓴다.
+    // 가족 공유 집. 읽기는 멤버만. 멤버십 변경(참여·나가기·내보내기·위임)은 Cloud Function(관리자 권한)만 한다.
+    // premiumUntil 은 RevenueCat 웹훅(Function)만 쓴다.
     match /households/{hid} {
       function isMember() { return signedIn() && request.auth.uid in resource.data.memberUids; }
-      function joiningSelfOnly() {
-        return changedKeys().hasOnly(['memberUids'])
-          && request.resource.data.memberUids.hasAll(resource.data.memberUids)
-          && request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet()) == [request.auth.uid].toSet()
-          && exists(/databases/$(database)/documents/invites/$(resource.data.code))
-          && get(/databases/$(database)/documents/invites/$(resource.data.code)).data.householdId == hid;
-      }
-      function leavingSelfOnly() {
-        return changedKeys().hasOnly(['memberUids'])
-          && resource.data.memberUids.hasAll(request.resource.data.memberUids)
-          && resource.data.memberUids.toSet().difference(request.resource.data.memberUids.toSet()) == [request.auth.uid].toSet();
-      }
+      function isHouseholdOwner() { return isMember() && resource.data.ownerUid == request.auth.uid; }
+      function membershipUntouched() { return !changedKeys().hasAny(['ownerUid', 'memberUids', 'members', 'premiumUntil', 'premiumProductId', 'premiumUpdatedAt', 'createdAt']); }
 
       allow read: if isMember();
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.memberUids == [request.auth.uid];
-      allow update: if isMember() && !changedKeys().hasAny(['ownerUid', 'code'])
-        || (signedIn() && joiningSelfOnly())
-        || (signedIn() && leavingSelfOnly());
-      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.members.size() == 1
+        && request.resource.data.members[0].uid == request.auth.uid
+        && request.resource.data.premiumUntil == null
+        && request.resource.data.inviteCode is string && request.resource.data.inviteCode.size() == 6;
+      // 멤버: 수거일만. 방장: 수거일 + 이름 + 초대 코드 재발급.
+      allow update: if membershipUntouched()
+        && ((isMember() && changedKeys().hasOnly(['schedule', 'scheduleUpdatedAt']))
+            || (isHouseholdOwner() && changedKeys().hasOnly(['schedule', 'scheduleUpdatedAt', 'name', 'inviteCode', 'inviteCodeExpiresAt'])));
+      allow delete: if false;
 
-      match /members/{uid} {
-        allow read: if get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([request.auth.uid]);
-        allow create, update: if isOwner(uid)
-          && get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([uid]);
-        allow delete: if isOwner(uid);
+      function memberOf(hid) { return signedIn() && request.auth.uid in get(/databases/$(database)/documents/households/$(hid)).data.memberUids; }
+
+      // 오늘 누가 버렸는지. 멤버 누구나 쓰되 자기 uid 로만.
+      match /checkins/{day} {
+        allow read: if memberOf(hid);
+        allow write: if memberOf(hid);
       }
 
-      match /checkins/{day} {
-        allow read, write: if signedIn()
-          && get(/databases/$(database)/documents/households/$(hid)).data.memberUids.hasAny([request.auth.uid]);
+      // 집 공유 일정 (캘린더). 멤버 누구나 읽고 쓴다.
+      match /events/{eventId} {
+        allow read, write: if memberOf(hid);
       }
     }
 

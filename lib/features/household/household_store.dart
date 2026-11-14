@@ -1,32 +1,52 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../schedule/pickup_schedule.dart';
 import 'household_model.dart';
 import 'household_repository.dart';
 
-/// 현재 사용자의 집. 수거일·체크인을 집 단위로 공유한다.
+/// 현재 사용자의 집. 수거일·체크인·가족 플랜을 집 단위로 공유한다.
 class HouseholdStore extends ChangeNotifier {
-  HouseholdStore(this._repo);
+  // ignore: prefer_initializing_formals
+  HouseholdStore(this._repo, {SharedPreferences? prefs}) : _prefs = prefs {
+    _followSchedule = _prefs?.getBool(followPrefKey) ?? true;
+  }
+
+  /// 참여할 때 "집 설정으로 바꿀까요?" 에서 아니오를 고르면 false: 내 수거일을 유지한다.
+  static const followPrefKey = 'household_follow_schedule';
 
   final HouseholdRepository _repo;
+  final SharedPreferences? _prefs;
   String? _uid;
   Household? _household;
-  List<HouseholdMember> _members = const [];
   Map<WasteType, MemberCheckin> _todayCheckins = const {};
   String _today = '';
   bool _busy = false;
+  bool _followSchedule = true;
   StreamSubscription<Household?>? _hSub;
-  StreamSubscription<List<HouseholdMember>>? _mSub;
   StreamSubscription<Map<WasteType, MemberCheckin>>? _cSub;
 
   Household? get household => _household;
   bool get active => _household != null;
-  List<HouseholdMember> get members => _members;
+  List<HouseholdMember> get members => _household?.members ?? const [];
   Map<WasteType, MemberCheckin> get todayCheckins => _todayCheckins;
   bool get busy => _busy;
-  HouseholdMember? get me => _members.where((m) => m.uid == _uid).firstOrNull;
+  String? get uid => _uid;
+  HouseholdMember? get me => _household?.member(_uid);
+  bool get isOwner => _household?.isOwner(_uid) ?? false;
+  bool get followSchedule => _followSchedule;
+
+  /// 방장 구독으로 열린 가족 플랜 (멤버 전원).
+  bool get familyPlanActive => _household?.premiumActiveAt(DateTime.now()) ?? false;
+  DateTime? get familyPlanUntil => _household?.premiumUntil;
+
+  Future<void> setFollowSchedule(bool v) async {
+    _followSchedule = v;
+    await _prefs?.setBool(followPrefKey, v);
+    notifyListeners();
+  }
 
   Future<void> attachUser(String? uid) async {
     _uid = uid;
@@ -41,14 +61,18 @@ class HouseholdStore extends ChangeNotifier {
   }
 
   void _listen(String id) {
+    _hSub?.cancel();
     _hSub = _repo.watch(id).listen((h) {
+      // 내보내졌거나 집이 삭제되면 조용히 떨어진다.
+      if (h == null || (_uid != null && h.member(_uid) == null)) {
+        _detach();
+        return;
+      }
       _household = h;
-      if (h == null) _detach();
       notifyListeners();
-    });
-    _mSub = _repo.watchMembers(id).listen((m) {
-      _members = m;
-      notifyListeners();
+    }, onError: (Object e) {
+      debugPrint('집 구독 오류: $e');
+      _detach();
     });
     _listenToday(id);
   }
@@ -61,17 +85,15 @@ class HouseholdStore extends ChangeNotifier {
     _cSub = _repo.watchCheckins(id, key).listen((c) {
       _todayCheckins = c;
       notifyListeners();
-    });
+    }, onError: (_) {});
   }
 
   Future<void> _detach() async {
     await _hSub?.cancel();
-    await _mSub?.cancel();
     await _cSub?.cancel();
-    _hSub = _mSub = null;
+    _hSub = null;
     _cSub = null;
     _household = null;
-    _members = const [];
     _todayCheckins = const {};
     notifyListeners();
   }
@@ -81,28 +103,36 @@ class HouseholdStore extends ChangeNotifier {
     if (uid == null) throw const HouseholdException('로그인 상태가 아니에요.');
     return _run(() async {
       final h = await _repo.create(uid: uid, nickname: nickname);
+      _household = h;
       _listen(h.id);
       return h;
     });
   }
 
   Future<void> join(String code, String nickname) async {
-    final uid = _uid;
-    if (uid == null) throw const HouseholdException('로그인 상태가 아니에요.');
+    if (_uid == null) throw const HouseholdException('로그인 상태가 아니에요.');
     await _run(() async {
-      final id = await _repo.join(code: code, uid: uid, nickname: nickname);
+      final id = await _repo.join(code: code, nickname: nickname);
+      await setFollowSchedule(true);
       _listen(id);
     });
   }
 
   Future<void> leave() async {
-    final uid = _uid;
-    final h = _household;
-    if (uid == null || h == null) return;
+    if (_uid == null || _household == null) return;
     await _run(() async {
-      await _repo.leave(householdId: h.id, uid: uid);
+      await _repo.leave();
       await _detach();
     });
+  }
+
+  Future<void> removeMember(String uid) => _run(() => _repo.removeMember(uid));
+  Future<void> transferOwner(String uid) => _run(() => _repo.transferOwner(uid));
+
+  Future<String?> regenerateInvite() async {
+    final h = _household;
+    if (h == null || !isOwner) return null;
+    return _run(() => _repo.regenerateInvite(h.id));
   }
 
   /// 집 수거일 바꾸기. 모든 멤버에게 스트림으로 반영된다.
@@ -112,12 +142,15 @@ class HouseholdStore extends ChangeNotifier {
     await _repo.setSchedule(h.id, s);
   }
 
-  Future<void> checkIn(WasteType type) async {
+  /// [버렸어요] 집 단위. 같은 날 같은 종류를 누가 이미 눌렀으면 다시 쓰지 않는다.
+  Future<bool> checkIn(WasteType type) async {
     final h = _household;
     final m = me;
-    if (h == null || m == null) return;
+    if (h == null || m == null) return false;
     _listenToday(h.id);
+    if (_todayCheckins.containsKey(type)) return false;
     await _repo.checkIn(h.id, _today, type, m);
+    return true;
   }
 
   Future<T> _run<T>(Future<T> Function() action) async {

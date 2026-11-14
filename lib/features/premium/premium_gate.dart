@@ -7,11 +7,14 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import 'paywall_screen.dart';
 
+/// 페이월을 띄운 계기. users/{uid}.paywallShown 에 1회씩 기록한다 (B 블록).
+enum PaywallSource { reportBottom, streak3, share3, limitHit, featureTap, settings }
+
 /// 프리미엄이면 true. 아니면 페이월을 띄우고 결제 결과를 돌려준다.
 ///
 /// 스토어 결제가 아직 열리지 않은 빌드(RevenueCat 키 없음)에서는 페이월 대신
 /// "곧 출시" 안내만 띄운다. 사용자가 살 수 없는 결제 화면을 보여주지 않기 위해서.
-Future<bool> ensurePremium(BuildContext context, {String? reason, String? unavailableMessage}) async {
+Future<bool> ensurePremium(BuildContext context, {String? reason, String? unavailableMessage, PaywallSource source = PaywallSource.featureTap}) async {
   final premium = AppServices.of(context).premium;
   if (premium.isPremium) return true;
   if (!premium.available) {

@@ -22,14 +22,15 @@ import 'package:material_symbols_icons/symbols.dart';
 
 /// 설정 바텀시트. AI 연결 상태와 앱 정보.
 Future<void> showSettingsSheet(BuildContext context) {
-  final session = AppServices.of(context).firebase;
-  final region = AppServices.of(context).region;
+  final services = AppServices.of(context);
+  final session = services.firebase;
+  final region = services.region;
   return showAppSheet(
     context,
     title: '설정',
     initialSize: 0.55,
     builder: (ctx, controller) => ListenableBuilder(
-      listenable: Listenable.merge([session, region]),
+      listenable: Listenable.merge([session, region, services.household]),
       builder: (ctx, _) {
         final c = ctx.colors;
         final t = ctx.text;
@@ -82,7 +83,7 @@ Future<void> showSettingsSheet(BuildContext context) {
               },
             ),
             const SizedBox(height: AppSpacing.xl),
-            Text('가족 공유', style: t.titleSmall),
+            Text('우리 집', style: t.titleSmall),
             const SizedBox(height: AppSpacing.md),
             AppCard(
               onTap: () {
@@ -94,7 +95,7 @@ Future<void> showSettingsSheet(BuildContext context) {
                 children: [
                   Icon(Symbols.family_restroom_rounded, color: c.textPrimary),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text('집 만들기 · 참여하기', style: t.titleSmall)),
+                  Expanded(child: Text(services.household.active ? '${services.household.household!.name} · 멤버 ${services.household.members.length}명' : '집 만들기 · 코드로 참여', style: t.titleSmall)),
                   Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                 ],
               ),

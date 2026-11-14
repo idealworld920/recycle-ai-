@@ -37,6 +37,7 @@ class AuthStore extends ChangeNotifier {
   bool get isAnonymous => demoLinked ? false : (user?.isAnonymous ?? true);
   bool get isLinked => !isAnonymous;
   String? get email => user?.email;
+  String? get displayName => user?.displayName;
 
   static Future<AuthStore> load(AuthService service, {bool demoLinked = false}) async {
     final s = AuthStore(service, await SharedPreferences.getInstance(), demoLinked: demoLinked);
