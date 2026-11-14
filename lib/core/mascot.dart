@@ -9,7 +9,7 @@ import 'theme/app_theme.dart';
 ///
 /// GIF 가 기본이고, 시스템 "애니메이션 줄이기" 가 켜져 있거나 [animated] 가 false 면
 /// 첫 프레임 PNG(`r_*_static.png`)를 쓴다. 공유 카드·알림은 항상 PNG.
-/// 에셋이 아직 없는 표정은 [fallback] 으로 그린다 (빌드가 깨지지 않게).
+/// 표정마다 GIF 와 정지 PNG 가 모두 있다 (`tool/mascot_frames.py` 로 생성).
 enum Mascot {
   happy('r_happy'),
   cheer('r_cheer'),
@@ -20,18 +20,15 @@ enum Mascot {
   /// 온보딩 인트로: 쓰레기통 뚜껑이 열리는 2초. 정지 이미지는 마지막 프레임.
   intro('r_intro'),
   /// 갸웃. 분류 실패·검색 결과 없음.
-  confused('r_confused', fallback: thinking),
+  confused('r_confused'),
   /// 울상. 데이터 삭제 확인.
-  crying('r_crying', fallback: idle),
+  crying('r_crying'),
   /// 가만히 있는 리뿅이. 홈 상주.
   idle('r_idle');
 
-  const Mascot(this._base, {this.fallback});
+  const Mascot(this._base);
 
   final String _base;
-
-  /// 에셋이 없을 때 대신 쓸 표정.
-  final Mascot? fallback;
 
   String get gif => 'assets/branding/mascot/$_base.gif';
   String get png => 'assets/branding/mascot/${_base}_static.png';
@@ -52,19 +49,10 @@ class MascotImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     final useGif = animated && !reduceMotion;
-    return _asset(useGif ? mascot.gif : mascot.png, onError: () => _fallback(useGif));
-  }
-
-  /// GIF 없음 → 같은 표정 PNG → fallback 표정 → 빈 칸.
-  Widget _fallback(bool wasGif) {
-    if (wasGif) return _asset(mascot.png, onError: () => _fallbackMascot());
-    return _fallbackMascot();
-  }
-
-  Widget _fallbackMascot() {
-    final f = mascot.fallback;
-    if (f == null) return SizedBox(width: size, height: size);
-    return _asset(f.png, onError: () => SizedBox(width: size, height: size));
+    final blank = SizedBox(width: size, height: size);
+    // GIF 디코딩이 실패하면 같은 표정의 정지 PNG 로 (다른 표정으로 바꾸지 않는다).
+    if (!useGif) return _asset(mascot.png, onError: () => blank);
+    return _asset(mascot.gif, onError: () => _asset(mascot.png, onError: () => blank));
   }
 
   Widget _asset(String path, {required Widget Function() onError}) => Image.asset(

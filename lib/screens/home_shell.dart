@@ -101,7 +101,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// 물어보기 탭 아이콘: 리뿅이 그림(원본 색 유지). 비선택 55% 투명, 선택 100% + 1.1배. 에셋이 없으면 말풍선 아이콘.
+/// 물어보기 탭 아이콘: `tab_ask_default/selected.png`(192px 원본 색 유지). 비선택 55% 투명, 선택 100% + 1.1배.
 class _AskTabIcon extends StatelessWidget {
   const _AskTabIcon({required this.selected});
 

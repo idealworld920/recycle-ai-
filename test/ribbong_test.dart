@@ -29,6 +29,14 @@ void main() {
       final b = RibbongLines.fromJsonString('{"lines":[{"text":"아침이뿅","when":"morning"},{"text":"그냥뿅"}]}');
       expect(b.linesFor(LineWhen.morning), ['아침이뿅']);
       expect(b.linesFor(LineWhen.random), ['그냥뿅']);
+      // 실제 파일 형식: condition 별칭
+      final d = RibbongLines.fromJsonString(
+          '[{"id":"x1","condition":"collection_today","text":"출동이뿅!"},{"id":"x2","condition":"comeback","text":"오랜만이뿅!"},{"id":"x3","condition":"busy_day","text":"바쁘뿅!"},{"id":"x4","condition":"afternoon","text":"오후뿅"},{"id":"x5","condition":"없는조건","text":"그냥뿅"}]');
+      expect(d.linesFor(LineWhen.pickupToday), ['출동이뿅!']);
+      expect(d.linesFor(LineWhen.returnAfter3Days), ['오랜만이뿅!']);
+      expect(d.linesFor(LineWhen.classified10), ['바쁘뿅!']);
+      expect(d.linesFor(LineWhen.day), ['오후뿅']);
+      expect(d.linesFor(LineWhen.random), ['그냥뿅']);
       final c = RibbongLines.fromJsonString('{"night":["밤이뿅"]}');
       expect(c.linesFor(LineWhen.night), ['밤이뿅']);
       expect(c.linesFor(LineWhen.day), RibbongLines.builtIn[LineWhen.day]);
@@ -37,6 +45,25 @@ void main() {
       expect(line.trim().endsWith('뿅!') || line.trim().endsWith('뿅.') || line.trim().endsWith('뿅~') || line.trim().endsWith('뿅'), isTrue);
       for (final w in LineWhen.values) {
         for (final l in RibbongLines.builtIn[w]!) {
+          expect(l.contains('뿅'), isTrue, reason: l);
+        }
+      }
+    });
+  });
+
+  group('실제 ribbong_lines.json', () {
+    testWidgets('30개 전부 읽히고 조건별로 들어간다 (random 으로 새는 것 없음)', (tester) async {
+      final lines = await RibbongLines.load();
+      expect(lines.count, 30);
+      expect(lines.linesFor(LineWhen.pickupToday).length, 5);
+      expect(lines.linesFor(LineWhen.pickupTomorrow).length, 4);
+      expect(lines.linesFor(LineWhen.returnAfter3Days).length, 3);
+      expect(lines.linesFor(LineWhen.classified10).length, 3);
+      for (final w in [LineWhen.morning, LineWhen.day, LineWhen.evening, LineWhen.night, LineWhen.random]) {
+        expect(lines.linesFor(w).length, 3, reason: w.name);
+      }
+      for (final w in LineWhen.values) {
+        for (final l in lines.linesFor(w)) {
           expect(l.contains('뿅'), isTrue, reason: l);
         }
       }

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / 'assets' / 'branding' / 'mascot'
 
 # 마지막 프레임을 써야 하는 것 (인트로: 끝난 모습에서 멈춘다)
-LAST_FRAME = {'r_intro'}
+LAST_FRAME = {'r_intro', 'r_intro_short'}
 
 for gif in sorted(DIR.glob('r_*.gif')):
     im = Image.open(gif)

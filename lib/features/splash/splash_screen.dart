@@ -86,7 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       gaplessPlayback: true,
-      // r_intro_short.gif 가 아직 없으면 긴 GIF 의 첫 프레임으로.
+      // 디코딩 실패 시 정지 이미지로.
       errorBuilder: (_, _, _) => Image.asset(Mascot.intro.png, width: 240, height: 240, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox(width: 240, height: 240)),
     );
   }

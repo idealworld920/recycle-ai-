@@ -10,10 +10,12 @@ enum LineWhen { pickupToday, pickupTomorrow, returnAfter3Days, classified10, mor
 
 /// 홈 리뿅이 대사. assets/data/ribbong_lines.json 을 읽고, 없거나 조건 키가 없으면 내장 문장을 쓴다.
 ///
-/// 파일 형식(둘 다 허용):
+/// 파일 형식(모두 허용):
+///  - [{"id":"…","condition":"collection_today","text":"…"}, …]  ← 실제 파일 (30개)
 ///  - ["문장", ...]                               → 전부 random
-///  - {"lines":[{"text":"…","when":"morning"}, …]} → when 은 LineWhen 이름(없으면 random)
+///  - {"lines":[{"text":"…","when":"morning"}, …]}
 ///  - {"morning":[…], "random":[…], …}
+/// 조건 이름은 LineWhen 이름 또는 [conditionAliases] 의 키. 모르는 조건은 random.
 /// 문장은 "~뿅" 으로 끝나야 한다 (리뿅이 말풍선).
 class RibbongLines {
   RibbongLines(this._byWhen);
@@ -37,6 +39,20 @@ class RibbongLines {
     LineWhen.random: ['페트병은 라벨 떼고 찌그러뜨리뿅!', '종이팩은 종이랑 따로 모으뿅~', '기록 탭에서 이번 달 재활용률 확인해보뿅!'],
   };
 
+  /// ribbong_lines.json 의 condition 값 → LineWhen.
+  static const conditionAliases = <String, LineWhen>{
+    'collection_today': LineWhen.pickupToday,
+    'pickup_today': LineWhen.pickupToday,
+    'collection_tomorrow': LineWhen.pickupTomorrow,
+    'pickup_tomorrow': LineWhen.pickupTomorrow,
+    'comeback': LineWhen.returnAfter3Days,
+    'return_after_3_days': LineWhen.returnAfter3Days,
+    'busy_day': LineWhen.classified10,
+    'classified_10': LineWhen.classified10,
+    'afternoon': LineWhen.day,
+    'daytime': LineWhen.day,
+  };
+
   static Future<RibbongLines> load() async {
     try {
       final raw = await rootBundle.loadString(assetPath);
@@ -55,7 +71,10 @@ class RibbongLines {
       out.putIfAbsent(w, () => []).add(s);
     }
 
-    LineWhen whenOf(Object? v) => LineWhen.values.where((w) => w.name == v?.toString()).firstOrNull ?? LineWhen.random;
+    LineWhen whenOf(Object? v) {
+      final key = v?.toString().trim() ?? '';
+      return LineWhen.values.where((w) => w.name == key).firstOrNull ?? conditionAliases[key] ?? LineWhen.random;
+    }
     if (decoded is List) {
       for (final e in decoded) {
         if (e is Map) {

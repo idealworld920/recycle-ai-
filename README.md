@@ -353,7 +353,7 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 | 상황 | 재생 | 다음 |
 |---|---|---|
 | 최초 실행(`onboardingDone` 아님) | `r_intro.gif` 2.6초 | 온보딩 1페이지 |
-| 평소 | `r_intro_short.gif` 0.8초 (없으면 `r_intro_static.png`) | 홈 |
+| 평소 | `r_intro_short.gif` 0.8초 | 홈 |
 | 3일 이상 안 열었다(`lastOpenAt`) | `r_intro.gif` + "오랜만이뿅!" | 홈 |
 | Remote Config `splash_message` 가 기간 안이고 `users/{uid}.seenSplash` 에 없는 id | `r_intro.gif` + 그 문구, 끝나면 id 저장 | 홈 |
 | 애니메이션 줄이기 | `r_intro_static.png` 0.3초 (문구는 유지) | 위와 같음 |
@@ -412,10 +412,10 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 여러 장: 카메라 화면 "여러 장" 토글(프리미엄, 무료는 잠금 아이콘) → 갤러리 최대 10장 또는 카메라 연속 촬영 → "n/10 분류 중" + 리뿅이 thinking → 결과 리스트 → 탭하면 개별 결과. 실패 장 [다시 시도], 공유는 개별 결과에서만.
 
 ### D. 리뿅이 (`lib/features/mascot/`, `lib/core/mascot.dart`)
-- 홈 상단 `r_idle.gif` 72px + 말풍선. 대사는 `assets/data/ribbong_lines.json`(형식: 문자열 배열 / `{"lines":[{"text","when"}]}` / `{"morning":[…]}`; `when` 은 `pickupToday|pickupTomorrow|returnAfter3Days|classified10|morning|day|evening|night|random`). 파일에 없는 조건은 내장 문장을 쓴다.
+- 홈 상단 `r_idle.gif` 72px + 말풍선. 대사는 `assets/data/ribbong_lines.json` 30개(`[{"id","condition","text"}]`; condition `collection_today|collection_tomorrow|comeback|busy_day|morning|afternoon|evening|night|random` → `RibbongLines.conditionAliases` 로 `LineWhen` 에 매핑). 파일에 없는 조건만 내장 문장을 쓴다.
 - 우선순위: 수거일 당일 > 전날 > 3일 미접속 복귀 > 당일 분류 10개↑ > 시간대 > 랜덤. 탭 → happy 계열(happy·cheer·laugh 랜덤)/wink/thinking, 5연타 "간지럽뿅!!".
 - 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 프리미엄 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
-- 에셋이 없으면: GIF → 같은 표정 PNG → 대체 표정(confused→thinking, crying→idle) 순으로 폴백하고, 탭 아이콘은 Material 아이콘으로. 새 GIF 를 넣은 뒤 `python3 tool/mascot_frames.py` 로 `_static.png` 를 만든다.
+- 표정 9종 GIF + `_static.png` 전부 있음. 새 GIF 를 넣을 땐 `python3 tool/gif_keyout.py <이름>[:임계값]`(배경 투명화, 체커보드 배경은 `:70`) → `python3 tool/mascot_frames.py`(정지 프레임, intro 계열은 마지막 프레임).
 
 ### 기록 선택 삭제 (`lib/features/history/delete_records.dart`)
 - 진입: 항목 길게 누르기(그 항목 체크된 채) 또는 우상단 [선택]. 선택 모드 앱바 `[취소] N개 선택 [전체 선택]`, 항목 왼쪽 원형 체크(선택 시 primary), 날짜 헤더 탭 = 그날 전체 토글, 하단 검정 [N개 삭제](0개면 비활성), 항목 탭 = 토글, 뒤로가기 = 선택 모드 해제. 스와이프 삭제·상세 화면 ⋯ [삭제]도 같은 확인 시트를 쓴다.
@@ -452,7 +452,6 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 
 ### 확인 못 해서 비워 둔 항목
 - `assets/data/special_days.json` 항목: 공식 출처 URL 을 이 환경에서 열어 확인하지 못해 비워 둠(자원순환의 날 9/6 등은 환경부 페이지 확인 후 추가).
-- 리뿅이 새 에셋(`r_idle.gif`, `r_confused.gif`, `r_crying.gif`, `tab_ask_*.png`, `ribbong_lines.json`)은 이 브랜치에 아직 없다. 들어오면 `tool/mascot_frames.py` 로 정지 PNG 생성.
 - RevenueCat 실제 결제·웹훅 전파는 라이선스 테스터 기기에서만 확인 가능.
 
 ## 구조

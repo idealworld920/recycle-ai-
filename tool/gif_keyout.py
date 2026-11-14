@@ -12,14 +12,14 @@ DIR = ROOT / 'assets' / 'branding' / 'mascot'
 KEY = (255, 0, 255)
 
 
-def keyout(frame: Image.Image) -> Image.Image:
+def keyout(frame: Image.Image, thresh: int = 48) -> Image.Image:
     rgb = frame.convert('RGB')
     w, h = rgb.size
     for xy in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
         px0 = rgb.getpixel(xy)
         # 밝은(흰·연회색) 배경이나 검정 배경 둘 다. 얼굴의 흰 눈·검은 눈매는 파란 몸통 안에 갇혀 있어 안 닿는다.
         if min(px0) > 200 or max(px0) < 40:
-            ImageDraw.floodfill(rgb, xy, KEY, thresh=48)
+            ImageDraw.floodfill(rgb, xy, KEY, thresh=thresh)
     out = rgb.convert('RGBA')
     px = out.load()
     for y in range(h):
@@ -30,14 +30,17 @@ def keyout(frame: Image.Image) -> Image.Image:
 
 
 def main(names):
-    for name in names:
+    # 이름 뒤에 :숫자 를 붙이면 flood fill 임계값 (체커보드처럼 밝기가 섞인 배경은 70 정도).
+    for spec in names:
+        name, _, t = spec.partition(':')
+        thresh = int(t) if t else 48
         path = DIR / f'{name}.gif'
         im = Image.open(path)
         frames, durations = [], []
         for i in range(im.n_frames):
             im.seek(i)
             durations.append(im.info.get('duration', 100))
-            rgba = keyout(im.convert('RGBA'))
+            rgba = keyout(im.convert('RGBA'), thresh)
             # 팔레트 255색 + 투명 인덱스
             alpha = rgba.split()[3]
             p = rgba.convert('RGB').quantize(colors=255, method=Image.Quantize.MEDIANCUT)
