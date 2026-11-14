@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,5 +79,25 @@ class CollectionStore extends ChangeNotifier {
       }
     }
     return true;
+  }
+
+  /// 기록 삭제 뒤 도감 정리. [candidates] 중 [stillCollected] 에 없는 것만 뺀다.
+  /// 호출 쪽이 "남은 기록에 같은 품목이 하나라도 있는지" 를 계산해 넘긴다. 뱃지는 개수로 즉시 계산되므로 조용히 내려간다.
+  Future<Set<String>> prune(Set<String> candidates, {required Set<String> stillCollected}) async {
+    final drop = candidates.where((id) => _ids.contains(id) && !stillCollected.contains(id)).toSet();
+    if (drop.isEmpty) return drop;
+    _ids = _ids.difference(drop);
+    await _prefs.setStringList(prefKey, _ids.toList());
+    notifyListeners();
+    final col = _col;
+    if (col != null) {
+      final db = firestore ?? FirebaseFirestore.instance;
+      final batch = db.batch();
+      for (final id in drop) {
+        batch.delete(col.doc(id));
+      }
+      unawaited(batch.commit().catchError((Object e) => debugPrint('도감 정리 동기화 실패: $e')));
+    }
+    return drop;
   }
 }

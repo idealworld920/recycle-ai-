@@ -417,6 +417,14 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 프리미엄 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
 - 에셋이 없으면: GIF → 같은 표정 PNG → 대체 표정(confused→thinking, crying→idle) 순으로 폴백하고, 탭 아이콘은 Material 아이콘으로. 새 GIF 를 넣은 뒤 `python3 tool/mascot_frames.py` 로 `_static.png` 를 만든다.
 
+### 기록 선택 삭제 (`lib/features/history/delete_records.dart`)
+- 진입: 항목 길게 누르기(그 항목 체크된 채) 또는 우상단 [선택]. 선택 모드 앱바 `[취소] N개 선택 [전체 선택]`, 항목 왼쪽 원형 체크(선택 시 primary), 날짜 헤더 탭 = 그날 전체 토글, 하단 검정 [N개 삭제](0개면 비활성), 항목 탭 = 토글, 뒤로가기 = 선택 모드 해제. 스와이프 삭제·상세 화면 ⋯ [삭제]도 같은 확인 시트를 쓴다.
+- 확인 시트 "기록 N개를 삭제할까요?" (리뿅이 없음, 표준 존댓말) → 삭제 → 스낵바 "기록 N개를 삭제했어요".
+- 데이터: 기기 목록(shared_preferences `history_v2`)을 먼저 지우고, `users/{uid}/history/{id}` 는 500개 단위 batch. 오프라인이면 SDK 큐에 맡기고 기다리지 않는다(익명도 동일). 사진은 기록 문서 안의 base64 썸네일뿐이라(Storage·로컬 파일 없음) 문서와 함께 사라진다.
+- 도감: 지운 기록이 가리키던 tips 품목 중 **남은 기록에 하나도 없는 것만** `users/{uid}/collection/{tipId}` 와 기기 `collection_v1` 에서 뺀다 (`RecordDeleter.reconcileCollection`). 뱃지 🌱🌿🌳는 도감 개수로 매번 계산하므로 기준 아래로 내려가면 조용히 사라진다.
+- 캘린더(점·날짜별 목록)·월간 요약·리포트 카드·홈 리뿅이(오늘 분류 수)는 모두 `history.items` 를 `ListenableBuilder` 로 보고 있어 삭제 즉시 다시 계산된다. 리포트 전체 화면은 열 때 계산한다.
+- 테스트 `test/delete_records_test.dart`(도감 유지/제거, 뱃지 회수, 선택 모드·헤더·전체 선택·삭제 시트·스낵바·뒤로가기), `test/history_store_test.dart`(removeMany·clear).
+
 ### 내가 할 설정 순서 (Play Console · RevenueCat · Firebase)
 1. **Play Console → 수익 창출 → 구독**: `resai_premium_monthly`(월 2,900원), `resai_premium_yearly`(연 19,900원) 각각 기본 요금제 + 7일 무료 체험 오퍼(신규 1회). 기존 `resai_premium_*` 은 비활성화.
 2. **RevenueCat**: Products 에 위 두 상품 → Entitlement `premium` 에 연결 → Offering `default` 에 `$rc_monthly`/`$rc_annual` 패키지. Public SDK key 를 `dart_defines.json` 의 `REVENUECAT_ANDROID_KEY` 에.

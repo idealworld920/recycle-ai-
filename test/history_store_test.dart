@@ -91,4 +91,24 @@ void main() {
     expect(groups.first.$1, DateTime(2026, 10, 17));
     expect(groups.first.$2.map((r) => r.itemName), ['B', 'C']);
   });
+
+  test('removeMany: 지운 기록을 돌려주고 기기 목록에서 빠진다 (없는 id 는 무시)', () async {
+    final a = await store.addResult(_result('생수 페트병', RecycleCategory.pet, now));
+    final b = await store.addResult(_result('캔', RecycleCategory.can, now.subtract(const Duration(hours: 1))));
+    await store.addResult(_result('택배 상자', RecycleCategory.paper, now.subtract(const Duration(days: 1))));
+    final removed = await store.removeMany([a.id, b.id, 'no-such-id']);
+    expect(removed.map((r) => r.id).toSet(), {a.id, b.id});
+    expect(store.items.single.itemName, '택배 상자');
+    final reloaded = await HistoryStore.load();
+    expect(reloaded.items.single.itemName, '택배 상자');
+    expect(await store.removeMany(['no-such-id']), isEmpty);
+  });
+
+  test('clear 는 전부 지우고 지운 목록을 돌려준다', () async {
+    await store.addResult(_result('생수 페트병', RecycleCategory.pet, now));
+    await store.addResult(_result('캔', RecycleCategory.can, now.subtract(const Duration(hours: 1))));
+    final removed = await store.clear();
+    expect(removed.length, 2);
+    expect(store.items, isEmpty);
+  });
 }

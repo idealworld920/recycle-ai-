@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -61,20 +62,20 @@ class HistoryStore extends ChangeNotifier {
     }
   }
 
-  Future<void> _remoteDelete(Iterable<String> ids) async {
+  /// Firestore 일괄 삭제 제한(500)에 맞춰 나눠 커밋한다.
+  static const deleteBatchSize = 500;
+
+  /// 서버 삭제. 오프라인이면 SDK 큐에 맡기고 기다리지 않는다 (로컬은 이미 지워졌다).
+  void _remoteDelete(Iterable<String> ids) {
     final col = _col;
     if (col == null) return;
-    try {
-      final list = ids.toList();
-      for (var i = 0; i < list.length; i += 400) {
-        final batch = FirebaseFirestore.instance.batch();
-        for (final id in list.skip(i).take(400)) {
-          batch.delete(col.doc(id));
-        }
-        await batch.commit();
+    final list = ids.toList();
+    for (var i = 0; i < list.length; i += deleteBatchSize) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in list.skip(i).take(deleteBatchSize)) {
+        batch.delete(col.doc(id));
       }
-    } catch (e) {
-      debugPrint('기록 삭제 동기화 실패: $e');
+      unawaited(batch.commit().catchError((Object e) => debugPrint('기록 삭제 동기화 실패: $e')));
     }
   }
 
@@ -146,11 +147,19 @@ class HistoryStore extends ChangeNotifier {
   static String _newId(DateTime at) =>
       '${at.microsecondsSinceEpoch.toRadixString(36)}-${at.hashCode.toRadixString(36)}';
 
-  Future<void> remove(String id) async {
-    _items.removeWhere((r) => r.id == id);
+  Future<void> remove(String id) => removeMany([id]);
+
+  /// 여러 건 삭제. 기기 목록을 먼저 지우고 알린 뒤 서버(users/{uid}/history)는 500개 단위 batch 로.
+  /// 지운 기록을 돌려준다 (도감 재계산용).
+  Future<List<HistoryRecord>> removeMany(Iterable<String> ids) async {
+    final set = ids.toSet();
+    final removed = _items.where((r) => set.contains(r.id)).toList(growable: false);
+    if (removed.isEmpty) return removed;
+    _items.removeWhere((r) => set.contains(r.id));
     await _writeAll();
     notifyListeners();
-    await _remoteDelete([id]);
+    _remoteDelete(removed.map((r) => r.id));
+    return removed;
   }
 
   /// 기기 복사본만 비운다 (서버는 그대로). 계정 전환용.
@@ -160,13 +169,7 @@ class HistoryStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clear() async {
-    final ids = _items.map((r) => r.id).toList();
-    _items = [];
-    await _writeAll();
-    notifyListeners();
-    await _remoteDelete(ids);
-  }
+  Future<List<HistoryRecord>> clear() => removeMany(_items.map((r) => r.id).toList());
 
   // ---- 요약 ----
 

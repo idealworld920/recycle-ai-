@@ -17,12 +17,13 @@ import '../features/share/share_service.dart';
 import '../features/tips/tip_card.dart';
 import '../features/tips/tips_screen.dart';
 import '../models/recycle_result.dart';
+import '../features/history/delete_records.dart';
 import '../widgets/app_card.dart';
 import '../widgets/result_card.dart';
 import 'guide_screen.dart';
 
 class ResultScreen extends StatefulWidget {
-  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast, this.elapsed});
+  const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast, this.elapsed, this.recordId});
 
   final RecycleResult result;
   final bool isNew;
@@ -38,6 +39,9 @@ class ResultScreen extends StatefulWidget {
 
   /// 사진 선택부터 결과까지 걸린 시간. 3초를 넘겼으면 리뿅이가 한마디 한다.
   final Duration? elapsed;
+
+  /// 기록에서 열었을 때의 기록 id. 있으면 ⋯ 메뉴에 [삭제] 가 생긴다.
+  final String? recordId;
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -95,6 +99,20 @@ class _ResultScreenState extends State<ResultScreen> {
             icon: const Icon(Symbols.share_rounded),
             tooltip: '공유',
           ),
+          if (widget.recordId != null)
+            PopupMenuButton<String>(
+              tooltip: '더보기',
+              icon: const Icon(Symbols.more_vert_rounded),
+              onSelected: (v) async {
+                if (v != 'delete') return;
+                final nav = Navigator.of(context);
+                final ok = await RecordDeleter.confirmAndDelete(context, [widget.recordId!]);
+                if (ok && nav.canPop()) nav.pop();
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: c.error))),
+              ],
+            ),
         ],
       ),
       body: ListView(
