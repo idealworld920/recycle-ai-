@@ -63,6 +63,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # tool/play_tracks.dart (Play Developer API) 전용. 앱 번들에는 들어가지 않는다.
+  googleapis_auth: ^2.0.0
+  http: ^1.2.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
