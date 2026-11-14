@@ -1,0 +1,40 @@
+[
+  {"id": "collection_today_1", "condition": "collection_today", "text": "오늘이다뿅!! 버렸뿅?"},
+  {"id": "collection_today_2", "condition": "collection_today", "text": "수거일이 왔뿅! 출동이뿅!"},
+  {"id": "collection_today_3", "condition": "collection_today", "text": "리뿅이도 준비 완료뿅!"},
+  {"id": "collection_today_4", "condition": "collection_today", "text": "오늘의 임무 시작이뿅!"},
+  {"id": "collection_today_5", "condition": "collection_today", "text": "오늘은 재활용 데이뿅♡"},
+
+  {"id": "collection_tomorrow_1", "condition": "collection_tomorrow", "text": "내일 재활용 날이뿅! 모아뒀뿅?"},
+  {"id": "collection_tomorrow_2", "condition": "collection_tomorrow", "text": "내일 출동할 준비 됐뿅?!"},
+  {"id": "collection_tomorrow_3", "condition": "collection_tomorrow", "text": "두근두근! 내일이 수거일이뿅!"},
+  {"id": "collection_tomorrow_4", "condition": "collection_tomorrow", "text": "내일은 리뿅이랑 함께하뿅!"},
+
+  {"id": "comeback_1", "condition": "comeback", "text": "오랜만이뿅… 보고 싶었뿅"},
+  {"id": "comeback_2", "condition": "comeback", "text": "앗! 돌아왔뿅?! 반갑뿅♡"},
+  {"id": "comeback_3", "condition": "comeback", "text": "리뿅이가 기다렸뿅! 헤헤뿅!"},
+
+  {"id": "busy_day_1", "condition": "busy_day", "text": "오늘 열심히 했뿅! 최고뿅!"},
+  {"id": "busy_day_2", "condition": "busy_day", "text": "우와?! 벌써 이렇게 많이뿅?!"},
+  {"id": "busy_day_3", "condition": "busy_day", "text": "리뿅이도 깜짝 놀랐뿅! 대단뿅!"},
+
+  {"id": "morning_1", "condition": "morning", "text": "좋은 아침이뿅! 잘 잤뿅?"},
+  {"id": "morning_2", "condition": "morning", "text": "리뿅이 기상 완료뿅!"},
+  {"id": "morning_3", "condition": "morning", "text": "오늘도 신나게 시작하뿅!"},
+
+  {"id": "afternoon_1", "condition": "afternoon", "text": "점심 먹었뿅? 리뿅이는 배고프뿅!"},
+  {"id": "afternoon_2", "condition": "afternoon", "text": "오후에도 힘내자뿅!"},
+  {"id": "afternoon_3", "condition": "afternoon", "text": "리뿅이랑 잠깐 놀아뿅♡"},
+
+  {"id": "evening_1", "condition": "evening", "text": "오늘 하루도 수고했뿅!"},
+  {"id": "evening_2", "condition": "evening", "text": "저녁이다뿅! 맛있는 거 먹었뿅?"},
+  {"id": "evening_3", "condition": "evening", "text": "이제 슬슬 쉬어도 좋뿅♡"},
+
+  {"id": "night_1", "condition": "night", "text": "쉿… 리뿅이도 조용히 있겠뿅…"},
+  {"id": "night_2", "condition": "night", "text": "늦은 밤이뿅… 편히 쉬어뿅"},
+  {"id": "night_3", "condition": "night", "text": "오늘도 고생했뿅… 잘 자뿅♡"},
+
+  {"id": "random_1", "condition": "random", "text": "리뿅이 등장했뿅! 짜잔뿅!"},
+  {"id": "random_2", "condition": "random", "text": "모르는 거 나와도 같이 해보뿅!"},
+  {"id": "random_3", "condition": "random", "text": "작은 실천도 멋진 일이뿅!"}
+]
