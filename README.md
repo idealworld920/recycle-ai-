@@ -427,6 +427,12 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - **설정 → 계정**: 익명 "Google 계정으로 연결하기" + "기기를 바꿔도 기록을 이어서 볼 수 있어요" / 연결됨 이메일 + [로그아웃]. 기존 "AI 연결 / 익명 ID / API 키" 섹션은 제거.
 - 테스트: `test/link_flow_test.dart`(결과별 스낵바·전환 시트·로그아웃·시트 안 스낵바), `test/auth_errors_test.dart`, `test/onboarding_test.dart`(계정 페이지).
 
+### 구독 상태·가격·데이터 삭제 (1.2.0+17)
+- **구독 상태** (`lib/features/premium/subscription_status.dart`): RevenueCat `EntitlementInfo` 의 `willRenew`·`expirationDate`·`periodType` → 설정 프리미엄 카드 제목. 갱신 예정 "ReSAI 프리미엄 사용 중 · 12월 15일 갱신" / 체험 중 "7일 무료 체험 중 · 11월 22일부터 월 ₩2,900" / 해지 예정 "프리미엄 · 12월 15일까지 이용 가능 (해지 예정)"(탭 → Play 구독 관리) / 만료 → 비구독 카드. 포그라운드 복귀 시 `PremiumStore.refresh()`(캐시 무효화 + getCustomerInfo)로 즉시 반영.
+- **가격**: 하드코딩 전부 제거. 설정 카드·페이월은 `StoreProduct.priceString` 만 쓰고, 로딩 전엔 "가격 불러오는 중…", 실패하면 "가격을 불러오지 못했어요" + [다시 불러오기]. 연간 할인 배지는 두 가격으로 계산. 체험 자격(`freePhase` 오퍼 또는 `introductoryPrice`)이 있을 때만 "7일 무료로 시작" + "7일 무료 체험 후 {가격} 자동 갱신돼요". 오퍼링은 RevenueCat 설정 직후 미리 받는다.
+- **데이터 삭제**: Callable `deleteUserData`(functions/index.js) — `users/{uid}` 재귀 삭제 + Storage `users/{uid}/` + 집에서 제거(방장이면 위임·마지막이면 삭제). RevenueCat 구독자는 건드리지 않는다. 앱은 로딩 시트 "삭제하고 있어요…" → 함수 → Auth 계정 삭제 → RevenueCat logOut → 기기 초기화 → 온보딩. 실패 시 "삭제에 실패했어요. 다시 시도해 주세요" + [다시 시도]. 함수가 아직 배포 전이면 클라이언트 삭제로 폴백. **`firebase deploy --only functions` 필요.**
+- 테스트: `test/subscription_status_test.dart`, `test/data_deletion_test.dart`.
+
 ### 기록 선택 삭제 (`lib/features/history/delete_records.dart`)
 - 진입: 항목 길게 누르기(그 항목 체크된 채) 또는 우상단 [선택]. 선택 모드 앱바 `[취소] N개 선택 [전체 선택]`, 항목 왼쪽 원형 체크(선택 시 primary), 날짜 헤더 탭 = 그날 전체 토글, 하단 검정 [N개 삭제](0개면 비활성), 항목 탭 = 토글, 뒤로가기 = 선택 모드 해제. 스와이프 삭제·상세 화면 ⋯ [삭제]도 같은 확인 시트를 쓴다.
 - 확인 시트 "기록 N개를 삭제할까요?" (리뿅이 없음, 표준 존댓말) → 삭제 → 스낵바 "기록 N개를 삭제했어요".

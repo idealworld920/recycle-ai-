@@ -2,6 +2,7 @@
 //
 // - revenuecatWebhook: RevenueCat 웹훅 → users/{uid}.premium 과 households/{id}.premiumUntil 갱신 (클라이언트는 못 쓴다)
 // - joinHousehold / leaveHousehold / removeHouseholdMember / transferHouseholdOwner: 집 멤버십 변경 (callable)
+// - deleteUserData: 내 데이터 삭제 (users/{uid} 재귀 삭제 + Storage users/{uid}/ + 집에서 제거). RevenueCat 구독자는 건드리지 않는다.
 //
 // 배포:   cd functions && npm install && firebase deploy --only functions
 // 에뮬레이터: firebase emulators:start --only functions,firestore  (앱에서는 FirebaseFunctions.useFunctionsEmulator('localhost', 5001))
@@ -186,4 +187,27 @@ exports.transferHouseholdOwner = onCall({ region: REGION }, async (request) => {
   const premiumUntil = p && p.active && p.expiresAt ? p.expiresAt : null;
   await h.ref.update({ ownerUid: target, premiumUntil, premiumProductId: premiumUntil ? (p.productId || null) : null });
   return { ok: true };
+});
+
+// ---------- 내 데이터 삭제 ----------
+/**
+ * 호출한 uid 의 서버 데이터 전부 삭제. 앱은 성공하면 Auth 계정 삭제 → RevenueCat logOut → 기기 초기화 → 온보딩으로 간다.
+ * - users/{uid} 문서 + 모든 하위 컬렉션(history, usage, checkins, collection, reports, settings, events, guide …) 재귀 삭제
+ * - Storage users/{uid}/ 아래 파일 삭제 (버킷이 없으면 건너뜀)
+ * - 집 멤버에서 제거 (마지막 멤버면 집 삭제, 방장이면 다음 멤버에게 위임)
+ * - RevenueCat 구독자는 삭제하지 않는다 (구독은 Google Play 에 남아 복원 가능해야 함)
+ */
+exports.deleteUserData = onCall({ region: REGION, timeoutSeconds: 60 }, async (request) => {
+  const uid = requireUid(request);
+  const started = Date.now();
+  const h = await householdOf(uid);
+  if (h) await removeFromHousehold(h.ref, uid, { byOwner: false }).catch((e) => console.warn("household leave failed", e));
+  await db.recursiveDelete(db.collection("users").doc(uid));
+  try {
+    await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` });
+  } catch (e) {
+    // 기본 버킷이 없거나 Storage 를 안 쓰는 프로젝트: 무시
+    console.warn("storage delete skipped", e && e.message);
+  }
+  return { ok: true, ms: Date.now() - started };
 });

@@ -62,6 +62,8 @@ class FakeAuthService implements AuthService {
   @override
   Future<void> deleteAccount() async {}
   @override
+  Future<void> deleteAuthAccountOnly() async {}
+  @override
   Future<void> mergeUserDoc(Map<String, dynamic> data) async {}
   @override
   Future<Map<String, dynamic>?> readUserDoc() async => null;

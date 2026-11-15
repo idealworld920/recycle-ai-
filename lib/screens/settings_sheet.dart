@@ -14,6 +14,8 @@ import '../features/paywall/premium_sheet.dart';
 import '../features/premium/premium_gate.dart';
 import '../features/premium/premium_store.dart';
 import '../features/premium/purchases_service.dart';
+import '../features/premium/subscription_status.dart';
+import '../features/places/external_links.dart';
 import '../features/places/region_picker_sheet.dart';
 import '../features/schedule/notification_service.dart';
 import '../features/schedule/pickup_schedule.dart';
@@ -45,10 +47,38 @@ Future<void> showSettingsSheet(BuildContext context) {
               listenable: services.premium,
               builder: (ctx2, _) {
                 final p = services.premium;
+                final st = p.status;
+                // 제목·부제: 체험/갱신/해지 예정은 RevenueCat 상태로, 가격은 스토어 값으로만.
+                final String title;
+                final String subtitle;
+                if (p.source == PremiumSource.own) {
+                  final price = st.isYearly ? p.yearlyPrice : p.monthlyPrice;
+                  title = st.headline(priceString: price);
+                  subtitle = st.phase == SubscriptionPhase.cancelled ? '탭하면 Google Play 구독 관리로 가요' : '프리미엄 관리 · 갱신일·구독 관리';
+                } else if (p.source == PremiumSource.family) {
+                  title = 'ReSAI 프리미엄 사용 중';
+                  subtitle = '집 방장의 구독 · 프리미엄 관리';
+                } else if (p.isPremium) {
+                  title = 'ReSAI 프리미엄 사용 중';
+                  subtitle = '프리미엄 관리';
+                } else {
+                  title = 'ReSAI 프리미엄';
+                  final m = p.monthlyPrice;
+                  final y = p.yearlyPrice;
+                  subtitle = m == null || y == null
+                      ? (p.pricesFailed ? '7일 무료 체험 · 가격을 불러오지 못했어요' : '7일 무료 체험 · 가격 불러오는 중…')
+                      : '7일 무료 체험 · 월 $m · 연 $y';
+                  if (!p.isPremium && p.offering == null && !p.pricesLoading && p.available) {
+                    // 설정을 열 때마다 한 번 더 시도 (오프라인이었다가 돌아온 경우).
+                    WidgetsBinding.instance.addPostFrameCallback((_) => p.loadOffering());
+                  }
+                }
                 return AppCard(
                   onTap: () {
                     Navigator.pop(ctx);
-                    if (p.isPremium) {
+                    if (p.source == PremiumSource.own && st.phase == SubscriptionPhase.cancelled) {
+                      ExternalLinks.open(PremiumConfig.manageUrl(p.productId));
+                    } else if (p.isPremium) {
                       showPremiumSheet(context);
                     } else {
                       maybeShowPaywall(context, source: PaywallSource.settings);
@@ -63,13 +93,8 @@ Future<void> showSettingsSheet(BuildContext context) {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(p.isPremium ? 'ReSAI 프리미엄 사용 중' : 'ReSAI 프리미엄', style: t.titleSmall),
-                            Text(
-                              p.isPremium
-                                  ? (p.source == PremiumSource.family ? '집 방장의 구독 · 프리미엄 관리' : '프리미엄 관리 · 갱신일·구독 관리')
-                                  : '7일 무료 체험 · 월 2,900원 · 연 19,900원',
-                              style: t.bodySmall,
-                            ),
+                            Text(title, style: t.titleSmall),
+                            Text(subtitle, style: t.bodySmall),
                           ],
                         ),
                       ),

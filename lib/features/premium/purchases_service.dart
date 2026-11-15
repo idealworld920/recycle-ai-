@@ -24,8 +24,6 @@ class PremiumConfig {
   static const entitlementId = 'premium';
   static const monthlyProductId = 'resai_premium_monthly';
   static const yearlyProductId = 'resai_premium_yearly';
-  static const monthlyPriceFallback = '2,900원';
-  static const yearlyPriceFallback = '19,900원';
   static const trialDays = 7;
 
   /// Play 구독 관리 딥링크.
@@ -96,6 +94,20 @@ class PurchasesService {
     }
   }
 
+  /// 캐시를 버리고 서버에서 다시 읽는다 (포그라운드 복귀 때 만료·해지 즉시 반영).
+  Future<CustomerInfo?> refreshCustomerInfo() async {
+    if (!_configured) return null;
+    try {
+      await Purchases.invalidateCustomerInfoCache();
+      final info = await Purchases.getCustomerInfo();
+      _controller.add(info);
+      return info;
+    } catch (e) {
+      debugPrint('customerInfo 새로고침 실패: $e');
+      return null;
+    }
+  }
+
   Future<Offering?> currentOffering() async {
     if (!_configured) return null;
     try {
@@ -142,7 +154,8 @@ class PurchasesService {
     }
   }
 
-  static bool hasPremium(CustomerInfo? info) => info?.entitlements.active.containsKey(PremiumConfig.entitlementId) ?? false;
+  static EntitlementInfo? entitlement(CustomerInfo? info) => info?.entitlements.active[PremiumConfig.entitlementId];
+  static bool hasPremium(CustomerInfo? info) => entitlement(info) != null;
   static String? expiresAt(CustomerInfo? info) => info?.entitlements.active[PremiumConfig.entitlementId]?.expirationDate;
   static String? productId(CustomerInfo? info) => info?.entitlements.active[PremiumConfig.entitlementId]?.productIdentifier;
 }

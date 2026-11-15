@@ -258,7 +258,7 @@ class RecycleApp extends StatefulWidget {
   State<RecycleApp> createState() => _RecycleAppState();
 }
 
-class _RecycleAppState extends State<RecycleApp> {
+class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
   /// 시작 흐름: 스플래시 → (최초 실행이면) 온보딩 → 홈. 스플래시는 Firebase 를 기다리되 전체 3초 상한.
   _Phase _phase = _Phase.splash;
   SplashPlan? _plan;
@@ -268,12 +268,20 @@ class _RecycleAppState extends State<RecycleApp> {
   void initState() {
     super.initState();
     widget.settings.addListener(_onSettings);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.settings.removeListener(_onSettings);
     super.dispose();
+  }
+
+  /// 포그라운드 복귀: 구독이 그 사이 만료·해지됐으면 바로 잠기도록 RevenueCat 을 다시 읽는다.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(widget.premium.refresh());
   }
 
   /// 데이터 삭제로 온보딩 플래그가 지워지면 첫 실행처럼: 스플래시(긴 인트로) → 온보딩 1페이지.

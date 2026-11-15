@@ -7,6 +7,7 @@ import '../../core/theme/app_sheet.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/auth_errors.dart';
+import '../household/household_repository.dart';
 
 /// 설정 → 내 데이터 삭제. 서버 users/{uid} 하위 전부 + 기기 초기화 + 익명 계정 삭제 → 온보딩으로.
 Future<void> showDeleteDataSheet(BuildContext context) {
@@ -51,24 +52,141 @@ Future<void> showDeleteDataSheet(BuildContext context) {
   );
 }
 
-/// 삭제 순서: 집 나가기 → Firestore 데이터 삭제 + Auth 계정 삭제(Google 은 필요 시 재인증) + 새 익명
-/// → RevenueCat logOut → 기기 전부 초기화 → 온보딩 플래그 초기화 → 스플래시 첫 실행 분기(main 이 settings 변화를 보고 전환).
+/// 삭제 흐름: 확인 → 로딩 시트("삭제하고 있어요…") → deleteUserData 함수 → Auth 계정 삭제 → RevenueCat logOut
+/// → 기기 전부 초기화 → 온보딩 플래그 초기화 → 스플래시 첫 실행 분기. 실패하면 시트에 [다시 시도].
+/// 함수가 아직 배포 전(not-found/unimplemented)이면 클라이언트에서 지우는 예전 방식으로 폴백한다.
 Future<void> runDataDeletion(BuildContext context) async {
   final services = AppServices.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final nav = Navigator.of(context);
-  try {
+  final ok = await showModalBottomSheet<bool>(
+    context: context,
+    isDismissible: false,
+    enableDrag: false,
+    useSafeArea: true,
+    builder: (_) => _DeletionSheet(services: services),
+  );
+  if (ok != true) return;
+  nav.popUntil((r) => r.isFirst);
+  messenger.showSnackBar(const SnackBar(content: Text('데이터를 모두 삭제했어요.')));
+  services.settings.notifyReset(); // → RecycleApp: 스플래시(첫 실행) → 온보딩 1페이지
+}
+
+/// 실제 삭제 단계. 함수 호출이 핵심이고 나머지는 기기 정리.
+class DataDeleter {
+  DataDeleter._();
+
+  static const callableName = 'deleteUserData';
+
+  /// 서버 삭제 + 계정 삭제 + 기기 초기화. 실패하면 throw (문구는 [messageOf]).
+  static Future<Duration> run(AppServices services, {HouseholdBackend? backend}) async {
+    final sw = Stopwatch()..start();
     debugPrint('[delete] 시작 uid=${services.auth.uid}');
-    if (services.household.active) await services.household.leave();
-    await services.auth.deleteAccount();
+    if (services.firebase.ready) {
+      try {
+        final r = await (backend ?? FunctionsBackend()).call(callableName, const {});
+        debugPrint('[delete] 서버 삭제 완료 ${r['ms']}ms');
+        await services.auth.service.deleteAuthAccountOnly();
+      } on HouseholdException catch (e) {
+        if (!e.notDeployed) rethrow;
+        // 함수 미배포: 예전처럼 클라이언트에서 삭제.
+        debugPrint('[delete] 함수 없음 → 클라이언트 삭제 폴백');
+        await services.auth.service.deleteAccount();
+      }
+    }
     await services.leaveAccountLocally(); // RevenueCat logOut + 기록·도감·수거일·일정·집 캐시
     await services.settings.resetAll(); // 온보딩·동의·안내 플래그 초기화 (installedAt 은 새로)
-    debugPrint('[delete] 완료, 새 익명 uid=${services.auth.uid}');
-    nav.popUntil((r) => r.isFirst);
-    messenger.showSnackBar(const SnackBar(content: Text('데이터를 모두 삭제했어요.')));
-    services.settings.notifyReset(); // → RecycleApp: 스플래시(첫 실행) → 온보딩 1페이지
-  } catch (e) {
-    debugPrint('[delete] 실패 ${AuthErrors.code(e)}');
-    messenger.showSnackBar(SnackBar(content: Text(AuthErrors.message(e))));
+    sw.stop();
+    debugPrint('[delete] 완료 ${sw.elapsedMilliseconds}ms, 새 익명 uid=${services.auth.uid}');
+    return sw.elapsed;
+  }
+
+  static String messageOf(Object e) => e is HouseholdException ? e.message : AuthErrors.message(e);
+}
+
+class _DeletionSheet extends StatefulWidget {
+  const _DeletionSheet({required this.services});
+
+  final AppServices services;
+
+  @override
+  State<_DeletionSheet> createState() => _DeletionSheetState();
+}
+
+class _DeletionSheetState extends State<_DeletionSheet> {
+  bool _busy = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await DataDeleter.run(widget.services);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      debugPrint('[delete] 실패 ${AuthErrors.code(e)} $e');
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = DataDeleter.messageOf(e);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.text;
+    final c = context.colors;
+    return PopScope(
+      canPop: !_busy,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_busy) ...[
+              Row(
+                children: [
+                  const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                  const SizedBox(width: AppSpacing.md),
+                  Text('삭제하고 있어요…', style: t.titleLarge),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text('서버와 이 기기의 데이터를 지우는 중이에요. 잠시만 기다려 주세요.', style: t.bodyMedium?.copyWith(color: c.textSecondary)),
+              const SizedBox(height: AppSpacing.md),
+            ] else ...[
+              Text('삭제에 실패했어요. 다시 시도해 주세요', style: t.titleLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Text(_error ?? '', style: t.bodyMedium?.copyWith(color: c.textSecondary)),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('닫기'))),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: c.error, foregroundColor: c.onInk),
+                      onPressed: _start,
+                      child: const Text('다시 시도'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

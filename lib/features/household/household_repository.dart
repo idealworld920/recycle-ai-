@@ -6,8 +6,15 @@ import 'household_model.dart';
 import 'invite_code.dart';
 
 class HouseholdException implements Exception {
-  const HouseholdException(this.message);
+  const HouseholdException(this.message, {this.code});
   final String message;
+
+  /// FirebaseFunctionsException.code (not-found, unavailable …). 로컬 검증 오류면 null.
+  final String? code;
+
+  /// 함수가 아직 배포되지 않았을 때 (호출 자체가 404/UNIMPLEMENTED).
+  bool get notDeployed => code == 'not-found' || code == 'unimplemented';
+
   @override
   String toString() => message;
 }
@@ -30,7 +37,7 @@ class FunctionsBackend implements HouseholdBackend {
       final r = await _f.httpsCallable(name).call<Map<Object?, Object?>>(data);
       return (r.data).cast<String, dynamic>();
     } on FirebaseFunctionsException catch (e) {
-      throw HouseholdException(_message(e));
+      throw HouseholdException(_message(e), code: e.code);
     }
   }
 

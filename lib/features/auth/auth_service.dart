@@ -50,8 +50,11 @@ abstract class AuthService {
   /// Google/Firebase 로그아웃 → 새 익명 계정.
   Future<void> signOutAndStartAnonymous();
 
-  /// 서버 데이터 + 계정 삭제 → 새 익명 계정. Google 계정은 필요하면 재인증한다.
+  /// 서버 데이터(클라이언트에서) + 계정 삭제 → 새 익명 계정. deleteUserData 함수를 못 쓸 때의 폴백.
   Future<void> deleteAccount();
+
+  /// Auth 계정만 삭제(서버 데이터는 deleteUserData 함수가 지운 뒤) → 새 익명 계정. Google 은 필요하면 재인증.
+  Future<void> deleteAuthAccountOnly();
 
   /// users/{uid} 문서 필드 병합.
   Future<void> mergeUserDoc(Map<String, dynamic> data);
@@ -203,9 +206,17 @@ class FirebaseAuthService implements AuthService {
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
     if (user == null) return;
+    debugPrint('[auth] (폴백) 클라이언트에서 서버 데이터 삭제 uid=${user.uid}');
+    await _deleteUserData(user.uid);
+    await deleteAuthAccountOnly();
+  }
+
+  @override
+  Future<void> deleteAuthAccountOnly() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
     final uid = user.uid;
     debugPrint('[auth] 계정 삭제 시작 uid=$uid anonymous=${user.isAnonymous}');
-    await _deleteUserData(uid);
     try {
       await user.delete();
     } on FirebaseAuthException catch (e) {
@@ -311,6 +322,9 @@ class SessionAuthService implements AuthService {
   Future<void> deleteAccount() => _delegate.deleteAccount();
 
   @override
+  Future<void> deleteAuthAccountOnly() => _delegate.deleteAuthAccountOnly();
+
+  @override
   Future<void> mergeUserDoc(Map<String, dynamic> data) => _delegate.mergeUserDoc(data);
 
   @override
@@ -336,6 +350,8 @@ class OfflineAuthService implements AuthService {
   Future<void> signOutAndStartAnonymous() async {}
   @override
   Future<void> deleteAccount() async {}
+  @override
+  Future<void> deleteAuthAccountOnly() async {}
   @override
   Future<void> mergeUserDoc(Map<String, dynamic> data) async {}
   @override

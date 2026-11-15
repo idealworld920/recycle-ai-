@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../app_services.dart';
 import '../../core/mascot.dart';
@@ -49,8 +48,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
     });
   }
 
-  String _price(Package? p, String fallback) => p?.storeProduct.priceString ?? fallback;
-
   Future<void> _buy() async {
     final store = AppServices.of(context).premium;
     if (!store.available) {
@@ -68,7 +65,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
-        _toast(PremiumStore.trialOption(pkg) != null ? 'ReSAI 프리미엄이 시작됐어요. 7일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
+        _toast(PremiumStore.trialEligible(pkg) ? 'ReSAI 프리미엄이 시작됐어요. ${PremiumConfig.trialDays}일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
         Navigator.pop(context, true);
       case PurchaseCancelled():
         break; // 조용히
@@ -106,10 +103,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
         listenable: store,
         builder: (context, _) {
           final pkg = _yearly ? store.yearly : store.monthly;
-          final trial = pkg == null || PremiumStore.trialOption(pkg) != null;
-          final yearlyPrice = _price(store.yearly, PremiumConfig.yearlyPriceFallback);
-          final monthlyPrice = _price(store.monthly, PremiumConfig.monthlyPriceFallback);
-          final price = _yearly ? '연 $yearlyPrice' : '월 $monthlyPrice';
+          // 체험 자격: Play 오퍼(freePhase) 또는 introductoryPrice. 상품을 못 받았으면 체험 버튼도 안 보여준다.
+          final trial = PremiumStore.trialEligible(pkg);
+          final loading = store.pricesLoading;
+          final yearlyPrice = store.yearlyPrice;
+          final monthlyPrice = store.monthlyPrice;
+          final priceString = _yearly ? yearlyPrice : monthlyPrice;
+          final price = priceString == null ? null : (_yearly ? '연 $priceString' : '월 $priceString');
+          final discount = store.yearlyDiscountPercent;
+          final priceHint = loading ? '가격 불러오는 중…' : '가격을 불러오지 못했어요';
           return ListView(
             padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
             children: [
@@ -140,8 +142,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     child: _PlanTile(
                       selected: _yearly,
                       title: '연간',
-                      price: '$yearlyPrice / 년',
-                      badge: '43% 할인',
+                      price: yearlyPrice == null ? priceHint : '$yearlyPrice / 년',
+                      badge: discount == null ? null : '$discount% 할인',
                       onTap: () => setState(() => _yearly = true),
                     ),
                   ),
@@ -150,7 +152,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     child: _PlanTile(
                       selected: !_yearly,
                       title: '월간',
-                      price: '$monthlyPrice / 월',
+                      price: monthlyPrice == null ? priceHint : '$monthlyPrice / 월',
                       onTap: () => setState(() => _yearly = false),
                     ),
                   ),
@@ -159,17 +161,26 @@ class _PaywallScreenState extends State<PaywallScreen> {
               const SizedBox(height: AppSpacing.lg),
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56), backgroundColor: c.ink, foregroundColor: c.onInk),
-                onPressed: store.busy ? null : _buy,
-                child: Text(store.busy ? '처리하는 중…' : (trial ? '${PremiumConfig.trialDays}일 무료로 시작' : '구독 시작 · $price')),
+                onPressed: store.busy || pkg == null ? null : _buy,
+                child: Text(store.busy
+                    ? '처리하는 중…'
+                    : pkg == null
+                        ? priceHint
+                        : trial
+                            ? '${PremiumConfig.trialDays}일 무료로 시작'
+                            : '구독 시작 · $price'),
               ),
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                trial
-                    ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요. 체험 중 언제든 해지할 수 있어요.'
-                    : '$price 자동 갱신돼요. Google Play 구독 관리에서 언제든 해지할 수 있어요.',
-                textAlign: TextAlign.center,
-                style: t.bodySmall,
-              ),
+              if (pkg == null && store.pricesFailed)
+                TextButton(onPressed: store.loadOffering, child: const Text('다시 불러오기'))
+              else if (pkg != null)
+                Text(
+                  trial
+                      ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요. 체험 중 언제든 해지할 수 있어요.'
+                      : '$price 자동 갱신돼요. Google Play 구독 관리에서 언제든 해지할 수 있어요.',
+                  textAlign: TextAlign.center,
+                  style: t.bodySmall,
+                ),
               const SizedBox(height: AppSpacing.xs),
               Text('집 방장이 구독하면 멤버 모두(최대 6명)에게 적용돼요.', textAlign: TextAlign.center, style: t.bodySmall),
               const SizedBox(height: AppSpacing.xl),
