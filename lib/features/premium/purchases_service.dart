@@ -75,6 +75,18 @@ class PurchasesService {
     }
   }
 
+  /// 로그아웃·계정 삭제 때. RevenueCat 은 새 익명 id 를 만들고, 다음 [logIn] 으로 새 uid 에 붙인다.
+  Future<void> logOut() async {
+    if (!_configured || _appUserId == null) return;
+    try {
+      final info = await Purchases.logOut();
+      _appUserId = null;
+      _controller.add(info);
+    } catch (e) {
+      debugPrint('RevenueCat logOut 실패: $e');
+    }
+  }
+
   Future<CustomerInfo?> customerInfo() async {
     if (!_configured) return null;
     try {

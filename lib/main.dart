@@ -139,6 +139,8 @@ Future<void> _boot() async {
 
   attachAll();
   firebase.addListener(attachAll);
+  // 구글 전환·로그아웃·삭제로 uid 가 바뀌면 저장소를 새 uid 에 다시 붙인다 (RevenueCat logIn 포함).
+  auth.addListener(attachAll);
 
   if (kDemoMode && history.items.isEmpty) {
     await history.seedDemo();
@@ -260,6 +262,30 @@ class _RecycleAppState extends State<RecycleApp> {
   /// 시작 흐름: 스플래시 → (최초 실행이면) 온보딩 → 홈. 스플래시는 Firebase 를 기다리되 전체 3초 상한.
   _Phase _phase = _Phase.splash;
   SplashPlan? _plan;
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.settings.addListener(_onSettings);
+  }
+
+  @override
+  void dispose() {
+    widget.settings.removeListener(_onSettings);
+    super.dispose();
+  }
+
+  /// 데이터 삭제로 온보딩 플래그가 지워지면 첫 실행처럼: 스플래시(긴 인트로) → 온보딩 1페이지.
+  void _onSettings() {
+    if (_phase == _Phase.home && !widget.settings.onboarded) {
+      setState(() {
+        _generation++;
+        _plan = const SplashPlan(SplashKind.firstRun);
+        _phase = _Phase.splash;
+      });
+    }
+  }
 
   SplashPlan _planFor(BuildContext context) => _plan ??= SplashPlan.decide(
         onboarded: widget.settings.onboarded,
@@ -304,8 +330,9 @@ class _RecycleAppState extends State<RecycleApp> {
         // 온보딩은 Firebase(익명 로그인)를 기다리지 않는다. 끝나면 홈 위에 카메라 화면을 바로 띄운다.
         home: Builder(
           builder: (context) => switch (_phase) {
-            _Phase.splash => SplashScreen(plan: _planFor(context), ready: firebase.settled, onDone: _onSplashDone),
+            _Phase.splash => SplashScreen(key: ValueKey('splash$_generation'), plan: _planFor(context), ready: firebase.settled, onDone: _onSplashDone),
             _Phase.onboarding => OnboardingScreen(
+                key: ValueKey('onboarding$_generation'),
                 onDone: () {
                   AppActions.instance.fire(AppActions.openCapture);
                   setState(() => _phase = _Phase.home);

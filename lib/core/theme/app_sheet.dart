@@ -20,16 +20,22 @@ Future<T?> showAppSheet<T>(
       initialChildSize: initialSize,
       minChildSize: 0.4,
       maxChildSize: maxSize,
-      builder: (ctx, controller) => Column(
-        children: [
-          const SheetHandle(),
-          if (title != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm),
-              child: Row(children: [Expanded(child: Text(title, style: ctx.text.titleMedium))]),
-            ),
-          Expanded(child: builder(ctx, controller)),
-        ],
+      // 시트 안에서 띄우는 스낵바가 시트 뒤에 가려지지 않도록, 시트 자체에 ScaffoldMessenger 를 둔다.
+      builder: (ctx, controller) => ScaffoldMessenger(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Column(
+            children: [
+              const SheetHandle(),
+              if (title != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.sm),
+                  child: Row(children: [Expanded(child: Text(title, style: ctx.text.titleMedium))]),
+                ),
+              Expanded(child: Builder(builder: (inner) => builder(inner, controller))),
+            ],
+          ),
+        ),
       ),
     ),
   );

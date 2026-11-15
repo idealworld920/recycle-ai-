@@ -72,7 +72,7 @@ class AuthStore extends ChangeNotifier {
 
   Future<LinkOutcome> linkGoogle() => _run(_service.linkGoogle);
 
-  Future<LinkOutcome> switchToExisting(AuthCredential credential) => _run(() => _service.signInWithCredential(credential));
+  Future<LinkOutcome> switchToExisting(AuthCredential credential) => _run(() => _service.switchToExisting(credential));
 
   Future<LinkOutcome> _run(Future<LinkOutcome> Function() action) async {
     _busy = true;

@@ -104,6 +104,15 @@ class PremiumStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 로그아웃·계정 삭제: RevenueCat 로그아웃 + 내 구독 상태 비움. 새 uid 는 attachUser 에서 다시 logIn 한다.
+  Future<void> logOut() async {
+    await _service.logOut();
+    _own = false;
+    _expiresAt = null;
+    _productId = null;
+    notifyListeners();
+  }
+
   Future<void> loadOffering() async {
     _offering = await _service.currentOffering();
     notifyListeners();

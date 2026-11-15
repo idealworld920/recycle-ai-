@@ -62,7 +62,14 @@ class AppServices extends InheritedWidget {
 
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {
-    await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal(), feedback.resetLocal()]);
+    await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal(), feedback.resetLocal(), events.resetLocal()]);
+    await household.attachUser(null); // 집 정보는 새 uid 로 다시 붙을 때 불러온다
+  }
+
+  /// 계정이 바뀌는 흐름 공통: RevenueCat 로그아웃 + 기기 캐시 비움.
+  Future<void> leaveAccountLocally() async {
+    await premium.logOut();
+    await resetLocalData();
   }
 
   static AppServices of(BuildContext context) {

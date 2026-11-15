@@ -4,12 +4,13 @@ import '../../app_services.dart';
 import '../../core/mascot.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import 'account_page.dart';
 import 'consent_sheet.dart';
 import '../splash/splash_plan.dart';
 import '../splash/splash_screen.dart';
 import 'pages.dart';
 
-/// 최초 실행 온보딩: 핵심 가치 → 루틴 → 동의. (인트로 애니메이션은 스플래시가 맡는다)
+/// 최초 실행 온보딩: 핵심 가치 → 루틴 → 동의 → 계정 선택(Google / 나중에). (인트로 애니메이션은 스플래시가 맡는다)
 ///
 /// [replay] 면 설정의 "온보딩 다시 보기": 스플래시 풀 버전 → 1 → 2 를 본 뒤 [onDone]. 동의는 묻지 않는다.
 /// Firebase 익명 로그인은 백그라운드에서 따로 돌고, 이 화면은 그걸 기다리지 않는다.
@@ -32,9 +33,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   late bool _intro = widget.replay;
   int _page = 0;
 
-  int get _pageCount => widget.replay ? 2 : 3;
+  int get _pageCount => widget.replay ? 2 : 4;
   int get _lastIndex => _pageCount - 1;
-  bool get _onConsent => !widget.replay && _page == _lastIndex;
+  int get _consentIndex => 2;
+  bool get _onConsent => !widget.replay && _page == _consentIndex;
+  bool get _onAccount => !widget.replay && _page == _lastIndex;
 
   @override
   void dispose() {
@@ -61,35 +64,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   Future<void> _next() async {
-    if (_page < _lastIndex) {
+    if (widget.replay) {
+      if (_page < _lastIndex) {
+        _goTo(_page + 1);
+      } else {
+        widget.onDone();
+      }
+      return;
+    }
+    if (_page < _consentIndex) {
       _goTo(_page + 1);
       return;
     }
-    if (widget.replay) {
-      widget.onDone();
-      return;
+    if (_onConsent) {
+      // 동의 저장(onboardingDone 포함) 뒤 계정 선택으로. 계정 페이지는 자기 버튼으로 끝낸다.
+      await _consent.submit(AppServices.of(context));
+      if (mounted) _goTo(_lastIndex);
     }
-    await _consent.submit(AppServices.of(context));
-    if (mounted) widget.onDone();
   }
 
   void _skip() {
     if (widget.replay) {
       widget.onDone();
     } else {
-      _goTo(_lastIndex);
+      _goTo(_consentIndex);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final showSkip = !_intro && !_onConsent;
+    final showSkip = !_intro && !_onConsent && !_onAccount;
     return PopScope(
       // 동의 페이지(또는 2페이지 이후)에서 뒤로가기는 앞 페이지로. 1페이지에서는 평소대로.
+      // 계정 선택 페이지는 동의가 이미 저장된 뒤라 뒤로 가지 않는다 (Google / 나중에 중 하나로 끝낸다).
       canPop: _intro || _page == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _page > 0) _goTo(_page - 1);
+        if (!didPop && _page > 0 && !_onAccount) _goTo(_page - 1);
       },
       child: Scaffold(
         backgroundColor: c.background,
@@ -114,8 +125,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                   Expanded(
                     child: PageView(
                       controller: _controller,
-                      // 동의 페이지에서는 스와이프로 앞으로 못 가게 (뒤로가기 버튼으로만).
-                      physics: _onConsent ? const NeverScrollableScrollPhysics() : const PageScrollPhysics(),
+                      // 동의·계정 페이지에서는 스와이프로 못 움직이게 (버튼으로만).
+                      physics: (_onConsent || _onAccount) ? const NeverScrollableScrollPhysics() : const PageScrollPhysics(),
                       onPageChanged: (i) => setState(() => _page = i),
                       children: [
                         const OnboardingValuePage(
@@ -134,31 +145,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                           caption: '가족이랑 같이 쓰면 누가 버렸는지도 알 수 있어요',
                         ),
                         if (!widget.replay) ConsentPage(controller: _consent),
+                        if (!widget.replay) AccountPage(onDone: widget.onDone),
                       ],
                     ),
                   ),
                   _Dots(count: _pageCount, index: _page),
                   const SizedBox(height: AppSpacing.base),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.base),
-                    child: ListenableBuilder(
-                      listenable: _consent,
-                      builder: (context, _) => FilledButton(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
-                          backgroundColor: c.ink,
-                          foregroundColor: c.onInk,
-                          disabledBackgroundColor: c.textDisabled,
-                          disabledForegroundColor: c.onInk,
+                  if (!_onAccount)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.base),
+                      child: ListenableBuilder(
+                        listenable: _consent,
+                        builder: (context, _) => FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            backgroundColor: c.ink,
+                            foregroundColor: c.onInk,
+                            disabledBackgroundColor: c.textDisabled,
+                            disabledForegroundColor: c.onInk,
+                          ),
+                          // 동의 페이지: 필수 2개 체크 전엔 비활성.
+                          onPressed: _onConsent && !_consent.canStart ? null : _next,
+                          child: Text(_onConsent ? (_consent.saving ? '저장하는 중…' : '시작하기') : (widget.replay && _page == _lastIndex ? '홈으로' : '다음')),
                         ),
-                        // 동의 페이지: 필수 2개 체크 전엔 비활성.
-                        onPressed: _onConsent && !_consent.canStart ? null : _next,
-                        child: Text(_onConsent
-                            ? (_consent.saving ? '저장하는 중…' : '시작하기')
-                            : (widget.replay && _page == _lastIndex ? '홈으로' : '다음')),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

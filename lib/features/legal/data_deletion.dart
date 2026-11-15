@@ -51,21 +51,24 @@ Future<void> showDeleteDataSheet(BuildContext context) {
   );
 }
 
+/// 삭제 순서: 집 나가기 → Firestore 데이터 삭제 + Auth 계정 삭제(Google 은 필요 시 재인증) + 새 익명
+/// → RevenueCat logOut → 기기 전부 초기화 → 온보딩 플래그 초기화 → 스플래시 첫 실행 분기(main 이 settings 변화를 보고 전환).
 Future<void> runDataDeletion(BuildContext context) async {
   final services = AppServices.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final nav = Navigator.of(context);
   try {
+    debugPrint('[delete] 시작 uid=${services.auth.uid}');
     if (services.household.active) await services.household.leave();
-    await services.auth.deleteAccount(); // 서버 데이터 삭제 + 계정 삭제 + 새 익명 계정
-    await Future.wait([
-      services.resetLocalData(),
-      services.settings.resetAll(), // 온보딩·동의·안내 플래그 초기화
-    ]);
-    if (!context.mounted) return;
-    Navigator.of(context).popUntil((r) => r.isFirst);
+    await services.auth.deleteAccount();
+    await services.leaveAccountLocally(); // RevenueCat logOut + 기록·도감·수거일·일정·집 캐시
+    await services.settings.resetAll(); // 온보딩·동의·안내 플래그 초기화 (installedAt 은 새로)
+    debugPrint('[delete] 완료, 새 익명 uid=${services.auth.uid}');
+    nav.popUntil((r) => r.isFirst);
     messenger.showSnackBar(const SnackBar(content: Text('데이터를 모두 삭제했어요.')));
-    services.settings.notifyReset();
+    services.settings.notifyReset(); // → RecycleApp: 스플래시(첫 실행) → 온보딩 1페이지
   } catch (e) {
+    debugPrint('[delete] 실패 ${AuthErrors.code(e)}');
     messenger.showSnackBar(SnackBar(content: Text(AuthErrors.message(e))));
   }
 }

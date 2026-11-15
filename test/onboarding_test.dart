@@ -12,6 +12,7 @@ import 'package:recycle_ai/features/history/history_store.dart';
 import 'package:recycle_ai/features/household/household_repository.dart';
 import 'package:recycle_ai/features/calendar/event_store.dart';
 import 'package:recycle_ai/features/household/household_store.dart';
+import 'package:recycle_ai/features/onboarding/account_page.dart';
 import 'package:recycle_ai/features/onboarding/onboarding_screen.dart';
 import 'package:recycle_ai/features/places/region.dart';
 import 'package:recycle_ai/features/places/region_store.dart';
@@ -117,6 +118,14 @@ void main() {
 
       await tester.tap(find.widgetWithText(FilledButton, '시작하기'));
       await tester.pumpAndSettle();
+      // 4) 계정 선택: Google 또는 나중에. 여기까진 끝난 게 아니다.
+      expect(doneCount, 0);
+      expect(find.text(AccountPage.googleLabel), findsOneWidget);
+      expect(find.text(AccountPage.laterLabel), findsOneWidget);
+      expect(find.text('건너뛰기'), findsNothing);
+      expect(find.text('다음'), findsNothing);
+      await tester.tap(find.text(AccountPage.laterLabel));
+      await tester.pumpAndSettle();
       expect(doneCount, 1);
       expect(settings.onboarded, isTrue);
       expect(settings.consentedRequired, isTrue);
@@ -136,6 +145,8 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, '시작하기'));
       await tester.pumpAndSettle();
       expect(settings.consentedMarketing, isTrue);
+      await tester.tap(find.text(AccountPage.laterLabel));
+      await tester.pumpAndSettle();
       expect(doneCount, 1);
     });
 
@@ -158,6 +169,28 @@ void main() {
       expect(find.text('수거일도 알려드려요'), findsOneWidget);
       expect(find.text('건너뛰기'), findsOneWidget);
       expect(doneCount, 0);
+    });
+
+    testWidgets('계정 페이지: Firebase 가 없으면 Google 버튼은 안내 스낵바, 뒤로가기는 무시, 나중에로 끝난다', (tester) async {
+      await pump(tester);
+      await tester.tap(find.text('건너뛰기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('모두 동의'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, '시작하기'));
+      await tester.pumpAndSettle();
+      expect(find.text(AccountPage.googleLabel), findsOneWidget);
+      await systemBack(tester);
+      expect(find.text(AccountPage.googleLabel), findsOneWidget); // 그대로
+      await tester.tap(find.text(AccountPage.googleLabel));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(doneCount, 0);
+      await tester.pump(const Duration(seconds: 5)); // 스낵바가 버튼을 가리는 동안은 기다린다
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AccountPage.laterLabel));
+      await tester.pumpAndSettle();
+      expect(doneCount, 1);
     });
 
     testWidgets('다시 보기: 스플래시 풀 버전 → 1 → 2 → 홈 (동의 없음)', (tester) async {

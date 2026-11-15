@@ -144,8 +144,13 @@ class ScheduleStore extends ChangeNotifier {
     _checkins = {};
     _checkinDates = {};
     notifyListeners();
-    await NotificationService.instance.reschedule(const PickupSchedule());
-    await WidgetService.refreshNow(null);
+    // 알림·위젯 정리는 실패해도 초기화 자체를 막지 않는다 (플러그인 없는 환경 포함).
+    try {
+      await NotificationService.instance.reschedule(const PickupSchedule());
+      await WidgetService.refreshNow(null);
+    } catch (e) {
+      debugPrint('수거일 초기화 뒤 알림·위젯 정리 실패: $e');
+    }
   }
 
   /// [버렸어요] 한 탭.

@@ -417,6 +417,16 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 결과 화면 wink "이건 내가 알지뿅~!" / 확신도 60% 미만 confused "으엥… 다시 볼게뿅". 첫 분류 성공 1회 축하(`firstClassifyDone`), 도감 10/30/50 뱃지 🌱🌿🌳, 프리미엄 왕관, 7일 가이드(`users/{uid}.guide`), 물어보기 탭 아이콘 `tab_ask_*.png`, 알림 큰 아이콘 `r_wink_static.png`, 데이터 삭제 시트 `r_crying.gif`.
 - 표정 9종 GIF + `_static.png` 전부 있음. 새 GIF 를 넣을 땐 `python3 tool/gif_keyout.py <이름>[:임계값]`(배경 투명화, 체커보드 배경은 `:70`) → `python3 tool/mascot_frames.py`(정지 프레임, intro 계열은 마지막 프레임).
 
+### 계정 흐름 (`lib/features/auth/`)
+- **Google 연결** (`link_flows.dart` `connectGoogle`): 모든 결과가 사용자에게 보인다. 성공 "구글 계정이 연결됐어요" / `provider-already-linked` "이미 연결돼 있어요" / `network-request-failed` "인터넷 연결을 확인해 주세요" / Google Sign-In 자체 실패(`PlatformException` 10·12500, `GoogleSignInException` 설정 오류) "로그인 설정 오류예요. 잠시 후 다시 시도해 주세요" / 계정 선택 취소는 조용히. 단계마다 `[auth]` debugPrint.
+- **이미 가입된 Google 계정**(`credential-already-in-use`/`email-already-in-use`): 시트 "그 계정으로 로그인할까요? 지금 기기의 기록 N개는 사라져요" → [로그인] → RevenueCat logOut + 기기 캐시 비움 → 익명 계정(데이터 포함) 삭제 → `signInWithCredential` → `attachAll` 이 새 uid 로 저장소·RevenueCat `logIn` → 홈.
+- **바텀시트 안 스낵바**: `showAppSheet` 가 자체 `ScaffoldMessenger` 를 두어 시트 안에서 띄운 스낵바가 시트에 가려지지 않는다 (이전 "연결해도 무반응" 의 원인 중 하나).
+- **로그아웃** (`signOutFlow`, Google 연결 사용자만): "로그아웃할까요?" 시트 → RevenueCat logOut → 기기 캐시(기록·도감·수거일·일정·집) 초기화 → Firebase signOut → 새 익명 → `attachAll` → 홈 + "로그아웃했어요". 온보딩·동의 플래그는 유지.
+- **데이터 삭제** (`legal/data_deletion.dart`): 집 나가기 → Firestore `users/{uid}` 하위(history·checkins·collection·settings·usage·events·reports) + 계정 삭제(Google 은 `requires-recent-login` 이면 재인증) → 새 익명 → RevenueCat logOut → 기기 전부 초기화 → `settings.resetAll` → `RecycleApp` 이 온보딩 플래그가 꺼진 걸 보고 스플래시(첫 실행) → 온보딩 1페이지.
+- **온보딩 4페이지 계정 선택** (`onboarding/account_page.dart`): 동의 저장 뒤 [Google로 시작하기] / "나중에 할게요"(익명). 익명 로그인이 아직이면 최대 6초 기다린 뒤 연결. 뒤로가기 없음. 신규 설치와 데이터 삭제 후 동일.
+- **설정 → 계정**: 익명 "Google 계정으로 연결하기" + "기기를 바꿔도 기록을 이어서 볼 수 있어요" / 연결됨 이메일 + [로그아웃]. 기존 "AI 연결 / 익명 ID / API 키" 섹션은 제거.
+- 테스트: `test/link_flow_test.dart`(결과별 스낵바·전환 시트·로그아웃·시트 안 스낵바), `test/auth_errors_test.dart`, `test/onboarding_test.dart`(계정 페이지).
+
 ### 기록 선택 삭제 (`lib/features/history/delete_records.dart`)
 - 진입: 항목 길게 누르기(그 항목 체크된 채) 또는 우상단 [선택]. 선택 모드 앱바 `[취소] N개 선택 [전체 선택]`, 항목 왼쪽 원형 체크(선택 시 primary), 날짜 헤더 탭 = 그날 전체 토글, 하단 검정 [N개 삭제](0개면 비활성), 항목 탭 = 토글, 뒤로가기 = 선택 모드 해제. 스와이프 삭제·상세 화면 ⋯ [삭제]도 같은 확인 시트를 쓴다.
 - 확인 시트 "기록 N개를 삭제할까요?" (리뿅이 없음, 표준 존댓말) → 삭제 → 스낵바 "기록 N개를 삭제했어요".

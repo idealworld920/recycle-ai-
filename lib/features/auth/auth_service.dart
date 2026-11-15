@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/firebase_session.dart';
@@ -27,6 +28,11 @@ class LinkAlreadyInUse extends LinkOutcome {
   final String? email;
 }
 
+/// 이미 Google 이 연결된 계정에서 또 연결하려 함.
+class LinkAlreadyLinked extends LinkOutcome {
+  const LinkAlreadyLinked();
+}
+
 class LinkFailed extends LinkOutcome {
   const LinkFailed(this.error);
   final Object error;
@@ -37,8 +43,14 @@ abstract class AuthService {
   User? get currentUser;
   Stream<User?> get userChanges;
   Future<LinkOutcome> linkGoogle();
-  Future<LinkOutcome> signInWithCredential(AuthCredential credential);
+
+  /// 익명 계정을 버리고 [credential] 의 기존 계정으로 로그인. 익명 계정(과 그 데이터)은 삭제한다.
+  Future<LinkOutcome> switchToExisting(AuthCredential credential);
+
+  /// Google/Firebase 로그아웃 → 새 익명 계정.
   Future<void> signOutAndStartAnonymous();
+
+  /// 서버 데이터 + 계정 삭제 → 새 익명 계정. Google 계정은 필요하면 재인증한다.
   Future<void> deleteAccount();
 
   /// users/{uid} 문서 필드 병합.
@@ -71,49 +83,94 @@ class FirebaseAuthService implements AuthService {
 
   Future<AuthCredential> _googleCredential() async {
     await _ensureGoogle();
+    debugPrint('[auth] Google 계정 선택 열기');
     final account = await _google.authenticate();
     final idToken = account.authentication.idToken;
     if (idToken == null) {
-      throw FirebaseAuthException(code: 'invalid-credential', message: 'Google idToken 이 없어요. serverClientId 설정을 확인하세요.');
+      debugPrint('[auth] idToken 없음 (${account.email}) — google-services.json 의 웹 클라이언트(oauth_client type 3) 확인');
+      throw FirebaseAuthException(code: 'invalid-credential', message: 'Google idToken 이 없어요.');
     }
+    debugPrint('[auth] Google 토큰 받음 (${account.email})');
     return GoogleAuthProvider.credential(idToken: idToken);
   }
 
   @override
   Future<LinkOutcome> linkGoogle() async {
     final user = _auth.currentUser;
-    if (user == null) return const LinkFailed('로그인 상태가 아니에요.');
+    if (user == null) {
+      debugPrint('[auth] link 실패: 로그인 상태 아님');
+      return const LinkFailed('로그인 상태가 아니에요.');
+    }
+    if (user.providerData.any((p) => p.providerId == GoogleAuthProvider.PROVIDER_ID)) {
+      debugPrint('[auth] 이미 Google 연결됨 (${user.email})');
+      return const LinkAlreadyLinked();
+    }
+    debugPrint('[auth] link 시도 uid=${user.uid} anonymous=${user.isAnonymous}');
     AuthCredential credential;
     try {
       credential = await _googleCredential();
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return const LinkCancelled();
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        debugPrint('[auth] 계정 선택 취소');
+        return const LinkCancelled();
+      }
+      debugPrint('[auth] Google 로그인 실패 google/${e.code.name} ${e.description ?? ''}');
+      return LinkFailed(e);
+    } on PlatformException catch (e) {
+      debugPrint('[auth] Google 로그인 실패 platform/${e.code} ${e.message ?? ''}');
       return LinkFailed(e);
     } catch (e) {
+      debugPrint('[auth] Google 로그인 실패 $e');
       return LinkFailed(e);
     }
     try {
       await user.linkWithCredential(credential);
       await _afterLink();
+      debugPrint('[auth] link 성공 uid=${_auth.currentUser?.uid} email=${_auth.currentUser?.email}');
       return const LinkSuccess();
     } on FirebaseAuthException catch (e) {
+      debugPrint('[auth] link 실패 firebase/${e.code} ${e.message ?? ''}');
       if (e.code == 'credential-already-in-use' || e.code == 'email-already-in-use' || e.code == 'account-exists-with-different-credential') {
         return LinkAlreadyInUse(e.credential ?? credential, e.email);
       }
-      if (e.code == 'provider-already-linked') return const LinkSuccess();
+      if (e.code == 'provider-already-linked') return const LinkAlreadyLinked();
+      return LinkFailed(e);
+    } on PlatformException catch (e) {
+      debugPrint('[auth] link 실패 platform/${e.code} ${e.message ?? ''}');
       return LinkFailed(e);
     } catch (e) {
+      debugPrint('[auth] link 실패 $e');
       return LinkFailed(e);
     }
   }
 
   @override
-  Future<LinkOutcome> signInWithCredential(AuthCredential credential) async {
+  Future<LinkOutcome> switchToExisting(AuthCredential credential) async {
+    final anon = _auth.currentUser;
+    debugPrint('[auth] 기존 계정으로 전환 시작 (익명 uid=${anon?.uid})');
+    // 1) 익명 계정과 그 데이터를 먼저 지운다 (현재 사용자일 때만 delete 가 된다).
+    if (anon != null && anon.isAnonymous) {
+      try {
+        await _deleteUserData(anon.uid);
+        await anon.delete();
+        debugPrint('[auth] 익명 계정 삭제 완료');
+      } catch (e) {
+        debugPrint('[auth] 익명 계정 삭제 실패(계속 진행): $e');
+      }
+    }
+    // 2) 기존 계정으로 로그인. 실패하면 다시 익명으로 돌아가 앱이 멈추지 않게 한다.
     try {
       await _auth.signInWithCredential(credential);
       await _afterLink();
+      debugPrint('[auth] 기존 계정 로그인 성공 uid=${_auth.currentUser?.uid}');
       return const LinkSuccess();
     } catch (e) {
+      debugPrint('[auth] 기존 계정 로그인 실패 ${e is FirebaseAuthException ? e.code : e}');
+      if (_auth.currentUser == null) {
+        try {
+          await _auth.signInAnonymously();
+        } catch (_) {}
+      }
       return LinkFailed(e);
     }
   }
@@ -130,12 +187,16 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Future<void> signOutAndStartAnonymous() async {
+    debugPrint('[auth] 로그아웃 시작 uid=${_auth.currentUser?.uid}');
     try {
       await _ensureGoogle();
       await _google.signOut();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[auth] Google signOut 실패(무시): $e');
+    }
     await _auth.signOut();
     await _auth.signInAnonymously();
+    debugPrint('[auth] 새 익명 계정 uid=${_auth.currentUser?.uid}');
   }
 
   @override
@@ -143,11 +204,13 @@ class FirebaseAuthService implements AuthService {
     final user = _auth.currentUser;
     if (user == null) return;
     final uid = user.uid;
+    debugPrint('[auth] 계정 삭제 시작 uid=$uid anonymous=${user.isAnonymous}');
     await _deleteUserData(uid);
     try {
       await user.delete();
     } on FirebaseAuthException catch (e) {
       if (e.code != 'requires-recent-login') rethrow;
+      debugPrint('[auth] 재인증 필요 → Google 다시 로그인');
       final credential = await _googleCredential();
       await user.reauthenticateWithCredential(credential);
       await user.delete();
@@ -157,9 +220,10 @@ class FirebaseAuthService implements AuthService {
       await _google.signOut();
     } catch (_) {}
     await _auth.signInAnonymously();
+    debugPrint('[auth] 계정 삭제 완료, 새 익명 uid=${_auth.currentUser?.uid}');
   }
 
-  static const _subcollections = ['history', 'checkins', 'collection', 'settings', 'usage'];
+  static const _subcollections = ['history', 'checkins', 'collection', 'settings', 'usage', 'events', 'reports'];
 
   /// users/{uid} 아래 데이터 전부 삭제. 하위 컬렉션은 동시에, 각각 400개씩 배치.
   Future<void> _deleteUserData(String uid) async {
@@ -238,7 +302,7 @@ class SessionAuthService implements AuthService {
   Future<LinkOutcome> linkGoogle() => _delegate.linkGoogle();
 
   @override
-  Future<LinkOutcome> signInWithCredential(AuthCredential credential) => _delegate.signInWithCredential(credential);
+  Future<LinkOutcome> switchToExisting(AuthCredential credential) => _delegate.switchToExisting(credential);
 
   @override
   Future<void> signOutAndStartAnonymous() => _delegate.signOutAndStartAnonymous();
@@ -267,7 +331,7 @@ class OfflineAuthService implements AuthService {
   @override
   Future<LinkOutcome> linkGoogle() async => const LinkFailed('Firebase 가 연결돼 있지 않아요.');
   @override
-  Future<LinkOutcome> signInWithCredential(AuthCredential credential) async => const LinkFailed('Firebase 가 연결돼 있지 않아요.');
+  Future<LinkOutcome> switchToExisting(AuthCredential credential) async => const LinkFailed('Firebase 가 연결돼 있지 않아요.');
   @override
   Future<void> signOutAndStartAnonymous() async {}
   @override

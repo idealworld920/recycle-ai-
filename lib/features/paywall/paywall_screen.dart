@@ -165,7 +165,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 trial
-                    ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요. 체험 중 해지하면 요금이 청구되지 않아요.'
+                    ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요. 체험 중 언제든 해지할 수 있어요.'
                     : '$price 자동 갱신돼요. Google Play 구독 관리에서 언제든 해지할 수 있어요.',
                 textAlign: TextAlign.center,
                 style: t.bodySmall,
