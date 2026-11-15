@@ -1,4 +1,4 @@
-// ReSAI Cloud Functions (Node 20, firebase-functions v2, region asia-northeast3)
+// ReSAI Cloud Functions (Node 22, firebase-functions v6 / v2 API, region asia-northeast3)
 //
 // - revenuecatWebhook: RevenueCat 웹훅 → users/{uid}.premium 과 households/{id}.premiumUntil 갱신 (클라이언트는 못 쓴다)
 // - joinHousehold / leaveHousehold / removeHouseholdMember / transferHouseholdOwner: 집 멤버십 변경 (callable)
