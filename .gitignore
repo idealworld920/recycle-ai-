@@ -64,3 +64,7 @@ dart_defines.json
 # Gradle/Kotlin 로컬 산출물
 android/build/
 android/.kotlin/
+
+# Cloud Functions
+functions/node_modules/
+.firebase/
