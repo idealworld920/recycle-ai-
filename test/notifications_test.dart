@@ -27,6 +27,15 @@ void main() {
       const none = QuietHours(startMinutes: 60, endMinutes: 60);
       expect(none.contains(DateTime(2026, 1, 1, 1)), isFalse);
     });
+    test('끄면 아무것도 미루지 않는다 + JSON 에 enabled 유지', () {
+      const off = QuietHours(enabled: false);
+      expect(off.contains(DateTime(2026, 1, 1, 23)), isFalse);
+      expect(off.nextAllowed(DateTime(2026, 1, 1, 23)), DateTime(2026, 1, 1, 23));
+      final back = QuietHours.fromJson(off.toJson());
+      expect(back.enabled, isFalse);
+      expect(QuietHours.fromJson({'start': 1320, 'end': 420}).enabled, isTrue); // 옛 문서(enabled 없음)는 켜진 것으로
+      expect(off.copyWith(enabled: true).contains(DateTime(2026, 1, 1, 23)), isTrue);
+    });
     test('JSON 왕복', () {
       final p = const NotificationPrefs(enabled: {NotificationType.weeklyReport: false}, morningHour: 8, morningMinute: 15, quiet: QuietHours(startMinutes: 1380, endMinutes: 360));
       final back = NotificationPrefs.fromJson(p.toJson());
@@ -131,11 +140,13 @@ void main() {
       await store.setEnabled(NotificationType.familyReminder, false);
       await store.setMorningTime(6, 45);
       await store.setQuietHours(const QuietHours(startMinutes: 23 * 60, endMinutes: 8 * 60));
-      expect(changed, 3);
+      await store.setQuietEnabled(false);
+      expect(changed, 4);
       final again = NotificationPrefsStore(prefs);
       expect(again.isOn(NotificationType.familyReminder), isFalse);
       expect(again.value.morningLabel, '06:45');
       expect(again.value.quiet.label, '23:00~08:00');
+      expect(again.value.quiet.enabled, isFalse);
     });
   });
 }

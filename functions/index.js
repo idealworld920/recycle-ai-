@@ -275,7 +275,8 @@ async function canNotify(uid, typeKey) {
   const data = snap.exists ? snap.data() : {};
   const enabled = data.enabled || {};
   if (enabled[typeKey] === false) return false;
-  const quiet = data.quiet || { start: 22 * 60, end: 7 * 60 };
+  const quiet = data.quiet || { start: 22 * 60, end: 7 * 60, enabled: true };
+  if (quiet.enabled === false) return true;
   const k = nowKst();
   const m = k.getUTCHours() * 60 + k.getUTCMinutes();
   const inQuiet = quiet.start > quiet.end ? (m >= quiet.start || m < quiet.end) : (m >= quiet.start && m < quiet.end);

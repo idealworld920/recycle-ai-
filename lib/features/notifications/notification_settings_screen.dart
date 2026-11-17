@@ -150,23 +150,30 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 toggle(NotificationType.trialEnd, subtitle: p.isOn(NotificationType.trialEnd) ? '체험 종료 2일 전·1일 전에 알려드려요' : '체험 종료 전 알림을 받지 못해요'),
               ],
               const Divider(height: AppSpacing.xl),
-              Text('방해 금지 시간', style: t.titleSmall),
-              const SizedBox(height: AppSpacing.xs),
-              Text('이 시간에는 어떤 알림도 보내지 않고, 끝나는 시각으로 미뤄요.', style: t.bodySmall),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('방해 금지 시간', style: t.titleSmall),
+                subtitle: Text(
+                  p.quiet.enabled ? '${p.quiet.label} 에는 어떤 알림도 보내지 않고, 끝나는 시각으로 미뤄요.' : '꺼져 있어요. 알림이 설정한 시각 그대로 와요.',
+                  style: t.bodySmall,
+                ),
+                value: p.quiet.enabled,
+                onChanged: store.setQuietEnabled,
+              ),
               Row(
                 children: [
                   Expanded(
                     child: timeRow('시작', TimeOfDay(hour: p.quiet.startMinutes ~/ 60, minute: p.quiet.startMinutes % 60), () async {
                       final picked = await _pickTime(TimeOfDay(hour: p.quiet.startMinutes ~/ 60, minute: p.quiet.startMinutes % 60), '방해 금지 시작');
-                      if (picked != null) await store.setQuietHours(QuietHours(startMinutes: picked.hour * 60 + picked.minute, endMinutes: p.quiet.endMinutes));
-                    }),
+                      if (picked != null) await store.setQuietHours(p.quiet.copyWith(startMinutes: picked.hour * 60 + picked.minute));
+                    }, enabled: p.quiet.enabled),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: timeRow('종료', TimeOfDay(hour: p.quiet.endMinutes ~/ 60, minute: p.quiet.endMinutes % 60), () async {
                       final picked = await _pickTime(TimeOfDay(hour: p.quiet.endMinutes ~/ 60, minute: p.quiet.endMinutes % 60), '방해 금지 종료');
-                      if (picked != null) await store.setQuietHours(QuietHours(startMinutes: p.quiet.startMinutes, endMinutes: picked.hour * 60 + picked.minute));
-                    }),
+                      if (picked != null) await store.setQuietHours(p.quiet.copyWith(endMinutes: picked.hour * 60 + picked.minute));
+                    }, enabled: p.quiet.enabled),
                   ),
                 ],
               ),

@@ -30,16 +30,22 @@ enum NotificationType {
 
 /// 방해 금지 시간. 기본 22:00~07:00. 이 안에 걸리는 알림은 끝나는 시각으로 미룬다.
 class QuietHours {
-  const QuietHours({this.startMinutes = 22 * 60, this.endMinutes = 7 * 60});
+  const QuietHours({this.startMinutes = 22 * 60, this.endMinutes = 7 * 60, this.enabled = true});
 
   final int startMinutes;
   final int endMinutes;
 
+  /// 꺼져 있으면 어떤 알림도 미루지 않는다.
+  final bool enabled;
+
   bool get wrapsMidnight => startMinutes > endMinutes;
   bool get isEmpty => startMinutes == endMinutes;
 
+  QuietHours copyWith({int? startMinutes, int? endMinutes, bool? enabled}) =>
+      QuietHours(startMinutes: startMinutes ?? this.startMinutes, endMinutes: endMinutes ?? this.endMinutes, enabled: enabled ?? this.enabled);
+
   bool contains(DateTime t) {
-    if (isEmpty) return false;
+    if (!enabled || isEmpty) return false;
     final m = t.hour * 60 + t.minute;
     return wrapsMidnight ? (m >= startMinutes || m < endMinutes) : (m >= startMinutes && m < endMinutes);
   }
@@ -56,10 +62,14 @@ class QuietHours {
   String get label => '${_hm(startMinutes)}~${_hm(endMinutes)}';
   static String _hm(int m) => '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
-  Map<String, dynamic> toJson() => {'start': startMinutes, 'end': endMinutes};
+  Map<String, dynamic> toJson() => {'start': startMinutes, 'end': endMinutes, 'enabled': enabled};
   factory QuietHours.fromJson(Map<String, dynamic>? j) => j == null
       ? const QuietHours()
-      : QuietHours(startMinutes: (j['start'] as num?)?.toInt() ?? 22 * 60, endMinutes: (j['end'] as num?)?.toInt() ?? 7 * 60);
+      : QuietHours(
+          startMinutes: (j['start'] as num?)?.toInt() ?? 22 * 60,
+          endMinutes: (j['end'] as num?)?.toInt() ?? 7 * 60,
+          enabled: j['enabled'] is bool ? j['enabled'] as bool : true,
+        );
 }
 
 /// 알림 설정 값 (불변).
@@ -164,8 +174,10 @@ class NotificationPrefsStore extends ChangeNotifier {
 
   Future<void> setQuietHours(QuietHours q) async {
     await _save(_value.copyWith(quiet: q));
-    Analytics.log('quiet_hours_changed', {'start': q.startMinutes, 'end': q.endMinutes});
+    Analytics.log('quiet_hours_changed', {'start': q.startMinutes, 'end': q.endMinutes, 'on': q.enabled});
   }
+
+  Future<void> setQuietEnabled(bool on) => setQuietHours(_value.quiet.copyWith(enabled: on));
 
   Future<void> _save(NotificationPrefs v) async {
     _value = v;

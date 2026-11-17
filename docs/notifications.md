@@ -17,12 +17,12 @@
 | `trial_end` 체험 종료 | 체험 시작 +5일·+6일 20:00 (id 300·301) | ON | `account` 계정·구독 | `trialEndD2`/`trialEndD1` (존댓말) | 프리미엄 관리 | 체험 중일 때만 설정에 표시, 끄면 경고. 취소·만료 감지 시 취소 |
 | `comeback` 오랜만 인사 | 마지막 실행 +72h 1회. 앱을 켤 때마다 다시 잡히므로 72h 안 켜면 안 울림. **평생 1회**(`users/{uid}.comebackNudgeSentAt`) | ON | `reports` | `comeback` | 홈 | 울린 시각이 지난 뒤 앱을 켜면 소진 처리 |
 
-공통: 방해 금지(기본 22:00~07:00)에 걸리면 **끝나는 시각으로 미룸** (`QuietHours.nextAllowed`) · 아이콘 `r_wink_static.png` · 비정확 알람(`inexactAllowWhileIdle`, SCHEDULE_EXACT_ALARM 미사용) · 재예약 = 앱 실행 + 설정 변경 + 수거일 변경 + 로그인, 재부팅은 `ScheduledNotificationBootReceiver` 가 복구 · 알림 권한은 수거일 첫 저장 때 1회만 요청, 거부 시 설정 화면 배너로만 안내.
+공통: 방해 금지(기본 ON, 22:00~07:00, 설정에서 on/off·시각 변경)에 걸리면 **끝나는 시각으로 미룸** (`QuietHours.nextAllowed`), 끄면 미루지 않음 · 아이콘 `r_wink_static.png` · 비정확 알람(`inexactAllowWhileIdle`, SCHEDULE_EXACT_ALARM 미사용) · 재예약 = 앱 실행 + 설정 변경 + 수거일 변경 + 로그인, 재부팅은 `ScheduledNotificationBootReceiver` 가 복구 · 알림 권한은 수거일 첫 저장 때 1회만 요청, 거부 시 설정 화면 배너로만 안내.
 
 알림 id 대역: 100~139 전날 / 150~189 아침 / 200 월간 / 201 주간 / 210 오랜만 / 300·301 체험 / 400~429 특별일 / 1000~ 캘린더 일정.
 
 ## 설정 저장
-`users/{uid}/settings/notifications` = `{enabled:{<key>:false…}, morningHour, morningMinute, quiet:{start,end}(분), updatedAt}` + 기기 `notification_prefs_v1`. 꺼진 것만 `enabled` 에 들어간다. Functions 도 같은 문서를 읽어 끈 사람·방해 금지 시간을 제외한다.
+`users/{uid}/settings/notifications` = `{enabled:{<key>:false…}, morningHour, morningMinute, quiet:{start,end(분),enabled}, updatedAt}` + 기기 `notification_prefs_v1`. 꺼진 것만 `enabled` 에 들어간다. Functions 도 같은 문서를 읽어 끈 사람·방해 금지 시간을 제외한다.
 
 ## FCM
 - 토큰: `users/{uid}/fcmTokens/{deviceId}` `{token, platform, updatedAt}` — deviceId 는 설치 단위 랜덤(기기 prefs). 갱신 시 같은 문서 덮어씀, 로그아웃·데이터 삭제·계정 전환 시 삭제(`PushService.detach`). 규칙: 본인만 write, read 는 false(Functions 는 관리자 권한).
@@ -30,7 +30,7 @@
 - 앱: 포그라운드 수신 → 상단 인앱 배너(리뿅이 아이콘 + 본문, 5초, 탭 → 홈) · 백그라운드/종료 상태 탭 → 홈. 매니페스트 기본 채널 `family`.
 
 ## 분석 이벤트
-`notification_scheduled{type}` · `notification_tap{type}` · `notification_action_checkin{type}` (+ `checkin_done{source:notification}`) · `fcm_token_saved` · `push_received{type, foreground}` · `notification_toggle{type, on}` · `quiet_hours_changed{start,end}` · `notification_permission{granted}`.
+`notification_scheduled{type}` · `notification_tap{type}` · `notification_action_checkin{type}` (+ `checkin_done{source:notification}`) · `fcm_token_saved` · `push_received{type, foreground}` · `notification_toggle{type, on}` · `quiet_hours_changed{start,end,on}` · `notification_permission{granted}`.
 
 ## 배포
 ```bash
