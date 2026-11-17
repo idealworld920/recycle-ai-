@@ -149,6 +149,7 @@ class HouseholdStore extends ChangeNotifier {
       };
 
   Future<void> removeMember(String uid) => _run(() => _repo.removeMember(uid));
+  Future<void> setMyName(String name) => _run(() => _repo.setMyName(name));
   Future<void> transferOwner(String uid) => _run(() => _repo.transferOwner(uid));
 
   Future<String?> regenerateInvite() async {

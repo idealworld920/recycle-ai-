@@ -24,8 +24,17 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      match /{document=**} {
-        allow read, write: if isOwner(uid);
+      // FCM 토큰: 본인 기기만 쓰고, 읽기는 Cloud Functions(관리자)만.
+      match /fcmTokens/{deviceId} {
+        allow read: if false;
+        allow write: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt'])
+          && request.resource.data.token is string;
+        allow delete: if isOwner(uid);
+      }
+
+      match /{col}/{rest=**} {
+        allow read, write: if isOwner(uid) && col != 'fcmTokens';
       }
     }
 

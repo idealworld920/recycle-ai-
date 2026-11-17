@@ -41,7 +41,8 @@ class _HomeShellState extends State<HomeShell> {
   void _onAction() {
     final action = AppActions.instance.pending.value;
     if (action == null) return;
-    if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
+    if ((action.$1 == AppActions.openCamera || action.$1 == AppActions.openHome) && _index != 0) setState(() => _index = 0);
+    if (action.$1 == AppActions.openHome) Navigator.of(context).popUntil((r) => r.isFirst);
     if (action.$1 == AppActions.openHistory && _index != 4) {
       setState(() => _index = 4);
       Analytics.log('history_view', {'from': 'notification'});

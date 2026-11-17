@@ -93,19 +93,31 @@ class CalendarEvent {
 
 /// 전국 공통 일정 (assets/data/special_days.json). 출처 URL 이 없는 항목은 넣지 않는다.
 class SpecialDay {
-  const SpecialDay({required this.date, required this.title, required this.note, required this.sourceUrl});
+  const SpecialDay({required this.date, required this.title, required this.note, required this.sourceUrl, this.region});
 
   final DateTime date;
   final String title;
   final String note;
   final String sourceUrl;
 
+  /// 적용 지역: null 이면 전국, 아니면 시도 짧은 이름("서울") 또는 행정구역 코드. 알림은 사용자 지역이 맞을 때만.
+  final String? region;
+
   String get dateKey => PickupSchedule.dateKey(date);
+
+  bool appliesTo({String? regionCode, String? sido}) => region == null || region == regionCode || region == sido;
 
   static SpecialDay? fromJson(Map<String, dynamic> j) {
     final d = DateTime.tryParse(j['date']?.toString() ?? '');
     final url = (j['sourceUrl'] ?? '') as String;
     if (d == null || !url.startsWith('https://')) return null;
-    return SpecialDay(date: DateTime(d.year, d.month, d.day), title: (j['title'] ?? '') as String, note: (j['note'] ?? '') as String, sourceUrl: url);
+    final region = j['region']?.toString().trim();
+    return SpecialDay(
+      date: DateTime(d.year, d.month, d.day),
+      title: (j['title'] ?? '') as String,
+      note: (j['note'] ?? '') as String,
+      sourceUrl: url,
+      region: region == null || region.isEmpty ? null : region,
+    );
   }
 }

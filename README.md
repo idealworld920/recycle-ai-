@@ -434,6 +434,9 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - 소프트 진입 3종(`lib/features/paywall/soft_prompts.dart`: 수거일 저장 직후 / 도감 10개 / 3주 연속) 각 평생 1회.
 - 거절 존중: 페이월 닫으면 7일간 자동 노출 쉼(`PaywallTrigger.inDismissCooldown`, `users/{uid}.paywallDismissedAt`). 진입점·조건 표는 `docs/analytics_events.md`.
 
+### 알림 시스템 (1.3.0+19)
+`docs/notifications.md` 에 종류 × 트리거 × 기본값 × 채널 × 문구 키 표, 배포(Functions + Cloud Scheduler), 테스트 순서, 데이터 보안 양식 항목. 요약: 설정 → 알림 화면(토글 8종 + 당일 아침 시각 + 방해 금지 22:00~07:00), 로컬 알림(전날 저녁·당일 아침 [버렸뿅!] 액션·주간 리포트·특별 수거일·오랜만 인사·체험 종료), FCM(가족 체크인 `onCheckin`, 미체크 리마인드 `householdEveningReminder` 21:00 KST). 문구는 `assets/data/notification_lines.json`(뿅체, 체험 종료만 존댓말). **`firebase deploy --only functions,firestore:rules` 필요.**
+
 ### 사용 분석 + 인앱 리뷰 (1.2.1+18)
 `docs/analytics_events.md` 에 이벤트 전체 표·사용자 속성·DebugView 확인 순서·개인정보 체크리스트. 래퍼 `lib/core/analytics.dart`, 사용자 속성 `lib/core/analytics_user_props.dart`, 리뷰 `lib/features/review/review_prompter.dart`. 주요 이벤트(콘솔에서 직접 체크): `first_classify_done`, `classify_done`, `schedule_set`, `purchase_success`, `household_create`. 테스터 기기는 `--dart-define=ANALYTICS_DISABLED=true` 로 수집을 끌 수 있다.
 

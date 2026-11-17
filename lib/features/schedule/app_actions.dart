@@ -13,6 +13,9 @@ class AppActions {
   /// 체험 종료 알림을 누르면 설정 → 프리미엄 관리.
   static const openPremium = 'premium';
 
+  /// 수거일·가족 알림을 누르면 홈(수거일 카드)으로.
+  static const openHome = 'home';
+
   /// 온보딩 직후: 홈 위에 카메라 화면을 띄운다 (HomeShell 이 처리).
   static const openCapture = 'capture';
 

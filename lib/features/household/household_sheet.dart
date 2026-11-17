@@ -132,7 +132,27 @@ class _HouseholdBody extends StatelessWidget {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(child: Text(m.nickname.isEmpty ? '이름 없음' : m.nickname, style: t.bodyMedium)),
                     if (m.uid == h.ownerUid) Text('방장', style: t.bodySmall?.copyWith(color: c.primary)),
-                    if (m.uid == me?.uid) ...[const SizedBox(width: AppSpacing.xs), Text('(나)', style: t.bodySmall)],
+                    if (m.uid == me?.uid) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Text('(나)', style: t.bodySmall),
+                      IconButton(
+                        tooltip: '이름 바꾸기',
+                        iconSize: 18,
+                        color: c.textSecondary,
+                        onPressed: store.busy
+                            ? null
+                            : () async {
+                                final name = await _askNickname(context, m.nickname);
+                                if (name == null || name == m.nickname || !context.mounted) return;
+                                try {
+                                  await store.setMyName(name);
+                                } on HouseholdException catch (e) {
+                                  if (context.mounted) _toast(context, e.message);
+                                }
+                              },
+                        icon: const Icon(Symbols.edit_rounded),
+                      ),
+                    ],
                     if (store.isOwner && m.uid != me?.uid)
                       PopupMenuButton<String>(
                         icon: Icon(Symbols.more_horiz_rounded, size: 20, color: c.textSecondary),

@@ -111,6 +111,9 @@ class HouseholdRepository {
   Future<void> removeMember(String uid) => _backend.call('removeHouseholdMember', {'uid': uid});
   Future<void> transferOwner(String uid) => _backend.call('transferHouseholdOwner', {'uid': uid});
 
+  /// 내 이름 바꾸기 (members[] 는 Function 만 고친다).
+  Future<void> setMyName(String name) => _backend.call('setMemberName', {'name': name});
+
   Future<String?> householdIdOf(String uid) async =>
       (await _db.collection('users').doc(uid).get()).data()?['householdId'] as String?;
 

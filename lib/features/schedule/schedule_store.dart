@@ -9,6 +9,7 @@ import 'pickup_schedule.dart';
 import 'schedule_repository.dart';
 import 'widget_service.dart';
 import '../../core/analytics.dart';
+import '../notifications/notification_background.dart';
 
 /// 수거일 설정 + 오늘 체크인 상태. 홈 카드와 설정 시트가 구독한다.
 class ScheduleStore extends ChangeNotifier {
@@ -135,11 +136,33 @@ class ScheduleStore extends ChangeNotifier {
     }
   }
 
-  /// 앱을 켤 때 한 번: 같은 설정으로 다시 등록해서 알림 팁 문구가 바뀌게 한다.
+  /// 앱을 켤 때 한 번: 같은 설정으로 다시 등록해서 알림 문구가 바뀌게 한다.
   Future<void> refreshReminders() async {
     final s = _schedule;
     if (s == null || s.isEmpty) return;
     await NotificationService.instance.reschedule(s);
+  }
+
+  /// 알림 액션 [버렸뿅!] 으로 백그라운드에서 기록된 체크인을 서버·가구에 반영한다. 앱 실행·복귀 때.
+  Future<int> flushPendingCheckins(PendingCheckins pending) async {
+    final items = pending.all;
+    if (items.isEmpty) return 0;
+    for (final (dateKey, type) in items) {
+      try {
+        await _repo.checkIn(dateKey, type); // 서버 복사본 (기기엔 이미 있음)
+        if (inHousehold && dateKey == PickupSchedule.dateKey(DateTime.now())) await _household!.checkIn(type);
+        Analytics.log('notification_action_checkin', {'type': type.key});
+        Analytics.log('checkin_done', {'source': 'notification'});
+      } catch (e) {
+        debugPrint('알림 체크인 반영 실패: $e');
+      }
+    }
+    await pending.clear();
+    _refreshDay();
+    _checkins = _repo.loadCheckinsLocal(_today);
+    _checkinDates = _repo.loadCheckinDatesLocal();
+    notifyListeners();
+    return items.length;
   }
 
   /// 계정 전환 시 기기 설정을 비운다. 알림·위젯도 같이 정리.

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../app_services.dart';
 import '../../core/analytics.dart';
+import '../notifications/notification_prefs.dart';
 import '../schedule/notification_service.dart';
 import 'purchases_service.dart';
 
@@ -21,12 +22,12 @@ class TrialReminders {
       ];
 
   /// 체험 구매 성공 직후.
-  static Future<void> schedule(AppServices services, {DateTime? now}) async {
+  static Future<void> schedule(AppServices services, {DateTime? now, QuietHours? quiet}) async {
     final startedAt = now ?? DateTime.now();
+    quiet ??= services.notificationPrefs?.value.quiet;
     final endsAt = services.premium.status.expiresAt ?? startedAt.add(const Duration(days: PremiumConfig.trialDays));
-    final times = timesFor(startedAt);
     try {
-      await NotificationService.instance.scheduleTrialReminders(twoDaysBefore: times[0], oneDayBefore: times[1]);
+      await NotificationService.instance.scheduleTrialReminders(startedAt: startedAt, quiet: quiet ?? const QuietHours());
       Analytics.log('trial_reminder_scheduled', {'count': 2});
     } catch (e) {
       debugPrint('[trial] 알림 예약 실패: $e');

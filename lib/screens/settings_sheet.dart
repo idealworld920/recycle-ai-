@@ -23,6 +23,7 @@ import '../features/schedule/schedule_settings_sheet.dart';
 import '../widgets/app_card.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../core/analytics.dart';
+import '../features/notifications/notification_settings_screen.dart';
 
 /// 설정 바텀시트. 프리미엄·집·지역·수거일·계정·약관·앱 정보.
 Future<void> showSettingsSheet(BuildContext context) {
@@ -158,7 +159,23 @@ Future<void> showSettingsSheet(BuildContext context) {
                 children: [
                   Icon(Symbols.calendar_today_rounded, color: c.textPrimary),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text('수거일·알림 시각 설정', style: t.titleSmall)),
+                  Expanded(child: Text('수거일 설정', style: t.titleSmall)),
+                  Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppCard(
+              onTap: () {
+                Navigator.pop(ctx);
+                context.pushPage(const NotificationSettingsScreen());
+              },
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Row(
+                children: [
+                  Icon(Symbols.notifications_rounded, color: c.textPrimary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(child: Text('알림', style: t.titleSmall)),
                   Icon(Symbols.chevron_right_rounded, color: c.textSecondary),
                 ],
               ),

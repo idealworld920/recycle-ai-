@@ -45,6 +45,12 @@ import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
 import 'services/settings_store.dart';
 import 'core/analytics_user_props.dart';
+import 'features/notifications/notification_background.dart';
+import 'features/notifications/notification_lines.dart';
+import 'features/notifications/notification_planner.dart';
+import 'features/notifications/notification_prefs.dart';
+import 'features/notifications/push_service.dart';
+import 'features/premium/subscription_status.dart';
 
 /// `--dart-define=DEMO=true` 로 빌드하면 스토어 스크린샷용 샘플 기록을 넣는다.
 const bool kDemoMode = bool.fromEnvironment('DEMO');
@@ -113,12 +119,62 @@ Future<void> _boot() async {
   premium.attachHousehold(household);
   final events = EventStore(prefs, specialDays: await _loadSpecialDays());
   RibbongLines.current = await RibbongLines.load();
+  NotificationLines.current = await NotificationLines.load();
+  final notificationPrefs = NotificationPrefsStore(prefs);
   final lastOpenedAt = settings.lastOpenedAt;
   unawaited(settings.markOpened());
   // 스플래시 공지: 지난번 fetch 값을 즉시 활성화해 읽고(기다림 짧음), 이번 fetch 는 다음 실행용으로 백그라운드.
   final splashMessage = await SplashMessageSource.readCached().timeout(const Duration(milliseconds: 400), onTimeout: () => null);
   unawaited(SplashMessageSource.prefetch());
   events.attachHousehold(household);
+  // 로컬 알림 전체 재계산: 앱 실행 · 설정 변경 · 수거일 변경 · 로그인 때.
+  Future<void> replanNotifications() async {
+    try {
+      final now = DateTime.now();
+      // 오랜만 인사: 예약해 둔 시각이 지났으면(= 72h 안 켜서 울렸으면) 평생 1회 소진.
+      final scheduledAt = settings.comebackScheduledAt;
+      if (!settings.comebackSent && scheduledAt != null && now.isAfter(scheduledAt)) {
+        await settings.markComebackSent(remote: auth.service.mergeUserDoc);
+      }
+      final weekStart = NotificationPlanner.weekStart(now);
+      final week = history.items.where((r) => !r.date.isBefore(weekStart)).toList();
+      final recyclable = week.where((r) => r.category.isRecyclable).length;
+      final trial = premium.status.phase == SubscriptionPhase.trial && premium.status.expiresAt != null
+          ? premium.status.expiresAt!.subtract(const Duration(days: PremiumConfig.trialDays))
+          : null;
+      final input = NotificationPlanInput(
+        schedule: schedule.schedule,
+        prefs: notificationPrefs.value,
+        now: now,
+        weeklyClassified: week.length,
+        weeklyRecyclePercent: week.isEmpty ? null : (recyclable * 100 / week.length).round(),
+        specialDays: events.specialDays,
+        regionCode: region.admin?.code,
+        regionSido: region.admin?.sidoShort,
+        lastOpenedAt: now, // 이번 실행 기준 +72h
+        comebackSent: settings.comebackSent,
+        trialStartedAt: trial,
+      );
+      await NotificationService.instance.planAll(input);
+      if (!settings.comebackSent && notificationPrefs.value.isOn(NotificationType.comeback)) {
+        await settings.setComebackScheduled(NotificationPlanner.comebackTime(now, notificationPrefs.value.quiet));
+      } else {
+        await settings.setComebackScheduled(null);
+      }
+    } catch (e) {
+      debugPrint('[notif] 재계산 실패: $e');
+    }
+  }
+
+  notificationPrefs.onChanged = replanNotifications;
+  NotificationService.instance.replan = replanNotifications;
+  // 알림 액션 [버렸뿅!] 으로 백그라운드에서 쌓인 체크인 반영 (앱 실행 + 포그라운드 복귀).
+  final pendingCheckins = PendingCheckins(prefs);
+  NotificationService.instance.onPayload = (p) {
+    if (p == NotificationPayloads.actionCheckin) unawaited(schedule.flushPendingCheckins(pendingCheckins));
+  };
+  unawaited(schedule.flushPendingCheckins(pendingCheckins));
+
   String? attachedUid;
   void attachAll() {
     if (!firebase.ready || firebase.uid == attachedUid) return;
@@ -130,6 +186,8 @@ Future<void> _boot() async {
     household.attachUser(firebase.uid);
     events.attachUser(firebase.uid, displayName: auth.displayName);
     feedback.attachUser(firebase.uid);
+    notificationPrefs.attachUser(firebase.uid).then((_) => replanNotifications());
+    PushService.instance.attachUser(firebase.uid);
     // 온보딩 동의가 로그인 전에 끝났으면 지금 올린다.
     if (settings.consentRemotePending) {
       auth.service.mergeUserDoc({'consent': settings.consentDoc}).then((_) => settings.markConsentSynced()).catchError((_) {});
@@ -187,13 +245,16 @@ Future<void> _boot() async {
     boot: boot,
     feedback: feedback,
     carbon: carbon,
+    notificationPrefs: notificationPrefs,
+    pendingCheckins: pendingCheckins,
   ));
 
   // 4) 알림·위젯 같은 플랫폼 플러그인은 첫 프레임 뒤에. 실패하면 배너에만 남긴다.
-  unawaited(boot.run('알림', NotificationService.instance.init, timeout: const Duration(seconds: 10)));
+  unawaited(boot.run('알림', () async {
+    await NotificationService.instance.init();
+    await replanNotifications();
+  }, timeout: const Duration(seconds: 15)));
   unawaited(boot.run('홈 위젯', WidgetService.init, timeout: const Duration(seconds: 10)));
-  // 알림 팁 문구를 바꿔 준다 (같은 팁 2주 내 반복 안 함). 실패해도 조용히.
-  unawaited(schedule.refreshReminders().catchError((_) {}));
   // 매월 1일 09:00 지난달 리포트 알림.
   unawaited(NotificationService.instance.scheduleMonthlyReport().catchError((_) {}));
   unawaited(events.rescheduleAll().catchError((_) {}));
@@ -252,6 +313,8 @@ class RecycleApp extends StatefulWidget {
     required this.boot,
     required this.feedback,
     required this.carbon,
+    this.notificationPrefs,
+    this.pendingCheckins,
   });
 
   final SettingsStore settings;
@@ -271,6 +334,8 @@ class RecycleApp extends StatefulWidget {
   final BootReport boot;
   final FeedbackStore feedback;
   final CarbonFactors carbon;
+  final NotificationPrefsStore? notificationPrefs;
+  final PendingCheckins? pendingCheckins;
 
   @override
   State<RecycleApp> createState() => _RecycleAppState();
@@ -278,6 +343,7 @@ class RecycleApp extends StatefulWidget {
 
 class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
   final _analyticsObserver = AnalyticsNavigatorObserver();
+  final _navigatorKey = GlobalKey<NavigatorState>();
   /// 시작 흐름: 스플래시 → (최초 실행이면) 온보딩 → 홈. 스플래시는 Firebase 를 기다리되 전체 3초 상한.
   _Phase _phase = _Phase.splash;
   SplashPlan? _plan;
@@ -288,6 +354,7 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
     super.initState();
     widget.settings.addListener(_onSettings);
     WidgetsBinding.instance.addObserver(this);
+    PushService.instance.navigatorKey = _navigatorKey;
     _reduceMotion = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
   }
 
@@ -301,7 +368,11 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
   /// 포그라운드 복귀: 구독이 그 사이 만료·해지됐으면 바로 잠기도록 RevenueCat 을 다시 읽는다.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(widget.premium.refresh());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(widget.premium.refresh());
+      final pending = widget.pendingCheckins;
+      if (pending != null) unawaited(widget.schedule.flushPendingCheckins(pending));
+    }
   }
 
   bool? _reduceMotion;
@@ -361,7 +432,9 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
       boot: widget.boot,
       feedback: widget.feedback,
       carbon: widget.carbon,
+      notificationPrefs: widget.notificationPrefs,
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),

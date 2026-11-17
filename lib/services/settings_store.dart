@@ -176,6 +176,23 @@ class SettingsStore extends ChangeNotifier {
     return true;
   }
 
+  // ---- 오랜만 인사 알림 (평생 1회) ----
+  static const _comebackSentPref = 'comeback_nudge_sent_at';
+  static const _comebackScheduledPref = 'comeback_nudge_scheduled_at';
+  bool get comebackSent => _prefs.containsKey(_comebackSentPref);
+  DateTime? get comebackScheduledAt => DateTime.tryParse(_prefs.getString(_comebackScheduledPref) ?? '');
+  Future<void> setComebackScheduled(DateTime? at) => at == null ? _prefs.remove(_comebackScheduledPref) : _prefs.setString(_comebackScheduledPref, at.toIso8601String());
+  Future<void> markComebackSent({Future<void> Function(Map<String, dynamic>)? remote}) async {
+    final now = DateTime.now();
+    await _prefs.setString(_comebackSentPref, now.toIso8601String());
+    await _prefs.remove(_comebackScheduledPref);
+    if (remote != null) {
+      try {
+        await remote({'comebackNudgeSentAt': now.toIso8601String()});
+      } catch (_) {}
+    }
+  }
+
   Future<void> resetAll() async {
     for (final k in _prefs.getKeys().toList()) {
       await _prefs.remove(k);

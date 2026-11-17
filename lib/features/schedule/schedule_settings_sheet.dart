@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:material_symbols_icons/symbols.dart';
 
 import '../../app_services.dart';
 import '../../core/theme/app_sheet.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
-import '../../widgets/app_card.dart';
 import '../../widgets/app_chip.dart';
 import '../legal/permission_primer.dart';
 import 'pickup_schedule.dart';
@@ -45,15 +43,6 @@ class _ScheduleFormState extends State<_ScheduleForm> {
     }
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: _draft.notifyHour, minute: _draft.notifyMinute),
-      helpText: '수거일 전날 알림 시각',
-    );
-    if (picked != null) setState(() => _draft = _draft.copyWith(notifyHour: picked.hour, notifyMinute: picked.minute));
-  }
-
   Future<void> _save() async {
     final store = AppServices.of(context).schedule;
     if (!_draft.isEmpty && !await PermissionPrimer.show(context, PermissionPrimer.notification)) return;
@@ -70,7 +59,6 @@ class _ScheduleFormState extends State<_ScheduleForm> {
   Widget build(BuildContext context) {
     final store = AppServices.of(context).schedule;
     final t = context.text;
-    final c = context.colors;
     return Column(
       children: [
         Expanded(
@@ -97,22 +85,9 @@ class _ScheduleFormState extends State<_ScheduleForm> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
               ],
-              Text('알림 시각', style: t.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              AppCard(
-                onTap: _pickTime,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.base),
-                child: Row(
-                  children: [
-                    Icon(Symbols.notifications_rounded, size: 24, color: c.textPrimary),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(child: Text('수거일 전날 ${_draft.notifyTimeLabel}', style: t.titleSmall)),
-                    Text('변경', style: t.labelLarge?.copyWith(color: c.primary)),
-                  ],
-                ),
-              ),
+              Text('알림 시각은 설정 → 알림에서 바꿀 수 있어요 (전날 ${_draft.notifyTimeLabel}).', style: t.bodySmall),
               const SizedBox(height: AppSpacing.sm),
-              Text('저장하면 알림 권한을 요청해요. 알림은 수거일 전날 이 시각에 와요.', style: t.bodySmall),
+              Text('저장하면 알림 권한을 요청해요.', style: t.bodySmall),
             ],
           ),
         ),

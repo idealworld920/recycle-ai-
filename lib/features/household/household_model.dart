@@ -71,7 +71,10 @@ class HouseholdMember {
   const HouseholdMember({required this.uid, required this.nickname, this.color = 0, this.joinedAt});
 
   final String uid;
+
+  /// 집에서 부르는 이름 (푸시 문구의 {이름}). 서버 필드는 nickname + displayName(동일 값) 둘 다 쓴다.
   final String nickname;
+  String get displayName => nickname.isEmpty ? '나' : nickname;
 
   /// 자동 배정 색 번호 0~5 ([memberColorCount]). 화면에서 토큰 팔레트로 바꾼다.
   final int color;
@@ -81,7 +84,7 @@ class HouseholdMember {
 
   factory HouseholdMember.fromJson(Map<String, dynamic> j) => HouseholdMember(
         uid: (j['uid'] ?? '') as String,
-        nickname: (j['nickname'] ?? '') as String,
+        nickname: ((j['displayName'] ?? j['nickname'] ?? '') as String),
         color: (j['color'] as num?)?.toInt().clamp(0, memberColorCount - 1) ?? 0,
         joinedAt: Household._date(j['joinedAt']),
       );
@@ -89,6 +92,7 @@ class HouseholdMember {
   Map<String, dynamic> toJson() => {
         'uid': uid,
         'nickname': nickname,
+        'displayName': displayName,
         'color': color,
         'joinedAt': joinedAt?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch,
       };

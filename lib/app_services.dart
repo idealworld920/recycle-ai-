@@ -15,6 +15,8 @@ import 'features/places/region_store.dart';
 import 'features/schedule/schedule_store.dart';
 import 'features/stats/collection_store.dart';
 import 'services/settings_store.dart';
+import 'features/notifications/notification_prefs.dart';
+import 'features/notifications/push_service.dart';
 
 /// 화면 어디서나 저장소에 접근할 수 있게 해 주는 InheritedWidget.
 class AppServices extends InheritedWidget {
@@ -35,6 +37,7 @@ class AppServices extends InheritedWidget {
     required this.boot,
     required this.feedback,
     required this.carbon,
+    this.notificationPrefs,
     required super.child,
   });
 
@@ -60,6 +63,9 @@ class AppServices extends InheritedWidget {
   /// 월간 리포트 탄소 환산 계수 (출처 있는 것만).
   final CarbonFactors carbon;
 
+  /// 알림 설정 (main 이 넣는다. 테스트에선 null 일 수 있다).
+  final NotificationPrefsStore? notificationPrefs;
+
   /// 계정이 바뀔 때(기존 계정 불러오기, 로그아웃, 삭제) 기기에 남은 이전 사용자 데이터를 비운다.
   Future<void> resetLocalData() async {
     await Future.wait([history.resetLocal(), collection.resetLocal(), schedule.resetLocal(), feedback.resetLocal(), events.resetLocal()]);
@@ -68,8 +74,10 @@ class AppServices extends InheritedWidget {
 
   /// 계정이 바뀌는 흐름 공통: RevenueCat 로그아웃 + 기기 캐시 비움.
   Future<void> leaveAccountLocally() async {
+    await PushService.instance.detach(); // 이 기기 FCM 토큰 문서 삭제
     await premium.logOut();
     await resetLocalData();
+    await notificationPrefs?.resetLocal();
   }
 
   static AppServices of(BuildContext context) {
