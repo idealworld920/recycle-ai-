@@ -9,9 +9,10 @@ import '../../models/recycle_result.dart';
 import '../../screens/result_screen.dart';
 import '../../services/gemini_classifier.dart';
 import '../legal/permission_primer.dart';
-import '../premium/free_limits.dart';
-import '../premium/premium_gate.dart';
 import '../../core/analytics.dart';
+import '../premium/limit_block_sheet.dart';
+import '../paywall/paywall_trigger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 사진 선택 → AI 분류 → 결과 화면. 홈과 카메라 화면이 같이 쓴다.
 ///
@@ -40,7 +41,9 @@ class ClassifyFlow {
     if (!services.premium.isPremium && !services.settings.inFreeGrace && services.freeLimits.classifyExhausted) {
       Analytics.log('classify_limit_hit', {'daily_count': services.freeLimits.classifyCountToday()});
       Analytics.log('classify_fail', {'reason': 'limit'});
-      final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.', source: PaywallSource.limitHit);
+      await PaywallTrigger(await SharedPreferences.getInstance()).markLimitHit();
+      if (!context.mounted) return;
+      final ok = await showLimitBlockSheet(context, kind: LimitKind.classify);
       if (!ok) return;
     }
     if (!context.mounted) return;

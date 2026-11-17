@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -14,6 +15,10 @@ import '../premium/purchases_service.dart';
 import '../../core/analytics.dart';
 import '../premium/premium_gate.dart';
 import '../review/review_prompter.dart';
+import '../premium/price_format.dart';
+import '../premium/trial_reminders.dart';
+import 'paywall_trigger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 프리미엄 페이월. 결제가 끝나면 true 를 돌려준다. 취소는 조용히 닫는다.
 class PaywallScreen extends StatefulWidget {
@@ -25,11 +30,12 @@ class PaywallScreen extends StatefulWidget {
   /// 어디서 왔는지 한 줄 (예: "오늘 무료 분류 10회를 다 썼어요").
   final String? reason;
 
+  /// (아이콘, 제목, 부제)
   static const benefits = [
-    (Symbols.photo_camera_rounded, '사진 분류 무제한'),
-    (Symbols.chat_bubble_rounded, 'AI 질문 무제한'),
-    (Symbols.family_restroom_rounded, '가족·룸메와 수거일 공유'),
-    (Symbols.calendar_month_rounded, '캘린더 일정 + 여러 장 분류'),
+    (Symbols.family_restroom_rounded, '가족·룸메 6명까지 함께', '한 명만 구독하면 모두 프리미엄'),
+    (Symbols.photo_camera_rounded, '사진 분류 무제한', null),
+    (Symbols.chat_bubble_rounded, 'AI 질문 무제한', null),
+    (Symbols.calendar_month_rounded, '캘린더 일정 + 여러 장 분류', null),
   ];
 
   @override
@@ -41,6 +47,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
   bool _askedLink = false;
 
   String get _plan => _yearly ? 'yearly' : 'monthly';
+  bool _purchased = false;
+
+  /// 결제 없이 닫힘: 7일 쿨다운 기록 + paywall_dismiss.
+  Future<void> _onDismissed() async {
+    if (_purchased) return;
+    Analytics.log('paywall_dismiss', {'source': widget.source.analyticsName});
+    final services = AppServices.of(context);
+    final trigger = PaywallTrigger(await SharedPreferences.getInstance());
+    await trigger.markDismissed(remote: services.auth.service.mergeUserDoc);
+  }
 
   @override
   void initState() {
@@ -77,9 +93,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
+        _purchased = true;
         Analytics.log('purchase_success', {'plan': _plan, 'is_trial': trial});
         Analytics.log('badge_earned', {'level': 'crown'});
         ReviewPrompter.purchasedThisSession = true;
+        if (trial) unawaited(TrialReminders.schedule(AppServices.of(context)));
         _toast(trial ? 'ReSAI 프리미엄이 시작됐어요. ${PremiumConfig.trialDays}일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
         Navigator.pop(context, true);
       case PurchaseCancelled():
@@ -98,6 +116,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
+        _purchased = true;
         Analytics.log('restore_success');
         _toast('구독을 복원했어요.');
         Navigator.pop(context, true);
@@ -115,12 +134,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final store = AppServices.of(context).premium;
     final t = context.text;
     final c = context.colors;
-    return Scaffold(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && result != true) _onDismissed();
+      },
+      child: Scaffold(
       appBar: AppBar(),
       body: ListenableBuilder(
         listenable: store,
         builder: (context, _) {
           final pkg = _yearly ? store.yearly : store.monthly;
+          final yearlyNote = store.yearly == null ? null : PriceFormat.yearlyEquivalent(store.yearly!.storeProduct.price, store.yearly!.storeProduct.currencyCode);
+          final monthlyNote = store.monthly == null ? null : PriceFormat.monthlyEquivalent(store.monthly!.storeProduct.price, store.monthly!.storeProduct.currencyCode);
           // 체험 자격: Play 오퍼(freePhase) 또는 introductoryPrice. 상품을 못 받았으면 체험 버튼도 안 보여준다.
           final trial = PremiumStore.trialEligible(pkg);
           final loading = store.pricesLoading;
@@ -143,12 +168,21 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 Text(widget.reason!, style: t.bodySmall, textAlign: TextAlign.center),
               ],
               const SizedBox(height: AppSpacing.xl),
-              for (final (icon, text) in PaywallScreen.benefits) ...[
+              for (final (icon, text, sub) in PaywallScreen.benefits) ...[
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(icon, size: 22, color: c.primary),
                     const SizedBox(width: AppSpacing.md),
-                    Expanded(child: Text(text, style: t.bodyMedium)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(text, style: t.bodyMedium?.copyWith(fontWeight: sub == null ? null : FontWeight.w600)),
+                          if (sub != null) Text(sub, style: t.bodySmall),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -161,6 +195,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       selected: _yearly,
                       title: '연간',
                       price: yearlyPrice == null ? priceHint : '$yearlyPrice / 년',
+                      note: yearlyNote,
                       badge: discount == null ? null : '$discount% 할인',
                       onTap: () {
                         setState(() => _yearly = true);
@@ -174,6 +209,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       selected: !_yearly,
                       title: '월간',
                       price: monthlyPrice == null ? priceHint : '$monthlyPrice / 월',
+                      note: monthlyNote,
                       onTap: () {
                         setState(() => _yearly = false);
                         Analytics.log('paywall_select_plan', {'plan': 'monthly'});
@@ -197,14 +233,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
               const SizedBox(height: AppSpacing.sm),
               if (pkg == null && store.pricesFailed)
                 TextButton(onPressed: store.loadOffering, child: const Text('다시 불러오기'))
-              else if (pkg != null)
+              else if (pkg != null) ...[
                 Text(
                   trial
-                      ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요. 체험 중 언제든 해지할 수 있어요.'
+                      ? '${PremiumConfig.trialDays}일 무료 체험 후 $price 자동 갱신돼요.'
                       : '$price 자동 갱신돼요. Google Play 구독 관리에서 언제든 해지할 수 있어요.',
                   textAlign: TextAlign.center,
                   style: t.bodySmall,
                 ),
+                if (trial) Text('체험 종료 2일 전에 알려드려요. 언제든 해지할 수 있어요.', textAlign: TextAlign.center, style: t.bodySmall),
+              ],
               const SizedBox(height: AppSpacing.xs),
               Text('집 방장이 구독하면 멤버 모두(최대 6명)에게 적용돼요.', textAlign: TextAlign.center, style: t.bodySmall),
               const SizedBox(height: AppSpacing.xl),
@@ -235,18 +273,22 @@ class _PaywallScreenState extends State<PaywallScreen> {
           );
         },
       ),
+      ),
     );
   }
 }
 
 class _PlanTile extends StatelessWidget {
-  const _PlanTile({required this.selected, required this.title, required this.price, required this.onTap, this.badge});
+  const _PlanTile({required this.selected, required this.title, required this.price, required this.onTap, this.badge, this.note});
 
   final bool selected;
   final String title;
   final String price;
   final String? badge;
   final VoidCallback onTap;
+
+  /// 환산 문구 (연간: "월 1,658원 · 하루 55원", 월간: "하루 97원"). 스토어 가격으로 계산.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +323,7 @@ class _PlanTile extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(price, style: t.bodySmall?.copyWith(color: c.textPrimary)),
+              if (note != null) Text(note!, style: t.labelSmall?.copyWith(color: c.textSecondary, fontSize: 11)),
             ],
           ),
         ),

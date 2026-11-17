@@ -9,9 +9,12 @@ class PaywallTrigger {
   PaywallTrigger(this._prefs, {DateTime Function()? now}) : _now = now ?? DateTime.now;
 
   static const minInstallAge = Duration(hours: 72);
+  static const dismissCooldown = Duration(days: 7);
   static const shownPrefix = 'paywall_shown_';
+  static const softPrefix = 'paywall_soft_';
   static const localShareCountPref = 'paywall_share_count';
   static const firstLimitPref = 'paywall_first_limit_hit';
+  static const dismissedPref = 'paywall_dismissed_at';
 
   final SharedPreferences _prefs;
   final DateTime Function() _now;
@@ -28,11 +31,45 @@ class PaywallTrigger {
     return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
   }
 
+  /// 사용자가 페이월을 닫은 시각. 7일 동안은 자동(A·D) 노출을 쉰다.
+  DateTime? get dismissedAt {
+    final ms = _prefs.getInt(dismissedPref);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  bool get inDismissCooldown {
+    final d = dismissedAt;
+    return d != null && _now().difference(d) < dismissCooldown;
+  }
+
+  /// 페이월을 결제 없이 닫았을 때. users/{uid}.paywallDismissedAt 에도 남긴다.
+  Future<void> markDismissed({Future<void> Function(Map<String, dynamic>)? remote}) async {
+    final t = _now();
+    await _prefs.setInt(dismissedPref, t.millisecondsSinceEpoch);
+    if (remote != null) {
+      try {
+        await remote({'paywallDismissedAt': t.toIso8601String()});
+      } catch (_) {}
+    }
+  }
+
+  bool pastInstallAge(DateTime installedAt) => _now().difference(installedAt) >= minInstallAge;
+
+  /// 소프트 진입(수거일 설정 직후·도감 10개·3주 연속)은 평생 1회.
+  bool softShown(PaywallSource s) => _prefs.containsKey('$softPrefix${s.name}');
+  Future<void> markSoftShown(PaywallSource s) => _prefs.setInt('$softPrefix${s.name}', _now().millisecondsSinceEpoch);
+
+  /// 소프트 시트를 띄워도 되는가: 온보딩 끝 + 72시간 지남 + 거절 쿨다운 아님 + 아직 안 보여줌.
+  bool canShowSoft(PaywallSource s, {required DateTime installedAt, required bool onboarded}) =>
+      s.isSoft && onboarded && pastInstallAge(installedAt) && !inDismissCooldown && !softShown(s);
+
   /// 지금 이 계기로 페이월을 띄워도 되는가.
   bool canShow(PaywallSource source, {required DateTime installedAt, required bool onboarded, bool userInitiated = false}) {
-    if (source == PaywallSource.settings) return true;
+    if (source.isUserButton) return true;
     if (!onboarded) return false;
-    if (_now().difference(installedAt) < minInstallAge) return false;
+    if (!pastInstallAge(installedAt)) return false;
+    // 거절 뒤 7일: 자동 노출(A·D)은 쉰다. 잠긴 기능을 직접 누른 경우(featureTap 계열·guide7)는 그대로.
+    if (inDismissCooldown && !source.isFeatureTap && source != PaywallSource.guide7) return false;
     // 사용자가 직접 누른 CTA 는 "평생 1회" 제한을 받지 않는다 (72시간·온보딩 가드만).
     if (userInitiated && source != PaywallSource.limitHit) return true;
     final last = lastShown(source);
@@ -42,14 +79,20 @@ class PaywallTrigger {
       case PaywallSource.calendar:
       case PaywallSource.multi:
       case PaywallSource.guide7:
+      case PaywallSource.limitWarning:
         return true;
       case PaywallSource.limitHit:
         return last == null || !_sameDay(last, _now());
       case PaywallSource.reportBottom:
-      case PaywallSource.streak3:
       case PaywallSource.share3:
         return limitHitOnce && last == null;
+      case PaywallSource.streak3:
+      case PaywallSource.scheduleDone:
+      case PaywallSource.collection10:
+        return last == null;
       case PaywallSource.settings:
+      case PaywallSource.limitBlock:
+      case PaywallSource.chatLimitBlock:
         return true;
     }
   }

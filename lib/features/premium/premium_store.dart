@@ -8,6 +8,7 @@ import '../household/household_store.dart';
 import 'purchase_errors.dart';
 import 'purchases_service.dart';
 import 'subscription_status.dart';
+import 'trial_reminders.dart';
 
 /// 프리미엄이 열리는 세 경로. 표시용.
 enum PremiumSource { none, own, family, review, debug }
@@ -118,12 +119,15 @@ class PremiumStore extends ChangeNotifier {
   void _applyInfo(CustomerInfo info) {
     _everSubscribed = info.entitlements.all.containsKey(PremiumConfig.entitlementId);
     final e = PurchasesService.entitlement(info);
+    final wasTrial = _status.phase == SubscriptionPhase.trial;
     _own = e != null;
     _expiresAt = e?.expirationDate;
     _productId = e?.productIdentifier;
     _status = e == null
         ? SubscriptionStatus.none
         : SubscriptionStatus.from(active: true, willRenew: e.willRenew, periodType: e.periodType.name, expiresAt: e.expirationDate, productId: e.productIdentifier);
+    // 체험 중이었는데 취소(willRenew=false)·만료됐으면 체험 종료 알림은 더 보낼 이유가 없다.
+    if (wasTrial && _status.phase != SubscriptionPhase.trial) unawaited(TrialReminders.cancel());
     notifyListeners();
   }
 

@@ -14,6 +14,7 @@ import '../../../widgets/category_badge.dart';
 import '../../premium/free_limits.dart';
 import '../classify_flow.dart';
 import '../../../core/analytics.dart';
+import '../../premium/limit_block_sheet.dart';
 
 /// 여러 장 순차 분류 (프리미엄). 최대 [maxPhotos]장, "n/10 분류 중" + 리뿅이 thinking.
 /// 결과는 리스트(썸네일·품목·뱃지)로, 탭하면 개별 결과 화면. 실패한 장은 [다시 시도]. 공유는 개별 결과에서만.
@@ -52,6 +53,8 @@ class _MultiClassifyScreenState extends State<MultiClassifyScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _runAll());
   }
 
+  bool _blockShown = false;
+
   Future<void> _runAll() async {
     if (_busy) return;
     Analytics.log('classify_start', {'source': 'multi', 'photo_count': _items.where((i) => i.done == null).length});
@@ -72,6 +75,11 @@ class _MultiClassifyScreenState extends State<MultiClassifyScreen> {
       Analytics.log('classify_limit_hit', {'daily_count': services.freeLimits.classifyCountToday()});
       Analytics.log('classify_fail', {'reason': 'limit'});
       setState(() => it.error = '오늘 ${FreeLimits.classifyPerDay}장까지 가능해요. 내일 다시 시도해 주세요.');
+      if (!_blockShown) {
+        _blockShown = true;
+        final ok = await showLimitBlockSheet(context, kind: LimitKind.classify);
+        if (ok && mounted) return _runOne(it);
+      }
       return;
     }
     setState(() {

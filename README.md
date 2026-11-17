@@ -427,6 +427,13 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - **설정 → 계정**: 익명 "Google 계정으로 연결하기" + "기기를 바꿔도 기록을 이어서 볼 수 있어요" / 연결됨 이메일 + [로그아웃]. 기존 "AI 연결 / 익명 ID / API 키" 섹션은 제거.
 - 테스트: `test/link_flow_test.dart`(결과별 스낵바·전환 시트·로그아웃·시트 안 스낵바), `test/auth_errors_test.dart`, `test/onboarding_test.dart`(계정 페이지).
 
+### 페이월 전환 개선 (1.2.1+18)
+- 제한 예고·막힘: 9회째 결과 화면 배너 / 11회째 막힘 시트(`lib/features/premium/limit_block_sheet.dart`), 질문은 4회째 예고·6회째 막힘.
+- 페이월: 혜택 순서(가족 6명 → 분류 → 질문 → 캘린더), 플랜 카드 환산 문구(`PriceFormat`, 스토어 가격으로 계산), 버튼 아래 "체험 종료 2일 전에 알려드려요".
+- 체험 종료 알림 2개(`TrialReminders`, +5일·+6일 20:00), 취소·만료 시 자동 취소, `users/{uid}.trialEndsAt`.
+- 소프트 진입 3종(`lib/features/paywall/soft_prompts.dart`: 수거일 저장 직후 / 도감 10개 / 3주 연속) 각 평생 1회.
+- 거절 존중: 페이월 닫으면 7일간 자동 노출 쉼(`PaywallTrigger.inDismissCooldown`, `users/{uid}.paywallDismissedAt`). 진입점·조건 표는 `docs/analytics_events.md`.
+
 ### 사용 분석 + 인앱 리뷰 (1.2.1+18)
 `docs/analytics_events.md` 에 이벤트 전체 표·사용자 속성·DebugView 확인 순서·개인정보 체크리스트. 래퍼 `lib/core/analytics.dart`, 사용자 속성 `lib/core/analytics_user_props.dart`, 리뷰 `lib/features/review/review_prompter.dart`. 주요 이벤트(콘솔에서 직접 체크): `first_classify_done`, `classify_done`, `schedule_set`, `purchase_success`, `household_create`. 테스터 기기는 `--dart-define=ANALYTICS_DISABLED=true` 로 수집을 끌 수 있다.
 

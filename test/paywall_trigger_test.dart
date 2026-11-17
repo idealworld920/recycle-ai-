@@ -14,9 +14,9 @@ void main() {
 
   PaywallTrigger at(DateTime now) => PaywallTrigger(prefs, now: () => now);
 
-  test('설치 72시간 안·온보딩 중엔 어떤 계기로도 안 띄운다 (설정 제외)', () {
+  test('설치 72시간 안·온보딩 중엔 어떤 계기로도 안 띄운다 (설정·막힘 화면 버튼 제외)', () {
     final t = at(installed.add(const Duration(hours: 71)));
-    for (final s in PaywallSource.values.where((s) => s != PaywallSource.settings)) {
+    for (final s in PaywallSource.values.where((s) => !s.isUserButton)) {
       expect(t.canShow(s, installedAt: installed, onboarded: true), isFalse, reason: s.name);
     }
     expect(t.canShow(PaywallSource.settings, installedAt: installed, onboarded: true), isTrue);
@@ -37,10 +37,13 @@ void main() {
     expect(at(day5.add(const Duration(days: 1))).canShow(PaywallSource.limitHit, installedAt: installed, onboarded: true), isTrue);
   });
 
-  test('자동 노출(reportBottom·streak3·share3)은 첫 제한 도달 뒤, 평생 1회', () async {
+  test('자동 노출(reportBottom·share3)은 첫 제한 도달 뒤 평생 1회, streak3 는 소프트 시트가 1회를 관리한다', () async {
     final t = at(installed.add(const Duration(days: 10)));
-    expect(t.canShow(PaywallSource.streak3, installedAt: installed, onboarded: true), isFalse); // 아직 제한 전
+    expect(t.canShow(PaywallSource.share3, installedAt: installed, onboarded: true), isFalse); // 아직 제한 전
     await t.markLimitHit();
+    expect(t.canShow(PaywallSource.share3, installedAt: installed, onboarded: true), isTrue);
+    await t.markShown(PaywallSource.share3);
+    expect(t.canShow(PaywallSource.share3, installedAt: installed, onboarded: true), isFalse);
     expect(t.canShow(PaywallSource.streak3, installedAt: installed, onboarded: true), isTrue);
     await t.markShown(PaywallSource.streak3);
     expect(t.canShow(PaywallSource.streak3, installedAt: installed, onboarded: true), isFalse);

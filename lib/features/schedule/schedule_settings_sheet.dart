@@ -9,15 +9,18 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_chip.dart';
 import '../legal/permission_primer.dart';
 import 'pickup_schedule.dart';
+import '../paywall/soft_prompts.dart';
 
 /// 수거일 설정 바텀시트. 종류별 요일 토글 + 알림 시각.
-Future<void> showScheduleSettingsSheet(BuildContext context) {
-  return showAppSheet(
+Future<void> showScheduleSettingsSheet(BuildContext context) async {
+  final saved = await showAppSheet<bool>(
     context,
     title: '수거일 설정',
     initialSize: 0.9,
     builder: (ctx, controller) => _ScheduleForm(controller: controller),
   );
+  // 수거일을 새로 저장한 직후: "가족이나 룸메한테도 알려줄까요?" (평생 1회, 조건 충족 시)
+  if (saved == true && context.mounted) await SoftPrompts.afterScheduleSaved(context);
 }
 
 class _ScheduleForm extends StatefulWidget {
@@ -57,7 +60,7 @@ class _ScheduleFormState extends State<_ScheduleForm> {
     if (!mounted) return;
     await store.save(_draft);
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context, !_draft.isEmpty);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_draft.isEmpty ? '수거일 설정을 지웠어요.' : '저장했어요. 전날 ${_draft.notifyTimeLabel}에 알려드릴게요.')),
     );

@@ -11,6 +11,7 @@ import 'capture_screen.dart';
 import 'guide_screen.dart';
 import 'home_screen.dart';
 import '../core/analytics.dart';
+import '../features/paywall/premium_sheet.dart';
 
 /// 하단 탭: 홈 / 물어보기 / 팁 / 가이드 / 기록
 class HomeShell extends StatefulWidget {
@@ -45,6 +46,12 @@ class _HomeShellState extends State<HomeShell> {
       setState(() => _index = 4);
       Analytics.log('history_view', {'from': 'notification'});
     }
+    if (action.$1 == AppActions.openPremium && action.$2 != _handledPremium) {
+      _handledPremium = action.$2;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showPremiumSheet(context);
+      });
+    }
     if (action.$1 == AppActions.openCapture && action.$2 != _handledCapture) {
       _handledCapture = action.$2;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -63,6 +70,7 @@ class _HomeShellState extends State<HomeShell> {
 
   int? _handledReport;
   int? _handledCapture;
+  int? _handledPremium;
 
   @override
   Widget build(BuildContext context) {

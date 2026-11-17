@@ -44,7 +44,8 @@ class NotificationService {
       onDidReceiveNotificationResponse: (response) {
         final p = response.payload;
         if (p == AppActions.openCamera) Analytics.log('schedule_reminder_tap');
-        if (p == AppActions.openCamera || p == AppActions.openReport) AppActions.instance.fire(p!);
+        if (p == AppActions.openPremium) Analytics.log('trial_reminder_tap');
+        if (p == AppActions.openCamera || p == AppActions.openReport || p == AppActions.openPremium) AppActions.instance.fire(p!);
       },
     );
     _initialized = true;
@@ -53,7 +54,8 @@ class NotificationService {
     try {
       final launch = await _plugin.getNotificationAppLaunchDetails();
       final p = launch?.notificationResponse?.payload;
-      if (launch?.didNotificationLaunchApp == true && (p == AppActions.openCamera || p == AppActions.openReport)) {
+      if (launch?.didNotificationLaunchApp == true && (p == AppActions.openCamera || p == AppActions.openReport || p == AppActions.openPremium)) {
+        if (p == AppActions.openPremium) Analytics.log('trial_reminder_tap', {'cold_start': true});
         AppActions.instance.fire(p!);
       }
     } catch (_) {}
@@ -182,6 +184,41 @@ class NotificationService {
   }
 
   static const monthlyReportId = 200;
+  static const trialReminderIds = [300, 301];
+
+  /// 체험 종료 알림 2개 (표준 존댓말, 리뿅이 아이콘). 지난 시각은 건너뛴다.
+  Future<void> scheduleTrialReminders({required DateTime twoDaysBefore, required DateTime oneDayBefore}) async {
+    if (kIsWeb) return;
+    await init();
+    await cancelTrialReminders();
+    final icon = await _mascotIcon();
+    final now = tz.TZDateTime.now(tz.local);
+    final items = [
+      (trialReminderIds[0], '프리미엄 체험이 이틀 뒤 끝나요. 계속 쓰려면 그대로 두시면 돼요.', twoDaysBefore),
+      (trialReminderIds[1], '내일 체험이 끝나요. 해지는 Google Play 구독 관리에서.', oneDayBefore),
+    ];
+    for (final (id, body, at) in items) {
+      final when = tz.TZDateTime.from(at, tz.local);
+      if (!when.isAfter(now)) continue;
+      await _plugin.zonedSchedule(
+        id: id,
+        title: 'ReSAI 프리미엄 체험',
+        body: body,
+        scheduledDate: when,
+        notificationDetails: _details(body, icon),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: AppActions.openPremium,
+      );
+    }
+  }
+
+  Future<void> cancelTrialReminders() async {
+    if (kIsWeb) return;
+    await init();
+    for (final id in trialReminderIds) {
+      await _plugin.cancel(id: id);
+    }
+  }
 
   /// 매월 1일 09:00 "지난달 리포트" 알림. 앱을 켤 때마다 다시 잡아도 같은 id 라 중복되지 않는다.
   Future<void> scheduleMonthlyReport() async {

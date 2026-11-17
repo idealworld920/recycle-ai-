@@ -21,15 +21,33 @@ enum PaywallSource {
   /// featureTap 의 세부 (집 만들기 / 일정 추가 / 여러 장). 트리거 규칙은 featureTap 과 같다.
   household,
   calendar,
-  multi;
+  multi,
+
+  /// 1.2.1 전환 개선: 9회째 결과 배너 / 11회째 막힘 화면 / 질문 6회째 막힘 / 수거일 설정 직후 / 도감 10개 / 3주 연속(기존 streak3).
+  limitWarning,
+  limitBlock,
+  chatLimitBlock,
+  scheduleDone,
+  collection10;
 
   bool get isFeatureTap => this == featureTap || this == household || this == calendar || this == multi;
 
-  /// paywall_view.source 값: settings|limit|feature_tap|guide7|report|household|calendar|multi (+ streak3|share3)
+  /// 사용자가 직접 누르는 버튼이라 "거절 7일 쿨다운" 을 적용하지 않는 곳: 설정 메뉴, 제한 막힘 화면 버튼.
+  bool get isUserButton => this == settings || this == limitBlock || this == chatLimitBlock;
+
+  /// 기분 좋을 때 소프트 진입(평생 1회, 72시간 뒤, 거절 쿨다운 적용).
+  bool get isSoft => this == scheduleDone || this == collection10 || this == streak3;
+
+  /// paywall_view.source 값.
   String get analyticsName => switch (this) {
         reportBottom => 'report',
         limitHit => 'limit',
         featureTap => 'feature_tap',
+        limitWarning => 'limit_warning',
+        limitBlock => 'limit_block',
+        chatLimitBlock => 'chat_limit_block',
+        scheduleDone => 'schedule_done',
+        collection10 => 'collection_10',
         _ => name,
       };
 }

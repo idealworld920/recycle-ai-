@@ -24,6 +24,11 @@ import '../widgets/result_card.dart';
 import 'guide_screen.dart';
 import '../core/analytics.dart';
 import '../features/review/review_prompter.dart';
+import '../features/premium/limit_block_sheet.dart';
+import '../features/paywall/paywall_trigger.dart';
+import '../features/paywall/soft_prompts.dart';
+import '../features/premium/free_limits.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast, this.elapsed, this.recordId});
@@ -56,6 +61,16 @@ class _ResultScreenState extends State<ResultScreen> {
   // result_section_view: 섹션이 화면에 보였을 때 결과당 1회.
   final _sectionKeys = {for (final s in const ['howto', 'caution', 'tip', 'region', 'item_tip']) s: GlobalKey()};
   final _seen = <String>{};
+  bool _limitWarning = false;
+
+  /// 무료 사용자가 오늘 9회째(마지막 1회 남음) 분류했으면 하단 배너. 페이월 거절 7일 안엔 쉰다.
+  Future<void> _checkLimitWarning() async {
+    final services = AppServices.of(context);
+    if (!widget.isNew || services.premium.isPremium || services.settings.inFreeGrace) return;
+    if (services.freeLimits.classifyCountToday() != FreeLimits.classifyPerDay - 1) return;
+    final trigger = PaywallTrigger(await SharedPreferences.getInstance());
+    if (mounted && !trigger.inDismissCooldown) setState(() => _limitWarning = true);
+  }
 
   void _checkSections() {
     if (!mounted) return;
@@ -103,6 +118,11 @@ class _ResultScreenState extends State<ResultScreen> {
           Analytics.screen('first_classify_celebration');
           await showFirstClassifyOverlay(context);
         }
+      }
+      unawaited(_checkLimitWarning());
+      // 도감 10개 달성(이번 분류로 새 품목이 들어간 결과 화면에서) 축하 + 소프트 페이월, 평생 1회.
+      if (widget.isNew && widget.toast != null && services.collection.collected >= 10 && mounted) {
+        await SoftPrompts.atCollection10(context);
       }
       // 3회째 분류 성공이면 2초 뒤 리뷰를 묻는다 (조건 충족 시).
       if (widget.isNew && mounted) unawaited(ReviewPrompter.afterClassify(context));
@@ -274,7 +294,11 @@ class _ResultScreenState extends State<ResultScreen> {
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.base),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_limitWarning) ...[const LimitWarningBanner(kind: LimitKind.classify), const SizedBox(height: AppSpacing.sm)],
+            Row(
           children: [
             Expanded(
               child: OutlinedButton.icon(
@@ -290,6 +314,8 @@ class _ResultScreenState extends State<ResultScreen> {
                 child: Text(isNew ? '다른 물건 판별하기' : '확인'),
               ),
             ),
+          ],
+        ),
           ],
         ),
       ),

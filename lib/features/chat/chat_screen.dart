@@ -9,12 +9,14 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_chip.dart';
 import '../premium/free_limits.dart';
-import '../premium/premium_gate.dart';
 import 'chat_bubble.dart';
 import 'chat_message.dart';
 import 'chat_service.dart';
 import 'usage_repository.dart';
 import '../../core/analytics.dart';
+import '../premium/limit_block_sheet.dart';
+import '../paywall/paywall_trigger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// "물어보기" 탭. 대화는 세션 안에서만 유지된다.
 class ChatScreen extends StatefulWidget {
@@ -34,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
   ChatService? _service;
   UsageRepository? _usage;
   int? _remaining;
+  bool _warnAllowed = true; // 페이월 거절 7일 안엔 예고 배너도 쉰다
   bool _sending = false;
   String? _lastFailedText;
 
@@ -57,7 +60,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadWarnAllowed() async {
+    final t = PaywallTrigger(await SharedPreferences.getInstance());
+    if (mounted) setState(() => _warnAllowed = !t.inDismissCooldown);
+  }
+
   Future<void> _refreshRemaining() async {
+    unawaited(_loadWarnAllowed());
     final usage = _usage;
     if (usage == null) return;
     try {
@@ -105,7 +114,9 @@ class _ChatScreenState extends State<ChatScreen> {
         ));
         setState(() => _remaining = 0);
         if (mounted) {
-          final ok = await ensurePremium(context, reason: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요.', source: PaywallSource.limitHit);
+          await PaywallTrigger(await SharedPreferences.getInstance()).markLimitHit();
+          if (!mounted) return;
+          final ok = await showLimitBlockSheet(context, kind: LimitKind.chat);
           if (ok && mounted) _send(text);
         }
         return;
@@ -199,6 +210,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
             ),
+            if (session.ready && _remaining == 1 && _warnAllowed && !AppServices.of(context).premium.isPremium)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(AppSpacing.base, 0, AppSpacing.base, AppSpacing.xs),
+                child: LimitWarningBanner(kind: LimitKind.chat),
+              ),
             if (session.ready)
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.base, AppSpacing.xs, AppSpacing.base, AppSpacing.md),
