@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../tips/tips_repository.dart';
 import 'history_record.dart';
 import '../stats/collection_store.dart';
+import '../../core/analytics.dart';
 
 /// 기록 삭제 한 곳: 확인 시트 → 기록 삭제 → 도감 재계산 → 스낵바.
 /// 설정·삭제류 화면 규칙: 리뿅이 없음, 표준 존댓말.
@@ -14,6 +15,7 @@ class RecordDeleter {
 
   /// "기록 N개를 삭제할까요?" 바텀시트. 삭제를 고르면 true.
   static Future<bool> confirm(BuildContext context, int count) async {
+    Analytics.screen('delete_confirm');
     final ok = await showModalBottomSheet<bool>(
       context: context,
       useSafeArea: true,
@@ -86,7 +88,7 @@ class RecordDeleter {
   }
 
   /// 확인 → 삭제 → 스낵바까지. 지웠으면 true.
-  static Future<bool> confirmAndDelete(BuildContext context, Iterable<String> ids) async {
+  static Future<bool> confirmAndDelete(BuildContext context, Iterable<String> ids, {String from = 'select'}) async {
     final list = ids.toList();
     if (list.isEmpty) return false;
     final ok = await confirm(context, list.length);
@@ -94,6 +96,7 @@ class RecordDeleter {
     final services = AppServices.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final n = await delete(services, list);
+    Analytics.log('history_delete', {'count': n, 'from': from});
     messenger.showSnackBar(SnackBar(content: Text('기록 $n개를 삭제했어요')));
     return n > 0;
   }

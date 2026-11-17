@@ -9,6 +9,7 @@ import 'consent_sheet.dart';
 import '../splash/splash_plan.dart';
 import '../splash/splash_screen.dart';
 import 'pages.dart';
+import '../../core/analytics.dart';
 
 /// 최초 실행 온보딩: 핵심 가치 → 루틴 → 동의 → 계정 선택(Google / 나중에). (인트로 애니메이션은 스플래시가 맡는다)
 ///
@@ -32,6 +33,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   late final AnimationController _introSlide = AnimationController(vsync: this, duration: OnboardingScreen.pageDuration);
   late bool _intro = widget.replay;
   int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.replay) {
+      Analytics.log('onboarding_start');
+      _logPage(0);
+    }
+  }
+
+  /// onboarding_page_view {page: 1|2|3|account}
+  void _logPage(int i) {
+    if (widget.replay) return;
+    Analytics.log('onboarding_page_view', {'page': i == _lastIndex ? 'account' : '${i + 1}'});
+  }
 
   int get _pageCount => widget.replay ? 2 : 4;
   int get _lastIndex => _pageCount - 1;
@@ -87,6 +103,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     if (widget.replay) {
       widget.onDone();
     } else {
+      Analytics.log('onboarding_skip', {'page': _page + 1});
       _goTo(_consentIndex);
     }
   }
@@ -127,7 +144,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                       controller: _controller,
                       // 동의·계정 페이지에서는 스와이프로 못 움직이게 (버튼으로만).
                       physics: (_onConsent || _onAccount) ? const NeverScrollableScrollPhysics() : const PageScrollPhysics(),
-                      onPageChanged: (i) => setState(() => _page = i),
+                      onPageChanged: (i) {
+                        setState(() => _page = i);
+                        _logPage(i);
+                      },
                       children: [
                         const OnboardingValuePage(
                           mock: ResultMock(),

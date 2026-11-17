@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../analytics.dart';
+
 import '../../models/waste_group.dart';
 import 'app_colors.dart';
 import 'app_spacing.dart';
@@ -115,8 +117,12 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
 }
 
 /// MaterialPageRoute 는 300ms 고정이라 200ms 짜리를 따로 둔다.
-class AppPageRoute<T> extends MaterialPageRoute<T> {
-  AppPageRoute({required super.builder, super.settings});
+class AppPageRoute<T> extends MaterialPageRoute<T> implements AnalyticsRoute {
+  AppPageRoute({required super.builder, super.settings, this.analyticsName = ''});
+
+  /// screen_view 이름 (ResultScreen → result_screen). pushPage 가 위젯 타입으로 채운다.
+  @override
+  final String analyticsName;
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 200);
@@ -126,7 +132,7 @@ class AppPageRoute<T> extends MaterialPageRoute<T> {
 }
 
 extension AppNavigation on BuildContext {
-  Future<T?> pushPage<T>(Widget page) => Navigator.of(this).push<T>(AppPageRoute(builder: (_) => page));
+  Future<T?> pushPage<T>(Widget page) => Navigator.of(this).push<T>(AppPageRoute(builder: (_) => page, analyticsName: Analytics.screenNameOf(page)));
 }
 
 class AppTheme {

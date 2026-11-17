@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -21,6 +22,8 @@ import '../features/history/delete_records.dart';
 import '../widgets/app_card.dart';
 import '../widgets/result_card.dart';
 import 'guide_screen.dart';
+import '../core/analytics.dart';
+import '../features/review/review_prompter.dart';
 
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key, required this.result, this.isNew = false, this.imageBytes, this.imageThumb, this.toast, this.elapsed, this.recordId});
@@ -49,6 +52,26 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   bool _sharing = false;
+  final _scroll = ScrollController();
+  // result_section_view: 섹션이 화면에 보였을 때 결과당 1회.
+  final _sectionKeys = {for (final s in const ['howto', 'caution', 'tip', 'region', 'item_tip']) s: GlobalKey()};
+  final _seen = <String>{};
+
+  void _checkSections() {
+    if (!mounted) return;
+    final h = MediaQuery.sizeOf(context).height;
+    for (final e in _sectionKeys.entries) {
+      if (_seen.contains(e.key)) continue;
+      final ctx = e.value.currentContext;
+      final box = ctx?.findRenderObject();
+      if (box is! RenderBox || !box.hasSize || !box.attached) continue;
+      final top = box.localToGlobal(Offset.zero).dy;
+      if (top < h - 40 && top + box.size.height > 80) {
+        _seen.add(e.key);
+        Analytics.log('result_section_view', {'section': e.key});
+      }
+    }
+  }
 
   Future<void> _share() async {
     if (_sharing) return;
@@ -66,16 +89,30 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
     final toast = widget.toast;
+    if (widget.recordId != null) Analytics.log('history_detail_view');
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      _checkSections();
       if (toast != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 2)));
       // 첫 분류 성공 1회: 축하 오버레이.
       final services = AppServices.of(context);
       if (widget.isNew && !services.settings.firstClassifyDone) {
+        Analytics.log('first_classify_done', {'seconds_since_install': DateTime.now().difference(services.settings.installedAt).inSeconds});
         await services.settings.markFirstClassifyDone(remote: services.auth.service.mergeUserDoc);
-        if (mounted) await showFirstClassifyOverlay(context);
+        if (mounted) {
+          Analytics.screen('first_classify_celebration');
+          await showFirstClassifyOverlay(context);
+        }
       }
+      // 3회째 분류 성공이면 2초 뒤 리뷰를 묻는다 (조건 충족 시).
+      if (widget.isNew && mounted) unawaited(ReviewPrompter.afterClassify(context));
     });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
   }
 
   @override
@@ -106,7 +143,7 @@ class _ResultScreenState extends State<ResultScreen> {
               onSelected: (v) async {
                 if (v != 'delete') return;
                 final nav = Navigator.of(context);
-                final ok = await RecordDeleter.confirmAndDelete(context, [widget.recordId!]);
+                final ok = await RecordDeleter.confirmAndDelete(context, [widget.recordId!], from: 'detail');
                 if (ok && nav.canPop()) nav.pop();
               },
               itemBuilder: (_) => [
@@ -115,7 +152,13 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
         ],
       ),
-      body: ListView(
+      body: NotificationListener<ScrollUpdateNotification>(
+        onNotification: (_) {
+          _checkSections();
+          return false;
+        },
+        child: ListView(
+        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.xxl),
         children: [
           if (imageBytes != null)
@@ -152,17 +195,18 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: AppSpacing.base),
 
           // 1~4. 품목명 → 뱃지 → 왜? → 배출 단계 (온보딩 목업과 같은 위젯)
-          ResultCard(result: result, userAnswer: showOverride ? override : null, slow: slow),
+          KeyedSubtree(key: _sectionKeys['howto'], child: ResultCard(result: result, userAnswer: showOverride ? override : null, slow: slow)),
           if (result.steps.isNotEmpty) const SizedBox(height: AppSpacing.xl) else const SizedBox(height: AppSpacing.xxl),
 
           // 5. 지역 기준: 검증된 우리 동네 노트(파랑) 또는 "지자체별로 다를 수 있어요"(노랑)
           if (tip != null && (tip.isRegionVariant || tip.hasLocalNote)) ...[
-            RegionGuidance(tip: tip),
+            KeyedSubtree(key: _sectionKeys['region'], child: RegionGuidance(tip: tip)),
             const SizedBox(height: AppSpacing.md),
           ],
 
           if (result.warnings.isNotEmpty) ...[
             AppCard(
+              key: _sectionKeys['caution'],
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -185,13 +229,13 @@ class _ResultScreenState extends State<ResultScreen> {
             const SizedBox(height: AppSpacing.md),
           ],
 
-          if (result.tip.isNotEmpty) InfoBox(icon: Symbols.lightbulb_rounded, child: Text(result.tip, style: t.bodyMedium)),
+          if (result.tip.isNotEmpty) KeyedSubtree(key: _sectionKeys['tip'], child: InfoBox(icon: Symbols.lightbulb_rounded, child: Text(result.tip, style: t.bodyMedium))),
           const SizedBox(height: AppSpacing.xl),
 
           Text('품목 팁', style: t.titleMedium),
           const SizedBox(height: AppSpacing.md),
           if (tip != null)
-            TipCard(tip: tip, showRegionGuidance: false)
+            KeyedSubtree(key: _sectionKeys['item_tip'], child: TipCard(tip: tip, showRegionGuidance: false))
           else
             OutlinedButton.icon(
               onPressed: () => context.pushPage(TipsScreen(initialQuery: result.itemName, showBackButton: true)),
@@ -226,6 +270,7 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
           ),
         ],
+      ),
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.base),

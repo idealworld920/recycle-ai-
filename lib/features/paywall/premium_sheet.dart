@@ -10,6 +10,7 @@ import '../places/external_links.dart';
 import '../premium/premium_store.dart';
 import '../premium/purchase_errors.dart';
 import '../premium/purchases_service.dart';
+import '../../core/analytics.dart';
 
 /// 설정 → 프리미엄 관리. 상태·갱신일·Play 구독 관리·구매 복원. (리뿅이 없음)
 Future<void> showPremiumSheet(BuildContext context) {
@@ -59,7 +60,10 @@ Future<void> showPremiumSheet(BuildContext context) {
               const SizedBox(height: AppSpacing.md),
               if (p.source == PremiumSource.own)
                 OutlinedButton.icon(
-                  onPressed: () => ExternalLinks.open(PremiumConfig.manageUrl(p.productId)),
+                  onPressed: () {
+                    Analytics.log('manage_subscription_tap', {'from': 'premium_sheet'});
+                    ExternalLinks.open(PremiumConfig.manageUrl(p.productId));
+                  },
                   icon: const Icon(Symbols.open_in_new_rounded, size: 18),
                   label: const Text('Google Play에서 구독 관리'),
                 ),
@@ -69,8 +73,10 @@ Future<void> showPremiumSheet(BuildContext context) {
                 onPressed: p.busy || !p.available
                     ? null
                     : () async {
+                        Analytics.log('restore_tap', {'from': 'premium_sheet'});
                         final r = await p.restore();
                         if (!ctx.mounted) return;
+                        if (r is PurchaseSuccess) Analytics.log('restore_success');
                         final msg = switch (r) {
                           PurchaseSuccess() => '구독을 복원했어요.',
                           PurchaseFailed(:final message) => message,

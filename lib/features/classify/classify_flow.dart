@@ -11,6 +11,7 @@ import '../../services/gemini_classifier.dart';
 import '../legal/permission_primer.dart';
 import '../premium/free_limits.dart';
 import '../premium/premium_gate.dart';
+import '../../core/analytics.dart';
 
 /// 사진 선택 → AI 분류 → 결과 화면. 홈과 카메라 화면이 같이 쓴다.
 ///
@@ -37,6 +38,8 @@ class ClassifyFlow {
       return;
     }
     if (!services.premium.isPremium && !services.settings.inFreeGrace && services.freeLimits.classifyExhausted) {
+      Analytics.log('classify_limit_hit', {'daily_count': services.freeLimits.classifyCountToday()});
+      Analytics.log('classify_fail', {'reason': 'limit'});
       final ok = await ensurePremium(context, reason: '오늘 무료 분류 ${FreeLimits.classifyPerDay}회를 다 썼어요. 프리미엄은 무제한이에요.', source: PaywallSource.limitHit);
       if (!ok) return;
     }
@@ -53,6 +56,7 @@ class ClassifyFlow {
     }
     if (picked == null) return;
     onPicked?.call();
+    Analytics.log('classify_start', {'source': source == ImageSource.camera ? 'camera' : 'gallery', 'photo_count': 1});
 
     // 사진 선택 → 결과 표시까지 재서 3초 목표를 지키는지 본다.
     final startedAt = DateTime.now();
@@ -67,27 +71,54 @@ class ClassifyFlow {
       HapticFeedback.mediumImpact();
       await context.pushPage(ResultScreen(result: one.result, imageBytes: bytes, isNew: true, toast: one.toast, elapsed: elapsed));
     } on ClassifyException catch (e) {
+      Analytics.log('classify_fail', {'reason': failReason(e)});
       showError(e.message);
     } catch (e) {
+      Analytics.log('classify_fail', {'reason': failReason(e)});
       showError('알 수 없는 오류가 났어요: $e');
     } finally {
       onBusy(null);
     }
   }
 
+  /// classify_fail.reason: network|limit|timeout|unknown (문구에서만 판단, 내용은 보내지 않는다).
+  static String failReason(Object e) {
+    final m = e.toString();
+    if (m.contains('시간') || m.contains('timeout') || m.contains('Timeout')) return 'timeout';
+    if (m.contains('인터넷') || m.contains('네트워크') || m.contains('연결') || m.contains('network')) return 'network';
+    if (m.contains('한도') || m.contains('다 썼')) return 'limit';
+    return 'unknown';
+  }
+
   /// 한 장 분류 + 저장(기록·무료 횟수·도감). 화면 이동은 하지 않는다. 여러 장 분류도 이걸 쓴다.
   static Future<ClassifiedOne> classifyOne(AppServices services, Uint8List bytes, String mimeType) async {
+    final sw = Stopwatch()..start();
+    final isFirst = !services.settings.firstClassifyDone;
     final result = await GeminiClassifier().classifyBytes(bytes, mimeType: mimeType, regionName: services.region.admin?.displayName);
+    sw.stop();
     // 모델 응답 뒤의 저장 작업(기록·무료 횟수·도감)은 서로 독립이라 한꺼번에.
     final tip = services.tips.findForItem(result.itemName);
+    final before = services.collection.collected;
     final results = await Future.wait<Object?>([
       services.history.addResult(result, imageBytes: bytes),
       if (!services.premium.isPremium) services.freeLimits.incrementClassify(),
       if (tip != null) services.collection.collect(tip, itemName: result.itemName) else Future.value(false),
     ]);
+    Analytics.log('classify_done', {
+      'category': result.category.key,
+      'recyclable': result.category.isRecyclable,
+      'confidence_bucket': Analytics.confidenceBucket(result.confidence),
+      'elapsed_ms': sw.elapsedMilliseconds,
+      'is_first': isFirst,
+    });
     String? toast;
     if (results.last == true) {
-      toast = '도감에 추가됐어요 (${services.collection.collected}/${services.collection.total})';
+      final total = services.collection.collected;
+      toast = '도감에 추가됐어요 ($total/${services.collection.total})';
+      Analytics.log('collection_unlock', {'item_id': tip!.id, 'total_count': total});
+      for (final level in const [10, 30, 50]) {
+        if (before < level && total >= level) Analytics.log('badge_earned', {'level': level});
+      }
     }
     return ClassifiedOne(result, toast);
   }

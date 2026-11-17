@@ -85,6 +85,10 @@ class PremiumStore extends ChangeNotifier {
   /// 내 구독의 단계(체험/갱신 예정/해지 예정). 집 플랜·검토 모드는 none.
   SubscriptionStatus get status => _status;
 
+  /// 사용자 속성 premium_status: none|trial|active|cancelled|expired.
+  String get analyticsStatus => _status.isActive ? _status.phase.name : (_everSubscribed ? 'expired' : 'none');
+  bool _everSubscribed = false;
+
   /// 가격을 불러오는 중인가 (한 번도 성공 못 했고 시도 중이거나 아직 시도 전).
   bool get pricesLoading => _offering == null && (_offeringLoading || !_offeringTried);
   bool get pricesFailed => _offering == null && _offeringTried && !_offeringLoading;
@@ -112,6 +116,7 @@ class PremiumStore extends ChangeNotifier {
       _offering?.availablePackages.where((p) => p.storeProduct.identifier.startsWith(productId)).firstOrNull;
 
   void _applyInfo(CustomerInfo info) {
+    _everSubscribed = info.entitlements.all.containsKey(PremiumConfig.entitlementId);
     final e = PurchasesService.entitlement(info);
     _own = e != null;
     _expiresAt = e?.expirationDate;

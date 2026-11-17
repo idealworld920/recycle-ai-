@@ -14,6 +14,7 @@ import 'chat_bubble.dart';
 import 'chat_message.dart';
 import 'chat_service.dart';
 import 'usage_repository.dart';
+import '../../core/analytics.dart';
 
 /// "물어보기" 탭. 대화는 세션 안에서만 유지된다.
 class ChatScreen extends StatefulWidget {
@@ -97,6 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // 화면에 들어올 때 읽어 둔 남은 횟수를 쓰고, 없을 때만 서버에 묻는다. 매번 왕복하면 답이 느려진다.
       final count = _remaining != null ? FreeLimits.chatPerDay - _remaining! : await usage.todayCount();
       if (!premium && count >= FreeLimits.chatPerDay) {
+        Analytics.log('chat_limit_hit', {'daily_count': count});
         _replacePending(ChatMessage(
           role: ChatRole.ai,
           text: '오늘 무료 질문 ${FreeLimits.chatPerDay}회를 다 썼어요. 내일 다시 물어봐 주세요. 프리미엄은 무제한이에요.',
@@ -108,7 +110,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         return;
       }
+      Analytics.log('chat_send', {'length_bucket': Analytics.lengthBucket(text.length)});
+      final sw = Stopwatch()..start();
       final answer = await service.send(text);
+      Analytics.log('chat_answer', {'elapsed_ms': sw.elapsedMilliseconds});
       // 사용량 기록은 답을 보여준 뒤 백그라운드로. 실패해도 답은 이미 왔다.
       unawaited(usage.increment().catchError((_) {}));
       _replacePending(ChatMessage(role: ChatRole.ai, text: answer));

@@ -15,6 +15,7 @@ import '../schedule/pickup_schedule.dart';
 import '../schedule/schedule_settings_sheet.dart';
 import 'guide_steps.dart';
 import 'ribbong_lines.dart';
+import '../../core/analytics.dart';
 
 /// 홈 상단 상주 리뿅이(72px) + 말풍선. 탭하면 반응, 5연타면 "간지럽뿅!!". 도감 뱃지·프리미엄 왕관.
 class HomeRibbong extends StatefulWidget {
@@ -53,7 +54,11 @@ class _HomeRibbongState extends State<HomeRibbong> {
     _taps.removeWhere((t) => now.difference(t) > HomeRibbong.tickleWindow);
     _taps.add(now);
     final tickle = _taps.length >= HomeRibbong.tickleTaps;
-    if (tickle) _taps.clear();
+    Analytics.log('ribbong_tap', {'location': 'home', 'tap_count': _taps.length});
+    if (tickle) {
+      _taps.clear();
+      Analytics.log('ribbong_tickle');
+    }
     final reactions = <(Mascot, String?)>[
       (Mascot.randomHappy(_rnd), null),
       (Mascot.wink, null),
@@ -112,6 +117,10 @@ class _HomeRibbongState extends State<HomeRibbong> {
         if (_lineWhen != when || _line == null) {
           _lineWhen = when;
           _line = widget.lines.pick(when, types: snap.today.isNotEmpty ? snap.today : tomorrow, rnd: _rnd);
+          // ribbong_bubble_shown 은 사용자당 하루 1회만.
+          services.settings.claimDailyBubbleLog(now).then((first) {
+            if (first) Analytics.log('ribbong_bubble_shown', {'condition': when.name});
+          });
         }
         final guide = GuideStep.current(
           daysSinceInstall: services.settings.daysSinceInstall,

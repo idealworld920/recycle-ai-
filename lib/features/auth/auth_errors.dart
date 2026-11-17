@@ -10,6 +10,14 @@ class AuthErrors {
   static const network = '인터넷 연결을 확인해 주세요';
   static const alreadyLinked = '이미 연결돼 있어요';
 
+  /// 분석용 코드: 메시지 없이 코드만 (이메일 등 개인정보가 섞일 수 있는 설명은 뺀다).
+  static String shortCode(Object e) {
+    if (e is FirebaseAuthException) return 'firebase/${e.code}';
+    if (e is GoogleSignInException) return 'google/${e.code.name}';
+    if (e is PlatformException) return 'platform/${e.code}';
+    return e.runtimeType.toString();
+  }
+
   /// 로그에 남길 짧은 코드.
   static String code(Object e) {
     if (e is FirebaseAuthException) return 'firebase/${e.code}';

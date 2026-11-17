@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../tips/tip_model.dart';
 import 'external_links.dart';
 import 'region_picker_sheet.dart';
+import '../../core/analytics.dart';
 
 /// 지역 기준 안내 박스.
 ///
@@ -159,7 +160,10 @@ class _Fallback extends StatelessWidget {
                 Text(tip.hasLocalNote ? '${tip.localNote} ${regionName == null ? '' : '$regionName청 안내를 확인해 주세요.'}'.trim() : body, style: t.bodyMedium?.copyWith(color: c.warningText)),
                 const SizedBox(height: AppSpacing.sm),
                 if (guideUrl != null)
-                  _LinkText(label: '$regionName청 분리배출 안내', icon: Symbols.open_in_new_rounded, color: c.warningText, onTap: () => ExternalLinks.open(guideUrl!))
+                  _LinkText(label: '$regionName청 분리배출 안내', icon: Symbols.open_in_new_rounded, color: c.warningText, onTap: () {
+                    Analytics.log('region_guide_tap', {'type': 'waste_guide'});
+                    ExternalLinks.open(guideUrl!);
+                  })
                 else if (regionName == null)
                   _LinkText(label: '거주 지역 설정', icon: Symbols.edit_location_alt_rounded, color: c.warningText, onTap: () => showRegionPickerSheet(context)),
               ],

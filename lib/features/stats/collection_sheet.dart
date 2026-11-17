@@ -10,6 +10,7 @@ import '../../widgets/app_card.dart';
 import '../auth/link_flows.dart';
 import '../tips/tip_model.dart';
 import 'collection_store.dart';
+import '../../core/analytics.dart';
 
 IconData iconForGroup(WasteGroup g) => switch (g) {
       WasteGroup.recycle => Symbols.recycling_rounded,
@@ -57,6 +58,7 @@ class CollectionCard extends StatelessWidget {
 Future<void> showCollectionSheet(BuildContext context) {
   final services = AppServices.of(context);
   final CollectionStore store = services.collection;
+  Analytics.log('collection_view', {'filled_count': store.collected});
   final List<Tip> tips = services.tips.all;
   return showAppSheet(
     context,

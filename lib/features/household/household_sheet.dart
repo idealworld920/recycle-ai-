@@ -14,6 +14,8 @@ import '../premium/premium_gate.dart';
 import 'household_model.dart';
 import 'household_repository.dart';
 import 'invite_code.dart';
+import '../../core/analytics.dart';
+import '../share/share_service.dart';
 
 /// 멤버 색 번호 → 토큰 색.
 Color memberColor(AppTokens c, int index) =>
@@ -21,6 +23,7 @@ Color memberColor(AppTokens c, int index) =>
 
 /// 설정 → 우리 집.
 Future<void> showHouseholdSheet(BuildContext context) {
+  Analytics.screen('household_sheet');
   return showAppSheet(
     context,
     title: '우리 집',
@@ -102,7 +105,10 @@ class _HouseholdBody extends StatelessWidget {
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     onPressed: expired || h.isFull
                         ? null
-                        : () => SharePlus.instance.share(ShareParams(text: 'ReSAI 우리 집에 초대할게! 코드: ${h.inviteCode} ${LegalLinks.base}')),
+                        : () async {
+                            final r = await SharePlus.instance.share(ShareParams(text: 'ReSAI 우리 집에 초대할게! 코드: ${h.inviteCode} ${LegalLinks.base}'));
+                            if (r.status != ShareResultStatus.dismissed) Analytics.log('household_code_share', {'channel': ShareService.shareChannel(r.raw)});
+                          },
                     icon: const Icon(Symbols.share_rounded, size: 20),
                     label: Text(h.isFull ? '정원이 찼어요 (${Household.maxMembers}명)' : '초대 공유'),
                   ),
@@ -163,7 +169,7 @@ class _HouseholdBody extends StatelessWidget {
     final services = AppServices.of(context);
     if (services.auth.isAnonymous && !await requireLinkForFamily(context)) return;
     if (!context.mounted) return;
-    if (!await ensurePremium(context, reason: '집 만들기는 프리미엄에서 열려요', source: PaywallSource.featureTap)) return;
+    if (!await ensurePremium(context, reason: '집 만들기는 프리미엄에서 열려요', source: PaywallSource.household)) return;
     if (!context.mounted) return;
     final nickname = await _askNickname(context, HouseholdMember.defaultNickname(services.auth.displayName));
     if (nickname == null || !context.mounted) return;

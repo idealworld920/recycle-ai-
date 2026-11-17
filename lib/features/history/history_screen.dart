@@ -22,6 +22,7 @@ import '../stats/streak_row.dart';
 import 'delete_records.dart';
 import 'history_record.dart';
 import 'history_store.dart';
+import '../../core/analytics.dart';
 
 /// 분류 기록 탭. 상단 세그먼트 [기록 | 캘린더]. 기록: 이번 달 요약 + 날짜별 목록. 캘린더: 월간 뷰.
 class HistoryScreen extends StatefulWidget {
@@ -229,6 +230,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           confirmDismiss: (_) => RecordDeleter.confirm(context, 1),
                           onDismissed: (_) async {
                             final n = await RecordDeleter.delete(services, [records[i].id]);
+                            Analytics.log('history_delete', {'count': n, 'from': 'select'});
                             if (context.mounted && n > 0) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('기록 $n개를 삭제했어요')));
                             }

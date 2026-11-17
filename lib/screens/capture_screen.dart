@@ -71,7 +71,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
     final services = AppServices.of(context);
     if (!services.premium.isPremium) {
-      await ensurePremium(context, reason: '여러 장 분류는 프리미엄에서 열려요', source: PaywallSource.featureTap);
+      await ensurePremium(context, reason: '여러 장 분류는 프리미엄에서 열려요', source: PaywallSource.multi);
       if (!mounted || !services.premium.isPremium) return;
     }
     setState(() => _multi = true);

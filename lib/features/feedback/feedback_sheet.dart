@@ -10,6 +10,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/recycle_result.dart';
 import '../../models/waste_group.dart';
+import '../../core/analytics.dart';
 
 /// "결과가 틀렸나요?" 바텀시트. 정답 4분류 + 선택 메모 → 제출 → 리뿅이 인사.
 Future<void> showFeedbackSheet(BuildContext context, {required RecycleResult result, Uint8List? imageBytes}) {
@@ -51,6 +52,8 @@ class _FeedbackBodyState extends State<_FeedbackBody> {
     setState(() => _busy = true);
     final store = AppServices.of(context).feedback;
     await store.submit(result: widget.result, userAnswer: answer, memo: _memo.text, imageBytes: widget.imageBytes);
+    Analytics.log('result_feedback', {'correct': answer == widget.result.category.group});
+    Analytics.log('feedback_send');
     if (!mounted) return;
     setState(() {
       _busy = false;

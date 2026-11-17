@@ -12,6 +12,7 @@ import '../tips/tip_model.dart';
 import 'app_actions.dart';
 import 'pickup_schedule.dart';
 import 'reminder_copy.dart';
+import '../../core/analytics.dart';
 
 /// 수거일 전날 알림. 요일 반복으로 잡아두면 재부팅 뒤에도 플러그인의
 /// ScheduledNotificationBootReceiver 가 다시 등록해 준다.
@@ -42,6 +43,7 @@ class NotificationService {
       settings: const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (response) {
         final p = response.payload;
+        if (p == AppActions.openCamera) Analytics.log('schedule_reminder_tap');
         if (p == AppActions.openCamera || p == AppActions.openReport) AppActions.instance.fire(p!);
       },
     );
@@ -62,9 +64,17 @@ class NotificationService {
     if (kIsWeb) return false;
     try {
       final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      if (android != null) return await android.requestNotificationsPermission() ?? false;
-      final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-      if (ios != null) return await ios.requestPermissions(alert: true, badge: true, sound: true) ?? false;
+      bool? granted;
+      if (android != null) {
+        granted = await android.requestNotificationsPermission();
+      } else {
+        final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+        if (ios != null) granted = await ios.requestPermissions(alert: true, badge: true, sound: true);
+      }
+      if (granted != null) {
+        Analytics.log('notification_permission', {'granted': granted});
+        return granted;
+      }
     } catch (e) {
       debugPrint('알림 권한 요청 실패: $e');
     }

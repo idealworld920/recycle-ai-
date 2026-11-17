@@ -11,10 +11,16 @@ import '../places/external_links.dart';
 import '../premium/premium_store.dart';
 import '../premium/purchase_errors.dart';
 import '../premium/purchases_service.dart';
+import '../../core/analytics.dart';
+import '../premium/premium_gate.dart';
+import '../review/review_prompter.dart';
 
 /// 프리미엄 페이월. 결제가 끝나면 true 를 돌려준다. 취소는 조용히 닫는다.
 class PaywallScreen extends StatefulWidget {
-  const PaywallScreen({super.key, this.reason});
+  const PaywallScreen({super.key, this.reason, this.source = PaywallSource.settings});
+
+  /// 어디서 열렸는지 (paywall_view.source).
+  final PaywallSource source;
 
   /// 어디서 왔는지 한 줄 (예: "오늘 무료 분류 10회를 다 썼어요").
   final String? reason;
@@ -34,9 +40,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
   bool _yearly = true;
   bool _askedLink = false;
 
+  String get _plan => _yearly ? 'yearly' : 'monthly';
+
   @override
   void initState() {
     super.initState();
+    Analytics.screen('paywall');
+    Analytics.log('paywall_view', {'source': widget.source.analyticsName});
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final services = AppServices.of(context);
       await services.premium.loadOffering();
@@ -61,26 +71,34 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
     // 체험 자격이 있으면 체험 오퍼로, 아니면 기본 요금제로. 옵션 정보가 없으면 Play 기본 동작.
     final option = PremiumStore.trialOption(pkg) ?? PremiumStore.basePlanOption(pkg);
+    final trial = PremiumStore.trialEligible(pkg);
+    Analytics.log('purchase_start', {'plan': _plan});
     final r = option != null ? await store.purchaseOption(option) : await store.purchase(pkg);
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
-        _toast(PremiumStore.trialEligible(pkg) ? 'ReSAI 프리미엄이 시작됐어요. ${PremiumConfig.trialDays}일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
+        Analytics.log('purchase_success', {'plan': _plan, 'is_trial': trial});
+        Analytics.log('badge_earned', {'level': 'crown'});
+        ReviewPrompter.purchasedThisSession = true;
+        _toast(trial ? 'ReSAI 프리미엄이 시작됐어요. ${PremiumConfig.trialDays}일 동안 무료예요.' : 'ReSAI 프리미엄이 시작됐어요.');
         Navigator.pop(context, true);
       case PurchaseCancelled():
-        break; // 조용히
+        Analytics.log('purchase_fail', {'plan': _plan, 'reason': 'cancelled'});
       case PurchasePending():
         _toast('결제가 승인 대기 중이에요. 완료되면 자동으로 열려요.');
       case PurchaseFailed(:final message):
+        Analytics.log('purchase_fail', {'plan': _plan, 'reason': 'error'});
         _toast(message);
     }
   }
 
   Future<void> _restore() async {
+    Analytics.log('restore_tap', {'from': 'paywall'});
     final r = await AppServices.of(context).premium.restore();
     if (!mounted) return;
     switch (r) {
       case PurchaseSuccess():
+        Analytics.log('restore_success');
         _toast('구독을 복원했어요.');
         Navigator.pop(context, true);
       case PurchaseFailed(:final message):
@@ -144,7 +162,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       title: '연간',
                       price: yearlyPrice == null ? priceHint : '$yearlyPrice / 년',
                       badge: discount == null ? null : '$discount% 할인',
-                      onTap: () => setState(() => _yearly = true),
+                      onTap: () {
+                        setState(() => _yearly = true);
+                        Analytics.log('paywall_select_plan', {'plan': 'yearly'});
+                      },
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -153,7 +174,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       selected: !_yearly,
                       title: '월간',
                       price: monthlyPrice == null ? priceHint : '$monthlyPrice / 월',
-                      onTap: () => setState(() => _yearly = false),
+                      onTap: () {
+                        setState(() => _yearly = false);
+                        Analytics.log('paywall_select_plan', {'plan': 'monthly'});
+                      },
                     ),
                   ),
                 ],

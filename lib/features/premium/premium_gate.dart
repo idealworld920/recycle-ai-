@@ -10,7 +10,29 @@ import '../paywall/paywall_screen.dart';
 import '../paywall/paywall_trigger.dart';
 
 /// 페이월을 띄운 계기. users/{uid}.paywallShown 에 1회씩 기록한다.
-enum PaywallSource { reportBottom, streak3, share3, limitHit, featureTap, guide7, settings }
+enum PaywallSource {
+  reportBottom,
+  streak3,
+  share3,
+  limitHit,
+  featureTap,
+  guide7,
+  settings,
+  /// featureTap 의 세부 (집 만들기 / 일정 추가 / 여러 장). 트리거 규칙은 featureTap 과 같다.
+  household,
+  calendar,
+  multi;
+
+  bool get isFeatureTap => this == featureTap || this == household || this == calendar || this == multi;
+
+  /// paywall_view.source 값: settings|limit|feature_tap|guide7|report|household|calendar|multi (+ streak3|share3)
+  String get analyticsName => switch (this) {
+        reportBottom => 'report',
+        limitHit => 'limit',
+        featureTap => 'feature_tap',
+        _ => name,
+      };
+}
 
 /// 프리미엄이면 true. 아니면 (조건이 맞을 때) 페이월을 띄우고 결제 결과를 돌려준다.
 ///
@@ -19,7 +41,7 @@ Future<bool> ensurePremium(BuildContext context, {String? reason, String? unavai
   final services = AppServices.of(context);
   final premium = services.premium;
   if (premium.isPremium) return true;
-  final shown = await maybeShowPaywall(context, source: source, reason: reason, userInitiated: source == PaywallSource.featureTap);
+  final shown = await maybeShowPaywall(context, source: source, reason: reason, userInitiated: source.isFeatureTap);
   if (shown == null) {
     if (context.mounted) await showLockedPlanSheet(context, reason: reason, message: unavailableMessage);
     return false;
@@ -36,7 +58,7 @@ Future<bool?> maybeShowPaywall(BuildContext context, {required PaywallSource sou
   if (!trigger.canShow(source, installedAt: services.settings.installedAt, onboarded: services.settings.onboarded, userInitiated: userInitiated)) return null;
   await trigger.markShown(source, remote: services.auth.service.mergeUserDoc);
   if (!context.mounted) return null;
-  final ok = await context.pushPage<bool>(PaywallScreen(reason: reason));
+  final ok = await context.pushPage<bool>(PaywallScreen(reason: reason, source: source));
   return ok == true;
 }
 

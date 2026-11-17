@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../onboarding/intro_animation.dart' show SpeechBubble;
 import 'splash_plan.dart';
+import '../../core/analytics.dart';
 
 /// 앱 스플래시. 흰 배경, 가운데 240px 리뿅이.
 ///
@@ -98,7 +99,10 @@ class _SplashScreenState extends State<SplashScreen> {
     final text = waiting ? SplashScreen.waitingText : widget.plan.text;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _finish,
+      onTap: () {
+        if (!_finished) Analytics.log('splash_tap_skip', {'kind': widget.plan.kind.name});
+        _finish();
+      },
       child: Scaffold(
         backgroundColor: c.background,
         body: Center(

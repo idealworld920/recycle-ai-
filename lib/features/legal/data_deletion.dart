@@ -8,9 +8,11 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/auth_errors.dart';
 import '../household/household_repository.dart';
+import '../../core/analytics.dart';
 
 /// 설정 → 내 데이터 삭제. 서버 users/{uid} 하위 전부 + 기기 초기화 + 익명 계정 삭제 → 온보딩으로.
 Future<void> showDeleteDataSheet(BuildContext context) {
+  Analytics.screen('delete_confirm');
   return showAppSheet(
     context,
     title: '내 데이터 삭제',
@@ -82,6 +84,7 @@ class DataDeleter {
   static Future<Duration> run(AppServices services, {HouseholdBackend? backend}) async {
     final sw = Stopwatch()..start();
     debugPrint('[delete] 시작 uid=${services.auth.uid}');
+    Analytics.log('data_delete_start');
     if (services.firebase.ready) {
       try {
         final r = await (backend ?? FunctionsBackend()).call(callableName, const {});
@@ -98,6 +101,7 @@ class DataDeleter {
     await services.settings.resetAll(); // 온보딩·동의·안내 플래그 초기화 (installedAt 은 새로)
     sw.stop();
     debugPrint('[delete] 완료 ${sw.elapsedMilliseconds}ms, 새 익명 uid=${services.auth.uid}');
+    Analytics.log('data_delete_done', {'elapsed_ms': sw.elapsedMilliseconds});
     return sw.elapsed;
   }
 

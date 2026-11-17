@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import 'auth_errors.dart';
 import 'auth_service.dart';
+import '../../core/analytics.dart';
 
 /// Google 연결 공통 흐름. 성공하면 true. 모든 결과를 사용자에게 보이게 처리한다.
 ///
@@ -19,11 +20,13 @@ Future<bool> connectGoogle(BuildContext context) async {
   final services = AppServices.of(context);
   final auth = services.auth;
   debugPrint('[auth] 연결 시도 (현재 uid=${auth.uid}, 익명=${auth.isAnonymous})');
+  Analytics.log('google_link_start');
   final outcome = await auth.linkGoogle();
   if (!context.mounted) return false;
   switch (outcome) {
     case LinkSuccess():
       debugPrint('[auth] 연결 성공');
+      Analytics.log('google_link_success');
       showAuthToast(context, '구글 계정이 연결됐어요');
       return true;
     case LinkAlreadyLinked():
@@ -34,6 +37,7 @@ Future<bool> connectGoogle(BuildContext context) async {
       return false;
     case LinkFailed(:final error):
       debugPrint('[auth] 연결 실패 ${AuthErrors.code(error)}');
+      Analytics.log('google_link_fail', {'code': AuthErrors.shortCode(error)});
       showAuthToast(context, AuthErrors.message(error));
       return false;
     case LinkAlreadyInUse(:final credential, :final email):
@@ -60,6 +64,7 @@ Future<bool> connectGoogle(BuildContext context) async {
 
 /// "이 Google 계정으로 가입된 기록이 이미 있어요" 시트. 로그인을 고르면 true.
 Future<bool> askSwitchToExisting(BuildContext context, {required int count}) async {
+  Analytics.screen('account_sheet');
   final ok = await showModalBottomSheet<bool>(
     context: context,
     useSafeArea: true,
@@ -100,6 +105,7 @@ Future<bool> askSwitchToExisting(BuildContext context, {required int count}) asy
 /// 로그아웃 흐름: 확인 시트 → Firebase signOut → RevenueCat logOut → 기기 캐시 초기화 → 새 익명 → 홈.
 Future<bool> signOutFlow(BuildContext context) async {
   final services = AppServices.of(context);
+  Analytics.screen('account_sheet');
   final ok = await showModalBottomSheet<bool>(
     context: context,
     useSafeArea: true,
@@ -141,6 +147,7 @@ Future<bool> signOutFlow(BuildContext context) async {
     debugPrint('[auth] 로그아웃 흐름 시작');
     await services.leaveAccountLocally(); // RevenueCat logOut + 기기 캐시
     await services.auth.signOutToAnonymous(); // signOut → 새 익명 (attachAll 이 새 uid 로 RevenueCat logIn)
+    Analytics.log('logout');
     debugPrint('[auth] 로그아웃 완료');
     nav.popUntil((r) => r.isFirst);
     rootMessenger.showSnackBar(const SnackBar(content: Text('로그아웃했어요')));

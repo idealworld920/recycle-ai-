@@ -11,6 +11,7 @@ import '../places/external_links.dart';
 import '../premium/premium_gate.dart';
 import '../schedule/pickup_schedule.dart';
 import 'calendar_event.dart';
+import '../../core/analytics.dart';
 
 /// 기록 탭 [캘린더] 세그먼트. 월간 그리드 + 날짜 패널. 스와이프로 월 이동.
 class CalendarView extends StatefulWidget {
@@ -33,6 +34,12 @@ class _CalendarViewState extends State<CalendarView> {
     _month = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
     _pages = PageController(initialPage: _index(_month));
+    Analytics.log('calendar_view', {'month_offset': 0});
+  }
+
+  int _monthOffset(DateTime m) {
+    final now = DateTime.now();
+    return (m.year - now.year) * 12 + (m.month - now.month);
   }
 
   @override
@@ -71,7 +78,10 @@ class _CalendarViewState extends State<CalendarView> {
             height: 6 * 48,
             child: PageView.builder(
               controller: _pages,
-              onPageChanged: (i) => setState(() => _month = _monthAt(i)),
+              onPageChanged: (i) {
+                setState(() => _month = _monthAt(i));
+                Analytics.log('calendar_view', {'month_offset': _monthOffset(_month)});
+              },
               itemBuilder: (context, i) => _MonthGrid(
                 month: _monthAt(i),
                 selected: _selected,
@@ -329,7 +339,7 @@ class _DayPanel extends StatelessWidget {
   static Future<void> _addEvent(BuildContext context, DateTime day) async {
     final services = AppServices.of(context);
     if (!services.premium.isPremium) {
-      await ensurePremium(context, reason: '일정 추가는 프리미엄에서 열려요', source: PaywallSource.featureTap);
+      await ensurePremium(context, reason: '일정 추가는 프리미엄에서 열려요', source: PaywallSource.calendar);
       return;
     }
     if (!context.mounted) return;
@@ -387,6 +397,7 @@ Future<void> showAddEventSheet(BuildContext context, {required DateTime initialD
               onPressed: () async {
                 if (title.text.trim().isEmpty) return;
                 await AppServices.of(ctx).events.add(title: title.text, kind: kind, date: date, remind: remind);
+                Analytics.log('calendar_event_add', {'kind': kind.name, 'remind': remind});
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('추가'),

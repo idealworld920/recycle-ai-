@@ -10,6 +10,7 @@ import '../features/tips/tips_screen.dart';
 import 'capture_screen.dart';
 import 'guide_screen.dart';
 import 'home_screen.dart';
+import '../core/analytics.dart';
 
 /// 하단 탭: 홈 / 물어보기 / 팁 / 가이드 / 기록
 class HomeShell extends StatefulWidget {
@@ -40,7 +41,10 @@ class _HomeShellState extends State<HomeShell> {
     final action = AppActions.instance.pending.value;
     if (action == null) return;
     if (action.$1 == AppActions.openCamera && _index != 0) setState(() => _index = 0);
-    if (action.$1 == AppActions.openHistory && _index != 4) setState(() => _index = 4);
+    if (action.$1 == AppActions.openHistory && _index != 4) {
+      setState(() => _index = 4);
+      Analytics.log('history_view', {'from': 'notification'});
+    }
     if (action.$1 == AppActions.openCapture && action.$2 != _handledCapture) {
       _handledCapture = action.$2;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -75,7 +79,10 @@ class _HomeShellState extends State<HomeShell> {
         decoration: BoxDecoration(border: Border(top: BorderSide(color: context.colors.divider))),
         child: NavigationBar(
           selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
+          onDestinationSelected: (i) {
+            setState(() => _index = i);
+            if (i == 4) Analytics.log('history_view', {'from': 'tab'});
+          },
           destinations: const [
             NavigationDestination(icon: Icon(Symbols.home_rounded), selectedIcon: Icon(Symbols.home_rounded, fill: 1), label: '홈'),
             NavigationDestination(

@@ -10,6 +10,7 @@ import 'package:image_picker_platform_interface/image_picker_platform_interface.
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_services.dart';
+import 'core/analytics.dart';
 import 'core/boot_report.dart';
 import 'core/firebase_session.dart';
 import 'features/auth/auth_service.dart';
@@ -43,6 +44,7 @@ import 'features/stats/collection_store.dart';
 import 'features/tips/tips_repository.dart';
 import 'screens/home_shell.dart';
 import 'services/settings_store.dart';
+import 'core/analytics_user_props.dart';
 
 /// `--dart-define=DEMO=true` 로 빌드하면 스토어 스크린샷용 샘플 기록을 넣는다.
 const bool kDemoMode = bool.fromEnvironment('DEMO');
@@ -139,6 +141,22 @@ Future<void> _boot() async {
 
   attachAll();
   firebase.addListener(attachAll);
+  // Firebase 가 준비되면 수집 on/off(ANALYTICS_DISABLED) 반영.
+  firebase.addListener(() => unawaited(Analytics.configureCollection()));
+  // 사용자 속성: 앱 시작 + 값이 바뀔 때마다 (이메일·구 단위 지역은 보내지 않는다).
+  UserPropsSync(
+    listenables: [auth, premium, region, household, collection, settings, firebase],
+    read: () => UserProps.compute(
+      email: auth.email,
+      anonymous: auth.isAnonymous,
+      premiumStatus: premium.analyticsStatus,
+      regionSido: region.admin?.sidoShort,
+      inHousehold: household.active,
+      isOwner: household.isOwner,
+      collected: collection.collected,
+      installDays: settings.daysSinceInstall,
+    ),
+  ).start();
   // 구글 전환·로그아웃·삭제로 uid 가 바뀌면 저장소를 새 uid 에 다시 붙인다 (RevenueCat logIn 포함).
   auth.addListener(attachAll);
 
@@ -259,6 +277,7 @@ class RecycleApp extends StatefulWidget {
 }
 
 class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
+  final _analyticsObserver = AnalyticsNavigatorObserver();
   /// 시작 흐름: 스플래시 → (최초 실행이면) 온보딩 → 홈. 스플래시는 Firebase 를 기다리되 전체 3초 상한.
   _Phase _phase = _Phase.splash;
   SplashPlan? _plan;
@@ -269,6 +288,7 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
     super.initState();
     widget.settings.addListener(_onSettings);
     WidgetsBinding.instance.addObserver(this);
+    _reduceMotion = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
   }
 
   @override
@@ -282,6 +302,16 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) unawaited(widget.premium.refresh());
+  }
+
+  bool? _reduceMotion;
+
+  /// 시스템 "애니메이션 줄이기" 가 바뀌면 reduce_motion_toggle (앱엔 자체 토글이 없고 시스템 설정을 따른다).
+  @override
+  void didChangeAccessibilityFeatures() {
+    final on = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    if (_reduceMotion != null && _reduceMotion != on) Analytics.log('reduce_motion_toggle', {'on': on});
+    _reduceMotion = on;
   }
 
   /// 데이터 삭제로 온보딩 플래그가 지워지면 첫 실행처럼: 스플래시(긴 인트로) → 온보딩 1페이지.
@@ -335,6 +365,7 @@ class _RecycleAppState extends State<RecycleApp> with WidgetsBindingObserver {
         title: 'ReSAI',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        navigatorObservers: [_analyticsObserver],
         // 온보딩은 Firebase(익명 로그인)를 기다리지 않는다. 끝나면 홈 위에 카메라 화면을 바로 띄운다.
         home: Builder(
           builder: (context) => switch (_phase) {

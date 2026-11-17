@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'admin_region.dart';
 import 'region.dart';
+import '../../core/analytics.dart';
 
 /// 거주 지역. 위치 권한 없이 수동 선택.
 ///
@@ -44,6 +45,8 @@ class RegionStore extends ChangeNotifier {
 
   Future<void> selectAdmin(AdminSigungu? region) async {
     _admin = region;
+    // 시도명만 보낸다 (구 단위 금지).
+    if (region != null) Analytics.log('region_set', {'sido': region.sidoShort});
     if (region == null) {
       await _prefs.remove(codePrefKey);
       await _prefs.remove(prefKey);

@@ -8,9 +8,11 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import 'admin_region.dart';
 import 'region.dart';
+import '../../core/analytics.dart';
 
 /// 거주 지역 선택: 검색창 + 시/도 → 시/군/구 2단계. 고르면 저장하고 닫힌다.
 Future<void> showRegionPickerSheet(BuildContext context) {
+  Analytics.screen('region_picker');
   return showAppSheet(
     context,
     title: '거주 지역',

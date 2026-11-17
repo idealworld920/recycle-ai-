@@ -13,6 +13,7 @@ import '../premium/premium_gate.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/recycle_result.dart';
 import 'share_card.dart';
+import '../../core/analytics.dart';
 
 /// 결과 카드를 그려서 시스템 공유 시트(카카오톡 등)로 보낸다. 공유 횟수는 users/{uid}.shareCount 에 누적.
 class ShareService {
@@ -52,6 +53,7 @@ class ShareService {
         ));
       }
       if (r.status == ShareResultStatus.dismissed) return false;
+      Analytics.log('result_share', {'channel': shareChannel(r.raw)});
       // 공유 횟수 누적 (실패해도 조용히)
       unawaitedCount(services);
       // 3번째 공유: 프리미엄을 한 번 권한다 (조건이 맞을 때만).
@@ -67,6 +69,16 @@ class ShareService {
       }
       return false;
     }
+  }
+
+  /// 공유 대상 패키지명(share_plus raw) → kakao|sns|sms|copy|other. 패키지명 자체는 보내지 않는다.
+  static String shareChannel(String raw) {
+    final s = raw.toLowerCase();
+    if (s.contains('kakao')) return 'kakao';
+    if (s.contains('instagram') || s.contains('facebook') || s.contains('twitter') || s.contains('com.x.') || s.contains('threads')) return 'sns';
+    if (s.contains('mms') || s.contains('messaging') || s.contains('sms')) return 'sms';
+    if (s.contains('clipboard') || s.contains('copy')) return 'copy';
+    return 'other';
   }
 
   static void unawaitedCount(AppServices services) {

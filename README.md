@@ -427,6 +427,9 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 - **설정 → 계정**: 익명 "Google 계정으로 연결하기" + "기기를 바꿔도 기록을 이어서 볼 수 있어요" / 연결됨 이메일 + [로그아웃]. 기존 "AI 연결 / 익명 ID / API 키" 섹션은 제거.
 - 테스트: `test/link_flow_test.dart`(결과별 스낵바·전환 시트·로그아웃·시트 안 스낵바), `test/auth_errors_test.dart`, `test/onboarding_test.dart`(계정 페이지).
 
+### 사용 분석 + 인앱 리뷰 (1.2.1+18)
+`docs/analytics_events.md` 에 이벤트 전체 표·사용자 속성·DebugView 확인 순서·개인정보 체크리스트. 래퍼 `lib/core/analytics.dart`, 사용자 속성 `lib/core/analytics_user_props.dart`, 리뷰 `lib/features/review/review_prompter.dart`. 주요 이벤트(콘솔에서 직접 체크): `first_classify_done`, `classify_done`, `schedule_set`, `purchase_success`, `household_create`. 테스터 기기는 `--dart-define=ANALYTICS_DISABLED=true` 로 수집을 끌 수 있다.
+
 ### 구독 상태·가격·데이터 삭제 (1.2.0+17)
 - **구독 상태** (`lib/features/premium/subscription_status.dart`): RevenueCat `EntitlementInfo` 의 `willRenew`·`expirationDate`·`periodType` → 설정 프리미엄 카드 제목. 갱신 예정 "ReSAI 프리미엄 사용 중 · 12월 15일 갱신" / 체험 중 "7일 무료 체험 중 · 11월 22일부터 월 ₩2,900" / 해지 예정 "프리미엄 · 12월 15일까지 이용 가능 (해지 예정)"(탭 → Play 구독 관리) / 만료 → 비구독 카드. 포그라운드 복귀 시 `PremiumStore.refresh()`(캐시 무효화 + getCustomerInfo)로 즉시 반영.
 - **가격**: 하드코딩 전부 제거. 설정 카드·페이월은 `StoreProduct.priceString` 만 쓰고, 로딩 전엔 "가격 불러오는 중…", 실패하면 "가격을 불러오지 못했어요" + [다시 불러오기]. 연간 할인 배지는 두 가격으로 계산. 체험 자격(`freePhase` 오퍼 또는 `introductoryPrice`)이 있을 때만 "7일 무료로 시작" + "7일 무료 체험 후 {가격} 자동 갱신돼요". 오퍼링은 RevenueCat 설정 직후 미리 받는다.

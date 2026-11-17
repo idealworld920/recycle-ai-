@@ -8,6 +8,7 @@ import 'notification_service.dart';
 import 'pickup_schedule.dart';
 import 'schedule_repository.dart';
 import 'widget_service.dart';
+import '../../core/analytics.dart';
 
 /// 수거일 설정 + 오늘 체크인 상태. 홈 카드와 설정 시트가 구독한다.
 class ScheduleStore extends ChangeNotifier {
@@ -118,6 +119,10 @@ class ScheduleStore extends ChangeNotifier {
       await NotificationService.instance.requestPermission();
       await _repo.save(s);
       _schedule = s;
+      Analytics.log('schedule_set', {
+        'weekday_count': WasteType.values.fold<int>(0, (a, t) => a + s.daysOf(t).length),
+        'has_time': s.isConfigured,
+      });
       await NotificationService.instance.reschedule(s);
       await WidgetService.refreshNow(s);
       if (inHousehold) {
@@ -153,12 +158,13 @@ class ScheduleStore extends ChangeNotifier {
     }
   }
 
-  /// [버렸어요] 한 탭.
-  Future<void> checkIn(WasteType t) async {
+  /// [버렸어요] 한 탭. [source] 는 분석용 (home|notification|calendar).
+  Future<void> checkIn(WasteType t, {String source = 'home'}) async {
     _refreshDay();
     _checkins = {..._checkins, t};
     _checkinDates = {..._checkinDates, _today};
     notifyListeners();
+    Analytics.log('checkin_done', {'source': source});
     await _repo.checkIn(_today, t);
     if (inHousehold) await _household!.checkIn(t);
   }

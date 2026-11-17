@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../schedule/pickup_schedule.dart';
 import 'household_model.dart';
 import 'household_repository.dart';
+import '../../core/analytics.dart';
 
 /// 현재 사용자의 집. 수거일·체크인·프리미엄을 집 단위로 공유한다.
 class HouseholdStore extends ChangeNotifier {
@@ -105,17 +106,28 @@ class HouseholdStore extends ChangeNotifier {
       final h = await _repo.create(uid: uid, nickname: nickname);
       _household = h;
       _listen(h.id);
+      Analytics.log('household_create');
       return h;
     });
   }
 
   Future<void> join(String code, String nickname) async {
     if (_uid == null) throw const HouseholdException('로그인 상태가 아니에요.');
-    await _run(() async {
-      final id = await _repo.join(code: code, nickname: nickname);
-      await setFollowSchedule(true);
-      _listen(id);
-    });
+    Analytics.log('household_join_start');
+    try {
+      await _run(() async {
+        final id = await _repo.join(code: code, nickname: nickname);
+        await setFollowSchedule(true);
+        _listen(id);
+      });
+      Analytics.log('household_join_success');
+    } on HouseholdException catch (e) {
+      Analytics.log('household_join_fail', {'reason': joinFailReason(e.code)});
+      rethrow;
+    } catch (e) {
+      Analytics.log('household_join_fail', {'reason': 'network'});
+      rethrow;
+    }
   }
 
   Future<void> leave() async {
@@ -124,7 +136,17 @@ class HouseholdStore extends ChangeNotifier {
       await _repo.leave();
       await _detach();
     });
+    Analytics.log('household_leave');
   }
+
+  /// household_join_fail.reason: invalid|expired|full|network (Functions 오류 코드 기준).
+  static String joinFailReason(String? code) => switch (code) {
+        'not-found' || 'invalid-argument' => 'invalid',
+        'deadline-exceeded' => 'expired',
+        'resource-exhausted' => 'full',
+        'unavailable' || 'deadline' => 'network',
+        _ => 'invalid',
+      };
 
   Future<void> removeMember(String uid) => _run(() => _repo.removeMember(uid));
   Future<void> transferOwner(String uid) => _run(() => _repo.transferOwner(uid));

@@ -9,6 +9,7 @@ import '../../widgets/app_card.dart';
 import 'external_links.dart';
 import 'region.dart';
 import 'region_picker_sheet.dart';
+import '../../core/analytics.dart';
 
 /// 팁 탭 상단 "버리는 곳" 카드 3개: 대형폐기물 신고 / 폐의약품 수거함 / 아이스팩·폐건전지 수거처.
 class PlacesSection extends StatelessWidget {
@@ -80,7 +81,10 @@ class PlacesSection extends StatelessWidget {
           if (region.note.isNotEmpty) ...[const SizedBox(height: AppSpacing.sm), Text(region.note, style: ctx.text.bodySmall)],
           const SizedBox(height: AppSpacing.lg),
           FilledButton.icon(
-            onPressed: () => ExternalLinks.open(region.bulkySearchUrl),
+            onPressed: () {
+              Analytics.log('region_guide_tap', {'type': 'bulk_report'});
+              ExternalLinks.open(region.bulkySearchUrl);
+            },
             icon: const Icon(Symbols.open_in_new_rounded, size: 20),
             label: const Text('신고 페이지 찾기'),
           ),
@@ -144,7 +148,10 @@ class PlacesSection extends StatelessWidget {
             )
           else ...[
             FilledButton.icon(
-              onPressed: () => ExternalLinks.open(region.batterySearchUrl),
+              onPressed: () {
+                Analytics.log('region_guide_tap', {'type': 'collection_box'});
+                ExternalLinks.open(region.batterySearchUrl);
+              },
               icon: const Icon(Symbols.open_in_new_rounded, size: 20),
               label: Text('${region.sigungu} 수거함 안내 찾기'),
             ),

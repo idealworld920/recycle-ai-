@@ -142,6 +142,40 @@ class SettingsStore extends ChangeNotifier {
   bool get inFreeGrace => DateTime.now().difference(installedAt) < freeGrace;
 
   /// 내 데이터 삭제 시: 온보딩·동의·안내 플래그를 지워 처음 상태로.
+  // ---- 분석·리뷰용 카운터 ----
+  static const _counterPrefix = 'counter_';
+  static const _reviewPromptPref = 'review_prompt_at';
+  static const _bubbleLoggedPref = 'ribbong_bubble_logged_day';
+
+  int counter(String key) => _prefs.getInt('$_counterPrefix$key') ?? 0;
+
+  /// 1 올리고 새 값을 돌려준다.
+  Future<int> bump(String key) async {
+    final v = counter(key) + 1;
+    await _prefs.setInt('$_counterPrefix$key', v);
+    return v;
+  }
+
+  DateTime? get reviewPromptAt => DateTime.tryParse(_prefs.getString(_reviewPromptPref) ?? '');
+
+  Future<void> markReviewPrompted({Future<void> Function(Map<String, dynamic>)? remote}) async {
+    final now = DateTime.now();
+    await _prefs.setString(_reviewPromptPref, now.toIso8601String());
+    if (remote != null) {
+      try {
+        await remote({'reviewPromptAt': now.toIso8601String()});
+      } catch (_) {}
+    }
+  }
+
+  /// 홈 말풍선 노출 이벤트는 하루 1회만. 오늘 처음이면 true 를 돌려주고 기록한다.
+  Future<bool> claimDailyBubbleLog(DateTime now) async {
+    final key = '${now.year}-${now.month}-${now.day}';
+    if (_prefs.getString(_bubbleLoggedPref) == key) return false;
+    await _prefs.setString(_bubbleLoggedPref, key);
+    return true;
+  }
+
   Future<void> resetAll() async {
     for (final k in _prefs.getKeys().toList()) {
       await _prefs.remove(k);

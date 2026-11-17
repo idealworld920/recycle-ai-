@@ -22,9 +22,11 @@ import '../features/schedule/pickup_schedule.dart';
 import '../features/schedule/schedule_settings_sheet.dart';
 import '../widgets/app_card.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../core/analytics.dart';
 
 /// 설정 바텀시트. 프리미엄·집·지역·수거일·계정·약관·앱 정보.
 Future<void> showSettingsSheet(BuildContext context) {
+  Analytics.screen('settings');
   final services = AppServices.of(context);
   final session = services.firebase;
   final region = services.region;
@@ -77,6 +79,7 @@ Future<void> showSettingsSheet(BuildContext context) {
                   onTap: () {
                     Navigator.pop(ctx);
                     if (p.source == PremiumSource.own && st.phase == SubscriptionPhase.cancelled) {
+                      Analytics.log('manage_subscription_tap', {'from': 'settings_card'});
                       ExternalLinks.open(PremiumConfig.manageUrl(p.productId));
                     } else if (p.isPremium) {
                       showPremiumSheet(context);

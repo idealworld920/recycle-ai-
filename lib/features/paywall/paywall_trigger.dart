@@ -38,6 +38,9 @@ class PaywallTrigger {
     final last = lastShown(source);
     switch (source) {
       case PaywallSource.featureTap:
+      case PaywallSource.household:
+      case PaywallSource.calendar:
+      case PaywallSource.multi:
       case PaywallSource.guide7:
         return true;
       case PaywallSource.limitHit:

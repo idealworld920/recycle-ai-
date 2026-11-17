@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/auth_errors.dart';
 import '../auth/link_flows.dart';
+import '../../core/analytics.dart';
 
 /// 온보딩 4페이지: 계정 선택. [Google로 시작하기] 또는 "나중에 할게요"(익명으로 진행). 리뿅이 없음, 표준 존댓말.
 class AccountPage extends StatefulWidget {
@@ -43,7 +44,10 @@ class _AccountPageState extends State<AccountPage> {
         return;
       }
       final ok = await connectGoogle(context);
-      if (ok && mounted) widget.onDone();
+      if (ok && mounted) {
+        Analytics.log('onboarding_complete', {'auth_choice': 'google'});
+        widget.onDone();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -77,7 +81,12 @@ class _AccountPageState extends State<AccountPage> {
           const SizedBox(height: AppSpacing.sm),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: c.textSecondary, minimumSize: const Size.fromHeight(44)),
-            onPressed: _busy ? null : widget.onDone,
+            onPressed: _busy
+                ? null
+                : () {
+                    Analytics.log('onboarding_complete', {'auth_choice': 'skip'});
+                    widget.onDone();
+                  },
             child: const Text(AccountPage.laterLabel),
           ),
           const SizedBox(height: AppSpacing.md),

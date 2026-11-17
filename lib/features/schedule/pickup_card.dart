@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -12,6 +13,7 @@ import '../household/household_model.dart';
 import 'pickup_schedule.dart';
 import 'schedule_settings_sheet.dart';
 import 'schedule_store.dart';
+import '../review/review_prompter.dart';
 
 /// 홈 상단 수거일 카드.
 /// 설정 전 → 설정 버튼 / 오늘 수거일 → 큰 카드 + [버렸어요] / 그 외 → 가까운 수거일 3개.
@@ -107,7 +109,8 @@ class _TodayCard extends StatelessWidget {
           for (var i = 0; i < types.length; i++) ...[
             _CheckRow(type: types[i], checked: store.isChecked(types[i]), member: store.memberCheckins[types[i]], onCheck: () async {
               HapticFeedback.mediumImpact();
-              await store.checkIn(types[i]);
+              await store.checkIn(types[i], source: 'home');
+              if (context.mounted) unawaited(ReviewPrompter.afterCheckin(context));
               // 3주 연속 달성 순간: 프리미엄을 한 번 권한다 (조건이 맞을 때만).
               if (context.mounted && store.streak(DateTime.now()).weeks >= 3 && !AppServices.of(context).premium.isPremium) {
                 await maybeShowPaywall(context, source: PaywallSource.streak3, reason: '3주 연속 체크! 가족과 같이 하면 더 꾸준해져요.');
