@@ -22,6 +22,13 @@ class SettingsStore extends ChangeNotifier {
 
   static Future<SettingsStore> load() async {
     final s = SettingsStore(await SharedPreferences.getInstance());
+    // 온보딩 이관: 온보딩이 없던 버전(1.0.x)부터 쓰던 사람은 기록·수거일·지역 같은 "실제 사용 흔적" 이 있다.
+    // 완료 플래그가 아예 없고 흔적이 있으면 완료로 본다. (installedAt 을 쓰기 전에 판단해야 흔적이 오염되지 않는다)
+    if (s._prefs.getBool(onboardingDonePref) == null && s._prefs.getBool(_legacyOnboardedPref) == null && hasPriorUsage(s._prefs)) {
+      await s._prefs.setBool(onboardingDonePref, true);
+      await s._prefs.setBool(_migratedPref, true);
+      s.migratedThisLaunch = true;
+    }
     if (s._prefs.getString(_installedAtPref) == null) {
       await s._prefs.setString(_installedAtPref, DateTime.now().toIso8601String());
     }
@@ -29,6 +36,27 @@ class SettingsStore extends ChangeNotifier {
   }
 
   // ---- 온보딩 ----
+  static const _migratedPref = 'onboarding_migrated_v1';
+
+  /// 이번 실행에서 이관됐으면 true (main 이 `onboarding_migrated` 이벤트를 남긴다).
+  bool migratedThisLaunch = false;
+
+  /// 이전에 앱을 실제로 썼다는 흔적. 비어 있는 새 설치에는 하나도 없다.
+  /// (installed_at·last_opened_at·prev_opened_at 은 온보딩을 끝내기 전에도 생기므로 넣지 않는다)
+  static bool hasPriorUsage(SharedPreferences p) {
+    bool nonEmptyList(String k) => (p.getStringList(k) ?? const []).isNotEmpty;
+    if (nonEmptyList('history_v2')) return true;
+    if (nonEmptyList('collection_v1')) return true;
+    if (nonEmptyList('pickup_checkin_dates_v1')) return true;
+    for (final k in const ['pickup_schedule_v1', 'region_v1', 'region_code_v2', 'reminder_tips_used', 'feedback_overrides', 'review_premium_until', 'firstClassifyDone', 'guide_dismissed']) {
+      if (p.containsKey(k)) return true;
+    }
+    for (final k in p.getKeys()) {
+      if (k.startsWith('consent_') || k.startsWith('free_classify_') || k.startsWith('paywall_') || k.startsWith('counter_')) return true;
+    }
+    return false;
+  }
+
   bool get onboarded => _prefs.getBool(onboardingDonePref) ?? _prefs.getBool(_legacyOnboardedPref) ?? false;
 
   Future<void> setOnboarded(bool value) async {
@@ -198,6 +226,8 @@ class SettingsStore extends ChangeNotifier {
       await _prefs.remove(k);
     }
     await _prefs.setString(_installedAtPref, DateTime.now().toIso8601String());
+    // 데이터 삭제 뒤엔 온보딩을 다시 봐야 한다: 이관 로직이 "플래그 없음" 으로 오해하지 않게 명시적으로 false.
+    await _prefs.setBool(onboardingDonePref, false);
   }
 
   void notifyReset() => notifyListeners();

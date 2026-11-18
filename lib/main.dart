@@ -179,6 +179,10 @@ Future<void> _boot() async {
   void attachAll() {
     if (!firebase.ready || firebase.uid == attachedUid) return;
     attachedUid = firebase.uid;
+    if (settings.migratedThisLaunch) {
+      settings.migratedThisLaunch = false;
+      Analytics.log('onboarding_migrated'); // 1.3.1: 온보딩 없던 버전에서 온 사용자를 완료로 이관
+    }
     schedule.attachUser(firebase.uid);
     history.attachUser(firebase.uid);
     collection.attachUser(firebase.uid);

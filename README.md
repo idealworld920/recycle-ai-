@@ -365,6 +365,8 @@ Firestore `users/{uid}.premium` 은 `functions/index.js` 의 RevenueCat 웹훅�
 
 ## 온보딩 (최초 실행 1회)
 
+> **1.3.1 이관**: 완료 플래그(`onboardingDone`/`onboarded_v1`)가 없어도 기록·수거일·지역·도감·동의 같은 사용 흔적이 있으면 `SettingsStore.load()` 가 완료로 표시한다(온보딩이 없던 1.0.x 사용자). `installed_at`·`last/prev_opened_at` 만 있는 경우(온보딩 중 재실행)는 제외. 데이터 삭제는 `onboardingDone=false` 를 명시해 다시 보게 한다.
+
 `lib/features/onboarding/` — `onboarding_screen.dart`(흐름) · `intro_animation.dart`(말풍선) · `pages.dart`(1·2페이지 목업) · `consent_sheet.dart`(동의).
 완료 여부는 shared_preferences `onboardingDone`. 인트로 단계는 없다(스플래시가 맡는다). 권한·로그인·지역·수거일은 온보딩에서 묻지 않는다. 페이지 점 3개, 전환 200ms.
 
