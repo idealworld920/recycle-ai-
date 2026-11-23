@@ -39,7 +39,35 @@ void main() {
       await store.selectAdmin(admin.byCode('11680'));
       expect(saved, {'sido': '서울특별시', 'sigungu': '강남구', 'code': '11680'});
       expect((await SharedPreferences.getInstance()).getString(RegionStore.codePrefKey), '11680');
-      expect(store.selected, isNull, reason: '예전 링크 데이터에 없는 지역이면 null');
+      // 예전 링크 데이터에 없는 지역: 행정구역 정보로 만든 검색 링크 (null 이 아니어야 "버리는 곳" 이 지역을 인식한다)
+      final fb = store.selected;
+      expect(fb, isNotNull);
+      expect(fb!.sigungu, '강남구');
+      expect(fb.bulkySearchUrl, contains(Uri.encodeQueryComponent('서울 강남구 대형폐기물 배출 신고')));
+      expect(store.hasCuratedLinks, isFalse);
+    });
+
+    test('시도명이 다른 옛 데이터(전남·광주)도 새 통합 시도(전남광주)와 매칭되고, 없는 시·군은 이름만으로 검색한다', () async {
+      SharedPreferences.setMockInitialValues({});
+      final legacy = RegionRepository.fromJsonString('{"items":[{"id":"광주_북구","sido":"광주","sigungu":"북구","name":"광주 북구","siteUrl":"https://bukgu.gwangju.kr","bulkySearchUrl":"https://curated","batterySearchUrl":"https://y"}]}');
+      final store = RegionStore(await SharedPreferences.getInstance(), legacy, admin: admin);
+      final mokpo = admin.all.where((a) => a.name == '목포시').firstOrNull;
+      final buk = admin.all.where((a) => a.name == '북구' && a.sidoShort.contains('광주')).firstOrNull;
+      if (mokpo != null) {
+        await store.selectAdmin(mokpo);
+        final r = store.selected!;
+        expect(r.sigungu, '목포시');
+        expect(r.bulkySearchUrl, contains(Uri.encodeQueryComponent('목포시 대형폐기물 배출 신고')));
+        expect(r.siteUrl, startsWith('https://'));
+        expect(store.hasCuratedLinks, isFalse);
+      }
+      if (buk != null) {
+        await store.selectAdmin(buk);
+        expect(store.selected!.bulkySearchUrl, 'https://curated');
+        expect(store.hasCuratedLinks, isTrue);
+      }
+      // 옛 이름 기반 저장값 이관도 느슨한 시도 비교를 쓴다
+      expect(Region.sidoMatches('전남', mokpo ?? admin.all.first), mokpo != null);
     });
 
     test('서버 값은 기기에 없을 때만 받아온다', () async {

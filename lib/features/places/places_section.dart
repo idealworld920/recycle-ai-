@@ -23,6 +23,7 @@ class PlacesSection extends StatelessWidget {
       listenable: store,
       builder: (context, _) {
         final region = store.selected;
+        final label = store.admin?.name ?? region?.name;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -32,7 +33,7 @@ class PlacesSection extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => showRegionPickerSheet(context),
                   icon: const Icon(Symbols.location_on_rounded, size: 18),
-                  label: Text(region?.name ?? '지역 선택'),
+                  label: Text(label ?? '지역 선택'),
                 ),
               ],
             ),
@@ -40,7 +41,7 @@ class PlacesSection extends StatelessWidget {
             _PlaceCard(
               icon: Symbols.weekend_rounded,
               title: '대형폐기물 신고',
-              subtitle: region == null ? '지역을 고르면 신고 페이지로 바로 연결돼요' : '${region.name} 신고 페이지 열기',
+              subtitle: region == null ? '지역을 고르면 신고 페이지로 바로 연결돼요' : '${region.sigungu} 신고 페이지 열기',
               onTap: () => _openBulky(context, region),
             ),
             const SizedBox(height: AppSpacing.sm),

@@ -37,8 +37,16 @@ class RegionStore extends ChangeNotifier {
   bool get isSet => _admin != null;
   String get displayName => _admin?.displayName ?? '지역을 선택하세요';
 
-  /// 대형폐기물·수거함 링크용 예전 지역 레코드. 없는 지역이면 null.
-  Region? get selected => _admin == null ? null : repository.all.where((r) => r.sido == _admin!.sidoShort && r.sigungu == _admin!.name).firstOrNull;
+  /// 대형폐기물·수거함 링크용 지역 레코드. 옛 링크 데이터에 있으면 그것(시도명은 느슨하게 비교),
+  /// 없으면 행정구역 정보로 만든 검색 링크([Region.fallbackFor]). 지역을 골랐다면 null 이 아니다.
+  Region? get selected {
+    final a = _admin;
+    if (a == null) return null;
+    return repository.all.where((r) => r.sigungu == a.name && Region.sidoMatches(r.sido, a)).firstOrNull ?? Region.fallbackFor(a);
+  }
+
+  /// 옛 링크 데이터에 실제로 있는 지역인가 (검색 링크 대신 확인된 링크가 있음).
+  bool get hasCuratedLinks => _admin != null && repository.all.any((r) => r.sigungu == _admin!.name && Region.sidoMatches(r.sido, _admin!));
 
   static Future<RegionStore> load(RegionRepository repo, {AdminRegionRepository? admin}) async =>
       RegionStore(await SharedPreferences.getInstance(), repo, admin: admin);
@@ -78,5 +86,5 @@ class RegionStore extends ChangeNotifier {
   }
 
   AdminSigungu? _findAdmin(String sidoShort, String sigungu) =>
-      adminRepository.all.where((a) => a.sidoShort == sidoShort && a.name == sigungu).firstOrNull;
+      adminRepository.all.where((a) => a.name == sigungu && Region.sidoMatches(sidoShort, a)).firstOrNull;
 }
